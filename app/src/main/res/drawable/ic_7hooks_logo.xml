@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="80dp"
+    android:viewportWidth="240"
+    android:viewportHeight="80">
+    <!-- 7Hooks Brand Vector Emblem -->
+    <!-- Stylized 7 Hook in cyan/navy/orange -->
+    <path
+        android:pathData="M20,16 L65,16 C67.5,16 69,18.5 68.2,20.8 L53,62 C51.5,66 47,68 43,66.5 C39,65 37,60.5 38.5,56.5 L49,27 L20,27 C17.8,27 16,25.2 16,23 C16,20.8 17.8,16 20,16 Z"
+        android:fillColor="#0284C7" />
+    <path
+        android:pathData="M37,32 C37,32 29,39 29,48 C29,58 37,66 47,66 C57,66 65,58 65,48 C65,46 63.5,44.5 61.5,44.5 C59.5,44.5 58,46 58,48 C58,54 53,59 47,59 C41,59 36,54 36,48 C36,42 41,37 47,37 C49,37 50.5,35.5 50.5,33.5 C50.5,31.5 49,30 47,30 C37,30 37,32 37,32 Z"
+        android:fillColor="#EA580C" />
+    <path
+        android:pathData="M65,47 L71,41 L67,52 Z"
+        android:fillColor="#EA580C" />
+    <path
+        android:pathData="M24,21.5m-3.5,0a3.5,3.5 0 1,0 7,0a3.5,3.5 0 1,0 -7,0"
+        android:fillColor="#0F172A" />
+    <path
+        android:pathData="M24,21.5m-2,0a2,2 0 1,0 4,0a2,2 0 1,0 -4,0"
+        android:fillColor="#FFFFFF" />
+
+    <!-- 7HOOKS wordmark vectors -->
+    <!-- 7 -->
+    <path
+        android:pathData="M80,24 L102,24 L91,56 L83,56 L93,31 L80,31 Z"
+        android:fillColor="#0F172A" />
+    <!-- H -->
+    <path
+        android:pathData="M107,24 L114,24 L114,37 L124,37 L124,24 L131,24 L131,56 L124,56 L124,43 L114,43 L114,56 L107,56 Z"
+        android:fillColor="#0F172A" />
+    <!-- O -->
+    <path
+        android:pathData="M135,40 C135,30 142,23 151,23 C160,23 167,30 167,40 C167,50 160,57 151,57 C142,57 135,50 135,40 Z M142,40 C142,46 146,51 151,51 C156,51 160,46 160,40 C160,34 156,29 151,29 C146,29 142,34 142,40 Z"
+        android:fillColor="#0F172A" />
+    <!-- O -->
+    <path
+        android:pathData="M171,40 C171,30 178,23 187,23 C196,23 203,30 203,40 C203,50 196,57 187,57 C178,57 171,50 171,40 Z M178,40 C178,46 182,51 187,51 C192,51 196,46 196,40 C196,34 192,29 187,29 C182,29 178,34 178,40 Z"
+        android:fillColor="#0F172A" />
+    <!-- K -->
+    <path
+        android:pathData="M207,24 L214,24 L214,37 L223,24 L232,24 L220,40 L233,56 L224,56 L214,43 L214,56 L207,56 Z"
+        android:fillColor="#0F172A" />
+    <!-- S -->
+    <path
+        android:pathData="M236,50 C237,54 240,56 244,56 C248,56 250,54 250,51 C250,47 247,46 242,44 C236,42 234,39 234,35 C234,28 240,23 248,23 C254,23 259,27 260,32 L254,34 C253,30 251,29 248,29 C244,29 241,31 241,34 C241,37 243,38 248,40 C254,42 257,44 257,49 C257,56 251,61 243,61 C236,61 231,56 230,50 Z"
+        android:fillColor="#0F172A" />
+</vector>

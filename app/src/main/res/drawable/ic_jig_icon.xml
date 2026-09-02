@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Fishing Jig Vector Icon -->
+    <!-- Line tie eyelet -->
+    <path
+        android:pathData="M24,4m-2.5,0a2.5,2.5 0 1,0 5,0a2.5,2.5 0 1,0 -5,0"
+        android:strokeWidth="1.5"
+        android:strokeColor="#0284C7"
+        android:fillColor="#00000000" />
+    <!-- Jig metal body -->
+    <path
+        android:pathData="M24,7 C26,10 29,17 29,26 C29,35 26,40 24,42 C22,40 19,35 19,26 C19,17 22,10 24,7 Z"
+        android:fillColor="#0284C7" />
+    <!-- Ridge accent & facets -->
+    <path
+        android:pathData="M24,7 L24,42"
+        android:strokeWidth="1.2"
+        android:strokeColor="#38BDF8" />
+    <!-- Holographic slash lines -->
+    <path
+        android:pathData="M21,17 L27,15 M20,24 L28,21 M20,31 L28,28"
+        android:strokeWidth="1.0"
+        android:strokeColor="#F97316" />
+    <!-- 3D Lure eye -->
+    <path
+        android:pathData="M22,12m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0"
+        android:fillColor="#FFFFFF" />
+    <path
+        android:pathData="M22,12m-0.8,0a0.8,0.8 0 1,0 1.6,0a0.8,0.8 0 1,0 -1.6,0"
+        android:fillColor="#0F172A" />
+    <!-- Bottom assist eyelet -->
+    <path
+        android:pathData="M24,44m-2,0a2,2 0 1,0 4,0a2,2 0 1,0 -4,0"
+        android:strokeWidth="1.2"
+        android:strokeColor="#0284C7"
+        android:fillColor="#00000000" />
+</vector>
