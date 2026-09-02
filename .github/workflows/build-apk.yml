@@ -22,11 +22,13 @@ jobs:
     - name: Set up Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Generate Gradle Wrapper
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gradle
-        gradle wrapper
+    - name: Setup Modern Gradle
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: '8.7'
+
+    - name: Generate Gradle 8.7 Wrapper
+      run: gradle wrapper --gradle-version 8.7
 
     - name: Make Gradlew Executable
       run: chmod +x ./gradlew
@@ -38,4 +40,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: 7Hooks-Debug-APK
-        path: "app/build/outputs/apk/debug/*.apk"
+        path: "**/build/outputs/apk/debug/*.apk"
