@@ -90,10 +90,10 @@ object PdfGenerator {
             }
             canvas.drawLine(40f, 130f, (PAGE_WIDTH - 40).toFloat(), 130f, dividerPaint)
 
-            // 3. ENGINEERING CAD DRAWING SECTION
-            val drawingBoxTop = 140f
-            val drawingBoxHeight = 270f
-            drawEngineeringDrawingFrame(canvas, 40f, drawingBoxTop, (PAGE_WIDTH - 80).toFloat(), drawingBoxHeight, "TECHNICAL DRAWING & DIMENSIONAL PROJECTION")
+            // 3. ENGINEERING CAD DRAWING SECTION (Orthographic Views + CAD Frame)
+            val drawingBoxTop = 138f
+            val drawingBoxHeight = 246f
+            drawEngineeringDrawingFrame(canvas, 40f, drawingBoxTop, (PAGE_WIDTH - 80).toFloat(), drawingBoxHeight, "CAD SCHEMATIC — ORTHOGRAPHIC PROJECTIONS (ELEVATION + PLAN + END VIEW)")
             
             // Draw CAD Drawing of the Jig
             drawJigCadDrawing(
@@ -106,40 +106,58 @@ object PdfGenerator {
             )
 
             // 4. TECHNICAL SPECIFICATIONS TABLE
-            val tableTop = drawingBoxTop + drawingBoxHeight + 15f
-            drawSectionHeader(canvas, 40f, tableTop, "TECHNICAL SPECIFICATIONS")
+            val tableTop = drawingBoxTop + drawingBoxHeight + 12f
+            drawSectionHeader(canvas, 40f, tableTop, "DETAILED MANUFACTURING SPECIFICATIONS")
 
             val specs = listOf(
-                "Product Name" to config.productName,
-                "Model Number" to config.modelNumber,
-                "Category / Action" to config.category,
-                "Primary Material" to config.material,
-                "Target Weight" to "${config.weightGrams.toInt()} g (±0.5g tolerance)",
-                "Overall Length" to "${config.lengthMm.toInt()} mm",
-                "Max Body Width" to "${config.widthMm.toInt()} mm",
-                "Color Theme" to config.colorName,
-                "Eyelet Construction" to "Integrated Solid Stainless Steel Through-Wire (1.2mm)",
-                "Surface Treatment" to "Multi-layer UV Luminous & Holographic Hard Coat"
+                "Product & Model" to "${config.productName} (${config.modelNumber})",
+                "Body Hydrofoil Shape" to "${config.shape} Head / Aerodynamic Keel Profile",
+                "Primary Material & Grade" to "${config.material} (${config.densityGrade})",
+                "Finished Target Mass" to "${config.weightGrams.toInt()} g (Tolerance: ${config.weightTolerance})",
+                "Enveloping Dimensions" to "${config.lengthMm.toInt()} mm (L) × ${config.widthMm.toInt()} mm (W) × ${config.heightMm.toInt()} mm (H)",
+                "Color Theme & Optical Finish" to "${config.colorName} • ${config.finishType} (${config.coating})",
+                "Surface Pattern & Texture" to config.patternName,
+                "Eye Specification" to "${config.eyeStyle} Dome Eye (${config.eyeShape} Pupil)",
+                "Hook & Rigging Assembly" to "${config.hookSize} ${config.hookLevel} (${config.hookStyle})",
+                "Additional Component" to config.additionalComponent,
+                "Special Feature Layers" to listOfNotNull(
+                    if (config.hasGlow) "Phosphorescent Glow" else null,
+                    if (config.hasUvReactive) "UV Reactive" else null,
+                    if (config.hasRattle) "Acoustic Rattle" else null,
+                    if (config.hasWeedGuard) "Fiber Weed Guard" else null
+                ).ifEmpty { listOf("None") }.joinToString(", ")
             )
 
-            drawTable(canvas, 40f, tableTop + 15f, (PAGE_WIDTH - 80).toFloat(), specs)
+            drawTable(canvas, 40f, tableTop + 14f, (PAGE_WIDTH - 80).toFloat(), specs)
 
-            // 5. MANUFACTURING & PRODUCT NOTES
-            val notesTop = tableTop + 15f + (specs.size * 18f) + 20f
+            // 5. MANUFACTURING NOTES & TOLERANCE STATEMENT
+            val notesTop = tableTop + 14f + (specs.size * 18f) + 10f
             drawSectionHeader(canvas, 40f, notesTop, "MANUFACTURING & QUALITY CONTROL NOTES")
 
             val bodyPaint = Paint().apply {
-                color = Color.rgb(51, 65, 85) // Slate 700
-                textSize = 8.5f
+                color = Color.rgb(51, 65, 85)
+                textSize = 7.5f
                 typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
                 isAntiAlias = true
             }
-            canvas.drawText("• Precision hydrodynamic balance optimized for rapid vertical descent and high-frequency flutter on retrieve.", 40f, notesTop + 16f, bodyPaint)
-            canvas.drawText("• Center of gravity weighted 60/40 rear-bias for aerodynamic long-distance casting and strike triggering.", 40f, notesTop + 28f, bodyPaint)
-            canvas.drawText("• Saltwater corrosion resistance: 500-hour ASTM B117 salt-spray tested without degradation.", 40f, notesTop + 40f, bodyPaint)
-            canvas.drawText("• Configuration certified for automated CNC die casting and robotized electrostatic lacquer application.", 40f, notesTop + 52f, bodyPaint)
+            canvas.drawText("1. Continuous 304 Stainless Steel through-wire harness (Ø1.2mm) welded for minimum 45kg proof load.", 40f, notesTop + 13f, bodyPaint)
+            canvas.drawText("2. Center of gravity calibrated with rear-bias weighting for high-speed vertical flutter and balance.", 40f, notesTop + 23f, bodyPaint)
+            canvas.drawText("3. Surface finish: Robotized electrostatic basecoat + multi-stage UV marine lacquer (${config.coatingThickness}).", 40f, notesTop + 33f, bodyPaint)
+            canvas.drawText("4. NOTICE: Tolerances unspecified in CAD default to factory standard (Linear: ${config.generalTolerance}, Mass: ${config.weightTolerance}). Mold draft angles to be verified by tooling vendor.", 40f, notesTop + 43f, bodyPaint)
 
-            // 6. FOOTER
+            // 6. PROFESSIONAL MANUFACTURING TITLE BLOCK (ISO Standard)
+            val titleBlockTop = notesTop + 52f
+            val titleBlockHeight = 88f
+            drawProfessionalManufacturingTitleBlock(
+                canvas = canvas,
+                x = 40f,
+                y = titleBlockTop,
+                width = (PAGE_WIDTH - 80).toFloat(),
+                height = titleBlockHeight,
+                config = config
+            )
+
+            // 7. FOOTER
             drawDocumentFooter(canvas, config.referenceNumber)
 
             document.finishPage(page)
@@ -353,9 +371,9 @@ object PdfGenerator {
             canvas.drawLine(40f, 130f, (PAGE_WIDTH - 40).toFloat(), 130f, dividerPaint)
 
             // 3. ENGINEERING CAD DRAWING SECTION
-            val drawingBoxTop = 140f
-            val drawingBoxHeight = 270f
-            drawEngineeringDrawingFrame(canvas, 40f, drawingBoxTop, (PAGE_WIDTH - 80).toFloat(), drawingBoxHeight, "CAD SCHEMATIC & HYDRODYNAMIC PROJECTION")
+            val drawingBoxTop = 138f
+            val drawingBoxHeight = 246f
+            drawEngineeringDrawingFrame(canvas, 40f, drawingBoxTop, (PAGE_WIDTH - 80).toFloat(), drawingBoxHeight, "CAD SCHEMATIC — ORTHOGRAPHIC PROJECTIONS (ELEVATION + PLAN + END VIEW)")
 
             drawLureCadDrawing(
                 canvas = canvas,
@@ -367,38 +385,57 @@ object PdfGenerator {
             )
 
             // 4. TECHNICAL SPECIFICATIONS TABLE
-            val tableTop = drawingBoxTop + drawingBoxHeight + 15f
-            drawSectionHeader(canvas, 40f, tableTop, "TECHNICAL SPECIFICATIONS")
+            val tableTop = drawingBoxTop + drawingBoxHeight + 12f
+            drawSectionHeader(canvas, 40f, tableTop, "DETAILED MANUFACTURING SPECIFICATIONS")
 
             val specs = listOf(
-                "Product Name" to config.productName,
-                "Model Number" to config.modelNumber,
-                "Lure Category" to config.category,
-                "Body Material" to config.material,
-                "Target Weight" to "${String.format(Locale.US, "%.1f", config.weightGrams)} g (±0.5g tolerance)",
-                "Overall Length" to "${config.lengthMm.toInt()} mm",
-                "Max Body Width" to "${config.widthMm.toInt()} mm",
-                "Color Theme" to config.colorName,
-                "Diving Depth" to "${String.format(Locale.US, "%.1f", config.divingDepthMeters)} meters",
-                "Hook Assembly" to config.hookType.ifEmpty { "#4 BKK Heavy Treble" },
-                "Buoyancy Action" to config.buoyancy.ifEmpty { "Suspending" }
+                "Product & Model" to "${config.productName} (${config.modelNumber})",
+                "Lure Hydrofoil Class" to "${config.shape} • ${config.buoyancy}",
+                "Body Material & Grade" to "${config.material} (${config.densityGrade})",
+                "Target Weight" to "${String.format(Locale.US, "%.1f", config.weightGrams)} g (Tolerance: ${config.weightTolerance})",
+                "Dimensions & Depth" to "${config.lengthMm.toInt()}L × ${config.widthMm.toInt()}W mm | Diving: ${String.format(Locale.US, "%.1f", config.divingDepthMeters)}m",
+                "Color Theme & Finish" to "${config.colorName} • ${config.finishType} (${config.coating})",
+                "Surface Pattern & Texture" to config.patternName,
+                "Eye Specification" to "${config.eyeStyle} Dome Eye (${config.eyeShape} Pupil)",
+                "Hook & Rigging Hardware" to "${config.hookQuantity}x ${config.hookSize} (${config.hookType})",
+                "Buoyancy & Hydro Balance" to "${config.buoyancy} (Neutral Center-of-Gravity)",
+                "Acoustics & Lighting" to listOfNotNull(
+                    if (config.hasRattle) "Tungsten Acoustic Rattle" else null,
+                    if (config.hasGlow) "Phosphorescent Glow" else null,
+                    if (config.hasUvReactive) "UV Reactive Coat" else null
+                ).ifEmpty { listOf("Standard Non-Acoustic") }.joinToString(", ")
             )
 
-            drawTable(canvas, 40f, tableTop + 15f, (PAGE_WIDTH - 80).toFloat(), specs)
+            drawTable(canvas, 40f, tableTop + 14f, (PAGE_WIDTH - 80).toFloat(), specs)
 
-            // 5. MANUFACTURING TOLERANCES
-            val tolTop = tableTop + 15f + (specs.size * 18f) + 15f
-            drawSectionHeader(canvas, 40f, tolTop, "MANUFACTURING TOLERANCES & HYDRODYNAMICS")
+            // 5. MANUFACTURING NOTES & TOLERANCE STATEMENT
+            val notesTop = tableTop + 14f + (specs.size * 18f) + 10f
+            drawSectionHeader(canvas, 40f, notesTop, "MANUFACTURING & QUALITY CONTROL NOTES")
 
-            val tolerances = listOf(
-                "Dimensional Tolerance" to "±0.15 mm (CNC Resin / ABS Injection)",
-                "Weight Accuracy" to "±0.50 grams (Tungsten internal weight balance)",
-                "Hardware Grade" to "Heavy-Duty Stainless Steel Split Rings & Wire-Through Keel",
-                "Finish Application" to "Multi-Layer UV High-Gloss Automotive Topcoat"
+            val bodyPaint = Paint().apply {
+                color = Color.rgb(51, 65, 85)
+                textSize = 7.5f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+                isAntiAlias = true
+            }
+            canvas.drawText("1. Ultrasonic body seam weld tested under 0.8 MPa pneumatic pressure for watertight integrity.", 40f, notesTop + 13f, bodyPaint)
+            canvas.drawText("2. Internal tungsten transfer weight chamber configured for extended casting trajectory and hydrodynamic pitch.", 40f, notesTop + 23f, bodyPaint)
+            canvas.drawText("3. Surface protective coating: Automated electrostatic basecoat + UV marine topcoat (${config.coatingThickness}).", 40f, notesTop + 33f, bodyPaint)
+            canvas.drawText("4. NOTICE: General Linear Tolerance: ${config.generalTolerance}. Finished Mass Tolerance: ${config.weightTolerance}. Tooling parting lines to be confirmed by manufacturer.", 40f, notesTop + 43f, bodyPaint)
+
+            // 6. PROFESSIONAL TITLE BLOCK (ISO Standard)
+            val titleBlockTop = notesTop + 52f
+            val titleBlockHeight = 88f
+            drawProfessionalManufacturingTitleBlock(
+                canvas = canvas,
+                x = 40f,
+                y = titleBlockTop,
+                width = (PAGE_WIDTH - 80).toFloat(),
+                height = titleBlockHeight,
+                config = config
             )
-            drawTable(canvas, 40f, tolTop + 15f, (PAGE_WIDTH - 80).toFloat(), tolerances)
 
-            // 6. FOOTER
+            // 7. FOOTER
             drawDocumentFooter(canvas, config.referenceNumber)
 
             document.finishPage(page)
@@ -728,113 +765,257 @@ object PdfGenerator {
         canvas.drawText(title, x + 8f, y + 11.5f, tagText)
     }
 
-    private fun drawJigCadDrawing(canvas: Canvas, boxX: Float, boxY: Float, boxWidth: Float, boxHeight: Float, config: ProductConfiguration) {
-        val centerX = boxX + boxWidth * 0.45f
-        val centerY = boxY + boxHeight * 0.52f
-
-        // Calculate scaled dimensions for CAD drawing
-        val scaleLength = (config.lengthMm / 200f).coerceIn(0.6f, 1.4f)
-        val scaleWidth = (config.widthMm / 30f).coerceIn(0.6f, 1.4f)
-        val jigDrawLength = 220f * scaleLength
-        val jigDrawWidth = 46f * scaleWidth
-
-        val halfL = jigDrawLength / 2f
-        val halfW = jigDrawWidth / 2f
-
-        // 1. Centerlines (Dash-dot technical lines)
-        val centerLinePaint = Paint().apply {
-            color = Color.rgb(239, 68, 68) // Red 500
-            strokeWidth = 0.8f
-            pathEffect = DashPathEffect(floatArrayOf(12f, 4f, 2f, 4f), 0f)
+    private fun drawCenterOfGravitySymbol(canvas: Canvas, cx: Float, cy: Float, label: String = "CG") {
+        val r = 6f
+        val bgPaint = Paint().apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
             isAntiAlias = true
         }
-        canvas.drawLine(centerX - halfL - 40f, centerY, centerX + halfL + 40f, centerY, centerLinePaint)
-        canvas.drawLine(centerX, centerY - halfW - 35f, centerX, centerY + halfW + 35f, centerLinePaint)
+        canvas.drawCircle(cx, cy, r, bgPaint)
 
-        // 2. Jig Main Body Profile (Horizontal projection)
+        val blackPaint = Paint().apply {
+            color = Color.rgb(15, 23, 42)
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+        val rectF = RectF(cx - r, cy - r, cx + r, cy + r)
+        canvas.drawArc(rectF, 0f, 90f, true, blackPaint)
+        canvas.drawArc(rectF, 180f, 90f, true, blackPaint)
+
+        val strokePaint = Paint().apply {
+            color = Color.rgb(15, 23, 42)
+            style = Paint.Style.STROKE
+            strokeWidth = 0.8f
+            isAntiAlias = true
+        }
+        canvas.drawCircle(cx, cy, r, strokePaint)
+        canvas.drawLine(cx - r - 2f, cy, cx + r + 2f, cy, strokePaint)
+        canvas.drawLine(cx, cy - r - 2f, cx, cy + r + 2f, strokePaint)
+
+        val textPaint = Paint().apply {
+            color = Color.rgb(15, 23, 42)
+            textSize = 6f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            isAntiAlias = true
+        }
+        canvas.drawText(label, cx + r + 2f, cy + 2f, textPaint)
+    }
+
+    private fun drawProfessionalManufacturingTitleBlock(
+        canvas: Canvas,
+        x: Float,
+        y: Float,
+        width: Float,
+        height: Float,
+        config: ProductConfiguration
+    ) {
+        val borderPaint = Paint().apply {
+            color = Color.rgb(15, 23, 42)
+            style = Paint.Style.STROKE
+            strokeWidth = 1.2f
+            isAntiAlias = true
+        }
+        canvas.drawRect(x, y, x + width, y + height, borderPaint)
+
+        val linePaint = Paint().apply {
+            color = Color.rgb(148, 163, 184)
+            style = Paint.Style.STROKE
+            strokeWidth = 0.6f
+            isAntiAlias = true
+        }
+
+        val labelPaint = Paint().apply {
+            color = Color.rgb(100, 116, 139)
+            textSize = 5.2f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+            isAntiAlias = true
+        }
+
+        val valPaint = Paint().apply {
+            color = Color.rgb(15, 23, 42)
+            textSize = 7f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+            isAntiAlias = true
+        }
+
+        val monoValPaint = Paint().apply {
+            color = Color.rgb(15, 23, 42)
+            textSize = 7f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            isAntiAlias = true
+        }
+
+        // Header banner
+        val headerBg = Paint().apply {
+            color = Color.rgb(241, 245, 249)
+            style = Paint.Style.FILL
+        }
+        canvas.drawRect(x, y, x + width, y + 16f, headerBg)
+        canvas.drawLine(x, y + 16f, x + width, y + 16f, borderPaint)
+
+        val companyPaint = Paint().apply {
+            color = Color.rgb(15, 23, 42)
+            textSize = 7.5f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+            isAntiAlias = true
+            letterSpacing = 0.05f
+        }
+        canvas.drawText("7HOOKS PRECISION MARINE TACKLE CO.  |  MANUFACTURING & TOOLING DRAWING", x + 8f, y + 11f, companyPaint)
+
+        // Row 1: Product & Model / Drawing No
+        canvas.drawLine(x, y + 34f, x + width, y + 34f, linePaint)
+        val colSplit1 = x + width * 0.46f
+        canvas.drawLine(colSplit1, y + 16f, colSplit1, y + 34f, linePaint)
+
+        canvas.drawText("PRODUCT / MODEL NAME:", x + 6f, y + 23f, labelPaint)
+        canvas.drawText("${config.productName} (${config.modelNumber})", x + 6f, y + 31.5f, valPaint)
+
+        canvas.drawText("DRAWING NO. & REVISION:", colSplit1 + 6f, y + 23f, labelPaint)
+        val dwgNum = "${config.effectiveDrawingNumber}-REV-${config.revision}"
+        canvas.drawText(dwgNum, colSplit1 + 6f, y + 31.5f, monoValPaint)
+
+        // Row 2: Metadata (Scale, Units, Status, Revision, Date)
+        canvas.drawLine(x, y + 52f, x + width, y + 52f, linePaint)
+        val colW = width / 5f
+        for (i in 1..4) {
+            canvas.drawLine(x + colW * i, y + 34f, x + colW * i, y + 52f, linePaint)
+        }
+
+        canvas.drawText("SCALE:", x + 4f, y + 41f, labelPaint)
+        canvas.drawText("1:1 FULL", x + 4f, y + 49f, valPaint)
+
+        canvas.drawText("UNITS:", x + colW + 4f, y + 41f, labelPaint)
+        canvas.drawText("METRIC (mm/g)", x + colW + 4f, y + 49f, valPaint)
+
+        canvas.drawText("STATUS:", x + colW * 2 + 4f, y + 41f, labelPaint)
+        val statusColor = if (config.drawingStatus == "APPROVED") Color.rgb(22, 101, 52) else Color.rgb(2, 132, 199)
+        canvas.drawText(config.drawingStatus, x + colW * 2 + 4f, y + 49f, Paint(valPaint).apply { color = statusColor })
+
+        canvas.drawText("REVISION:", x + colW * 3 + 4f, y + 41f, labelPaint)
+        canvas.drawText("REV ${config.revision}", x + colW * 3 + 4f, y + 49f, monoValPaint)
+
+        val dateFormatted = SimpleDateFormat("dd-MMM-yyyy", Locale.US).format(Date(config.timestamp))
+        canvas.drawText("DATE:", x + colW * 4 + 4f, y + 41f, labelPaint)
+        canvas.drawText(dateFormatted, x + colW * 4 + 4f, y + 49f, valPaint)
+
+        // Row 3: Tolerances & Material
+        canvas.drawLine(x, y + 68f, x + width, y + 68f, linePaint)
+        val tolSplit = x + width * 0.52f
+        canvas.drawLine(tolSplit, y + 52f, tolSplit, y + 68f, linePaint)
+
+        canvas.drawText("STANDARD TOLERANCES:", x + 6f, y + 59f, labelPaint)
+        canvas.drawText("LINEAR: ${config.generalTolerance} | MASS: ${config.weightTolerance} | ANGULAR: ±0.5°", x + 6f, y + 66f, monoValPaint)
+
+        canvas.drawText("MATERIAL / DATUM:", tolSplit + 6f, y + 59f, labelPaint)
+        canvas.drawText("${config.material} (${config.densityGrade}) | ${config.datumA}", tolSplit + 6f, y + 66f, valPaint)
+
+        // Row 4: Approvals
+        val appW = width / 4f
+        for (i in 1..3) {
+            canvas.drawLine(x + appW * i, y + 68f, x + appW * i, y + height, linePaint)
+        }
+
+        canvas.drawText("DESIGNED BY:", x + 4f, y + 76f, labelPaint)
+        canvas.drawText("7Hooks Studio", x + 4f, y + 84f, valPaint)
+
+        canvas.drawText("CHECKED BY:", x + appW + 4f, y + 76f, labelPaint)
+        canvas.drawText("[ TBD / FACTORY ]", x + appW + 4f, y + 84f, labelPaint)
+
+        canvas.drawText("APPROVED BY:", x + appW * 2 + 4f, y + 76f, labelPaint)
+        canvas.drawText("[ TBD / PRODUCTION ]", x + appW * 2 + 4f, y + 84f, labelPaint)
+
+        canvas.drawText("FACTORY QC:", x + appW * 3 + 4f, y + 76f, labelPaint)
+        canvas.drawText("ISO 9001 VERIFIED", x + appW * 3 + 4f, y + 84f, valPaint)
+    }
+
+    private fun drawJigCadDrawing(canvas: Canvas, boxX: Float, boxY: Float, boxWidth: Float, boxHeight: Float, config: ProductConfiguration) {
+        val centerLinePaint = Paint().apply {
+            color = Color.rgb(239, 68, 68)
+            strokeWidth = 0.7f
+            pathEffect = DashPathEffect(floatArrayOf(10f, 3f, 2f, 3f), 0f)
+            isAntiAlias = true
+        }
+
+        val outlinePaint = Paint().apply {
+            color = Color.rgb(15, 23, 42)
+            style = Paint.Style.STROKE
+            strokeWidth = 1.2f
+            isAntiAlias = true
+        }
+
+        val viewTagPaint = Paint().apply {
+            color = Color.rgb(71, 85, 105)
+            textSize = 6f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            isAntiAlias = true
+        }
+
+        // -------------------------------------------------------------
+        // VIEW A: SIDE ELEVATION (Upper area: boxY + 20 to boxY + 140)
+        // -------------------------------------------------------------
+        canvas.drawText("VIEW A: SIDE ELEVATION (1:1 SCALE)", boxX + 12f, boxY + 24f, viewTagPaint)
+
+        val elevCenterX = boxX + boxWidth * 0.40f
+        val elevCenterY = boxY + 76f
+
+        val scaleL = (config.lengthMm / 160f).coerceIn(0.55f, 1.25f)
+        val scaleH = (config.heightMm / 25f).coerceIn(0.55f, 1.25f)
+        val jigDrawLength = 170f * scaleL
+        val jigDrawHeight = 36f * scaleH
+
+        val halfL = jigDrawLength / 2f
+        val halfH = jigDrawHeight / 2f
+
+        // Centerline for Elevation
+        canvas.drawLine(elevCenterX - halfL - 28f, elevCenterY, elevCenterX + halfL + 28f, elevCenterY, centerLinePaint)
+
+        // Body Profile Side Elevation
         val bodyPath = Path().apply {
-            moveTo(centerX - halfL, centerY) // Front nose eyelet base
-            // Top aerodynamic curve
+            moveTo(elevCenterX - halfL, elevCenterY)
             cubicTo(
-                centerX - halfL * 0.6f, centerY - halfW * 0.85f,
-                centerX + halfL * 0.1f, centerY - halfW,
-                centerX + halfL * 0.6f, centerY - halfW * 0.7f
+                elevCenterX - halfL * 0.65f, elevCenterY - halfH * 0.95f,
+                elevCenterX + halfL * 0.1f, elevCenterY - halfH * 1.05f,
+                elevCenterX + halfL * 0.6f, elevCenterY - halfH * 0.65f
             )
-            lineTo(centerX + halfL, centerY) // Tail eyelet base
-            // Bottom hydrodynamic curve
+            lineTo(elevCenterX + halfL, elevCenterY)
             cubicTo(
-                centerX + halfL * 0.6f, centerY + halfW * 0.7f,
-                centerX + halfL * 0.1f, centerY + halfW,
-                centerX - halfL * 0.6f, centerY + halfW * 0.85f
+                elevCenterX + halfL * 0.6f, elevCenterY + halfH * 0.65f,
+                elevCenterX + halfL * 0.1f, elevCenterY + halfH * 1.05f,
+                elevCenterX - halfL * 0.65f, elevCenterY + halfH * 0.95f
             )
             close()
         }
 
-        // Fill with subtle gradient reflecting selected color
+        // CAD Gradient fill
         val fillPaint = Paint().apply {
             shader = LinearGradient(
-                centerX, centerY - halfW,
-                centerX, centerY + halfW,
+                elevCenterX, elevCenterY - halfH,
+                elevCenterX, elevCenterY + halfH,
                 config.baseColorHex.toInt(),
                 config.accentColorHex.toInt(),
                 Shader.TileMode.CLAMP
             )
             isAntiAlias = true
-            alpha = 180
+            alpha = 175
         }
         canvas.drawPath(bodyPath, fillPaint)
-
-        // Body outline (CAD crisp stroke)
-        val outlinePaint = Paint().apply {
-            color = Color.rgb(15, 23, 42)
-            style = Paint.Style.STROKE
-            strokeWidth = 1.5f
-            isAntiAlias = true
-        }
         canvas.drawPath(bodyPath, outlinePaint)
 
-        // Lateral keel / facet line
-        val facetPaint = Paint().apply {
+        // Lateral keel line
+        val keelPaint = Paint().apply {
             color = Color.rgb(255, 255, 255)
             style = Paint.Style.STROKE
-            strokeWidth = 1.2f
+            strokeWidth = 1.1f
             isAntiAlias = true
         }
-        canvas.drawLine(centerX - halfL + 10f, centerY, centerX + halfL - 10f, centerY, facetPaint)
+        canvas.drawLine(elevCenterX - halfL + 12f, elevCenterY, elevCenterX + halfL - 10f, elevCenterY, keelPaint)
 
-        // Holographic slashes or dots depending on pattern
-        when (config.patternType) {
-            JigPatternType.DOT_PATTERN -> {
-                val dotPaint = Paint().apply {
-                    color = config.accentColorHex.toInt()
-                    style = Paint.Style.FILL
-                    isAntiAlias = true
-                }
-                for (i in -3..3) {
-                    val dx = centerX + i * 18f * scaleLength
-                    canvas.drawCircle(dx, centerY - 6f, 2.5f, dotPaint)
-                    canvas.drawCircle(dx + 9f, centerY + 6f, 2.5f, dotPaint)
-                }
-            }
-            else -> {
-                val slashPaint = Paint().apply {
-                    color = Color.argb(120, 255, 255, 255)
-                    style = Paint.Style.STROKE
-                    strokeWidth = 1.5f
-                    isAntiAlias = true
-                }
-                for (i in -4..4) {
-                    val sx = centerX + i * 16f * scaleLength
-                    canvas.drawLine(sx - 8f, centerY - 14f, sx + 8f, centerY + 14f, slashPaint)
-                }
-            }
-        }
-
-        // Eyelet Rings (Stainless Steel Rings)
+        // Front Eyelet (Through-wire line tie)
         val ringPaint = Paint().apply {
             color = Color.rgb(100, 116, 139)
             style = Paint.Style.STROKE
-            strokeWidth = 2f
+            strokeWidth = 1.8f
             isAntiAlias = true
         }
         val ringFill = Paint().apply {
@@ -842,145 +1023,232 @@ object PdfGenerator {
             style = Paint.Style.FILL
             isAntiAlias = true
         }
-        // Front eyelet
-        canvas.drawCircle(centerX - halfL - 7f, centerY, 5f, ringFill)
-        canvas.drawCircle(centerX - halfL - 7f, centerY, 5f, ringPaint)
-        canvas.drawCircle(centerX - halfL - 7f, centerY, 2f, outlinePaint)
+        canvas.drawCircle(elevCenterX - halfL - 6f, elevCenterY, 4.5f, ringFill)
+        canvas.drawCircle(elevCenterX - halfL - 6f, elevCenterY, 4.5f, ringPaint)
+        canvas.drawCircle(elevCenterX - halfL - 6f, elevCenterY, 1.8f, outlinePaint)
 
-        // Rear eyelet
-        canvas.drawCircle(centerX + halfL + 7f, centerY, 5f, ringFill)
-        canvas.drawCircle(centerX + halfL + 7f, centerY, 5f, ringPaint)
-        canvas.drawCircle(centerX + halfL + 7f, centerY, 2f, outlinePaint)
+        // Rear Eyelet
+        canvas.drawCircle(elevCenterX + halfL + 6f, elevCenterY, 4.5f, ringFill)
+        canvas.drawCircle(elevCenterX + halfL + 6f, elevCenterY, 4.5f, ringPaint)
+        canvas.drawCircle(elevCenterX + halfL + 6f, elevCenterY, 1.8f, outlinePaint)
 
         // 3D Lure Eye
-        val eyeBase = Paint().apply {
-            color = Color.rgb(255, 255, 255)
-            style = Paint.Style.FILL
-            isAntiAlias = true
-        }
-        val eyePupil = Paint().apply {
-            color = Color.rgb(15, 23, 42)
-            style = Paint.Style.FILL
-            isAntiAlias = true
-        }
-        val eyeX = centerX - halfL + 25f * scaleLength
-        val eyeY = centerY - 5f
-        canvas.drawCircle(eyeX, eyeY, 4.5f, eyeBase)
-        canvas.drawCircle(eyeX, eyeY, 4.5f, outlinePaint)
-        canvas.drawCircle(eyeX + 1f, eyeY, 2.2f, eyePupil)
+        val eyeX = elevCenterX - halfL + 18f * scaleL
+        val eyeY = elevCenterY - 4f
+        canvas.drawCircle(eyeX, eyeY, 4f, Paint().apply { color = Color.WHITE; style = Paint.Style.FILL; isAntiAlias = true })
+        canvas.drawCircle(eyeX, eyeY, 4f, outlinePaint)
+        canvas.drawCircle(eyeX + 0.8f, eyeY, 2f, Paint().apply { color = Color.rgb(15, 23, 42); style = Paint.Style.FILL; isAntiAlias = true })
 
-        // 3. DIMENSION LINES & CALLOUTS
-        // Overall Length Dimension (Top)
-        val dimY = centerY - halfW - 22f
+        // Center of Gravity Marker (60/40 rear bias)
+        val cgX = elevCenterX + halfL * 0.18f
+        drawCenterOfGravitySymbol(canvas, cgX, elevCenterY, "CG 60/40")
+
+        // Callout: Line Tie
+        val calloutPaint = Paint().apply {
+            color = Color.rgb(71, 85, 105)
+            textSize = 5.5f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
+            isAntiAlias = true
+        }
+        canvas.drawLine(elevCenterX - halfL - 6f, elevCenterY - 4.5f, elevCenterX - halfL - 20f, elevCenterY - 22f, outlinePaint)
+        canvas.drawLine(elevCenterX - halfL - 20f, elevCenterY - 22f, elevCenterX - halfL - 45f, elevCenterY - 22f, outlinePaint)
+        canvas.drawText("LINE-TIE Ø1.2mm 304SS", elevCenterX - halfL - 45f, elevCenterY - 24f, calloutPaint)
+
+        // Callout: Hook Specification
+        canvas.drawLine(elevCenterX + halfL + 6f, elevCenterY + 4.5f, elevCenterX + halfL + 18f, elevCenterY + 22f, outlinePaint)
+        canvas.drawLine(elevCenterX + halfL + 18f, elevCenterY + 22f, elevCenterX + halfL + 40f, elevCenterY + 22f, outlinePaint)
+        canvas.drawText("${config.hookSize} ${config.hookStyle}", elevCenterX + halfL + 18f, elevCenterY + 29f, calloutPaint)
+
+        // Dimensions for Elevation
         drawDimensionLine(
             canvas = canvas,
-            x1 = centerX - halfL - 12f,
-            y1 = dimY,
-            x2 = centerX + halfL + 12f,
-            y2 = dimY,
-            extY1 = centerY,
-            extY2 = centerY,
-            label = "LENGTH = ${config.lengthMm.toInt()} mm"
+            x1 = elevCenterX - halfL - 10f,
+            y1 = elevCenterY - halfH - 18f,
+            x2 = elevCenterX + halfL + 10f,
+            y2 = elevCenterY - halfH - 18f,
+            extY1 = elevCenterY,
+            extY2 = elevCenterY,
+            label = "OVERALL LENGTH = ${config.lengthMm.toInt()} mm"
         )
 
-        // Width Dimension (Right)
-        val dimX = centerX + halfL + 35f
         drawVerticalDimensionLine(
             canvas = canvas,
-            y1 = centerY - halfW,
-            x1 = dimX,
-            y2 = centerY + halfW,
-            x2 = dimX,
-            extX1 = centerX,
-            extX2 = centerX,
+            y1 = elevCenterY - halfH,
+            x1 = elevCenterX + halfL + 25f,
+            y2 = elevCenterY + halfH,
+            x2 = elevCenterX + halfL + 25f,
+            extX1 = elevCenterX,
+            extX2 = elevCenterX,
+            label = "H = ${config.heightMm.toInt()} mm"
+        )
+
+        // -------------------------------------------------------------
+        // VIEW B: TOP PLAN PROJECTION (Lower left: boxY + 152 to boxY + 235)
+        // -------------------------------------------------------------
+        canvas.drawText("VIEW B: PLAN / TOP PROJECTION (DATUM X-X)", boxX + 12f, boxY + 152f, viewTagPaint)
+
+        val planCenterY = boxY + 190f
+        val planHalfW = (config.widthMm / 28f).coerceIn(0.55f, 1.25f) * 16f
+
+        // Centerline for Plan View
+        canvas.drawLine(elevCenterX - halfL - 28f, planCenterY, elevCenterX + halfL + 28f, planCenterY, centerLinePaint)
+
+        // Plan View symmetric contour
+        val planPath = Path().apply {
+            moveTo(elevCenterX - halfL, planCenterY)
+            cubicTo(
+                elevCenterX - halfL * 0.5f, planCenterY - planHalfW,
+                elevCenterX + halfL * 0.2f, planCenterY - planHalfW * 0.9f,
+                elevCenterX + halfL, planCenterY
+            )
+            cubicTo(
+                elevCenterX + halfL * 0.2f, planCenterY + planHalfW * 0.9f,
+                elevCenterX - halfL * 0.5f, planCenterY + planHalfW,
+                elevCenterX - halfL, planCenterY
+            )
+            close()
+        }
+        canvas.drawPath(planPath, fillPaint)
+        canvas.drawPath(planPath, outlinePaint)
+
+        drawVerticalDimensionLine(
+            canvas = canvas,
+            y1 = planCenterY - planHalfW,
+            x1 = elevCenterX + halfL + 25f,
+            y2 = planCenterY + planHalfW,
+            x2 = elevCenterX + halfL + 25f,
+            extX1 = elevCenterX,
+            extX2 = elevCenterX,
             label = "WIDTH = ${config.widthMm.toInt()} mm"
         )
 
-        // Weight & Model Callout Badge (Bottom Left)
-        val badgeBg = Paint().apply {
+        // -------------------------------------------------------------
+        // VIEW C: TRANSVERSE HYDROFOIL SECTION (Right side: boxX + 410 to boxX + 490)
+        // -------------------------------------------------------------
+        val secX = boxX + boxWidth - 62f
+        val secY = boxY + 95f
+        canvas.drawText("SECTION C-C", secX - 25f, boxY + 24f, viewTagPaint)
+        canvas.drawText("TRANSVERSE", secX - 25f, boxY + 32f, viewTagPaint)
+
+        // Centerlines for Section
+        canvas.drawLine(secX - 25f, secY, secX + 25f, secY, centerLinePaint)
+        canvas.drawLine(secX, secY - 30f, secX, secY + 30f, centerLinePaint)
+
+        // Diamond/hydrofoil section
+        val secPath = Path().apply {
+            moveTo(secX, secY - jigDrawHeight * 0.45f)
+            lineTo(secX + planHalfW, secY)
+            lineTo(secX, secY + jigDrawHeight * 0.45f)
+            lineTo(secX - planHalfW, secY)
+            close()
+        }
+        canvas.drawPath(secPath, fillPaint)
+        canvas.drawPath(secPath, outlinePaint)
+
+        // Hatching lines for section (CAD section hatch)
+        val hatchPaint = Paint().apply {
+            color = Color.argb(80, 15, 23, 42)
+            strokeWidth = 0.6f
+        }
+        for (h in -2..2) {
+            val hy = secY + h * 6f
+            canvas.drawLine(secX - 8f, hy - 4f, secX + 8f, hy + 4f, hatchPaint)
+        }
+        canvas.drawText("DATUM Y-Y", secX - 18f, secY + 38f, calloutPaint)
+
+        // Bottom CAD Parameter Callout Strip
+        val paramBg = Paint().apply {
             color = Color.rgb(15, 23, 42)
             style = Paint.Style.FILL
             isAntiAlias = true
         }
-        canvas.drawRoundRect(boxX + 12f, boxY + boxHeight - 48f, boxX + 160f, boxY + boxHeight - 12f, 4f, 4f, badgeBg)
+        canvas.drawRoundRect(boxX + 12f, boxY + boxHeight - 24f, boxX + 260f, boxY + boxHeight - 6f, 3f, 3f, paramBg)
 
-        val badgeText = Paint().apply {
-            color = Color.rgb(56, 189, 248) // Sky 400
-            textSize = 7.5f
+        val paramText = Paint().apply {
+            color = Color.rgb(56, 189, 248)
+            textSize = 6.5f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
             isAntiAlias = true
         }
-        canvas.drawText("MASS: ${config.weightGrams.toInt()}g | MAT: ${config.material}", boxX + 18f, boxY + boxHeight - 34f, badgeText)
-        badgeText.color = Color.WHITE
-        canvas.drawText("SCALE: 1:1 ENGINEERING VIEW", boxX + 18f, boxY + boxHeight - 20f, badgeText)
+        canvas.drawText("MASS: ${config.weightGrams.toInt()}g (${config.weightTolerance}) | MAT: ${config.material}", boxX + 18f, boxY + boxHeight - 12f, paramText)
     }
 
     private fun drawLureCadDrawing(canvas: Canvas, boxX: Float, boxY: Float, boxWidth: Float, boxHeight: Float, config: ProductConfiguration) {
-        val centerX = boxX + boxWidth * 0.45f
-        val centerY = boxY + boxHeight * 0.52f
-
-        val scaleLength = (config.lengthMm / 160f).coerceIn(0.6f, 1.4f)
-        val scaleWidth = (config.widthMm / 26f).coerceIn(0.6f, 1.4f)
-        val lureDrawLength = 220f * scaleLength
-        val lureDrawWidth = 46f * scaleWidth
-
-        val halfL = lureDrawLength / 2f
-        val halfW = lureDrawWidth / 2f
-
-        // Centerlines
         val centerLinePaint = Paint().apply {
             color = Color.rgb(239, 68, 68)
-            strokeWidth = 0.8f
-            pathEffect = DashPathEffect(floatArrayOf(12f, 4f, 2f, 4f), 0f)
+            strokeWidth = 0.7f
+            pathEffect = DashPathEffect(floatArrayOf(10f, 3f, 2f, 3f), 0f)
             isAntiAlias = true
         }
-        canvas.drawLine(centerX - halfL - 40f, centerY, centerX + halfL + 40f, centerY, centerLinePaint)
-        canvas.drawLine(centerX, centerY - halfW - 35f, centerX, centerY + halfW + 35f, centerLinePaint)
 
-        // Lure Main Body Profile
+        val outlinePaint = Paint().apply {
+            color = Color.rgb(15, 23, 42)
+            style = Paint.Style.STROKE
+            strokeWidth = 1.2f
+            isAntiAlias = true
+        }
+
+        val viewTagPaint = Paint().apply {
+            color = Color.rgb(71, 85, 105)
+            textSize = 6f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            isAntiAlias = true
+        }
+
+        // -------------------------------------------------------------
+        // VIEW A: SIDE ELEVATION (Upper area)
+        // -------------------------------------------------------------
+        canvas.drawText("VIEW A: SIDE ELEVATION & HYDRODYNAMICS (1:1 SCALE)", boxX + 12f, boxY + 24f, viewTagPaint)
+
+        val elevCenterX = boxX + boxWidth * 0.40f
+        val elevCenterY = boxY + 76f
+
+        val scaleL = (config.lengthMm / 150f).coerceIn(0.55f, 1.25f)
+        val scaleW = (config.widthMm / 25f).coerceIn(0.55f, 1.25f)
+        val lureDrawLength = 175f * scaleL
+        val lureDrawHeight = 36f * scaleW
+
+        val halfL = lureDrawLength / 2f
+        val halfH = lureDrawHeight / 2f
+
+        canvas.drawLine(elevCenterX - halfL - 28f, elevCenterY, elevCenterX + halfL + 28f, elevCenterY, centerLinePaint)
+
         val bodyPath = Path().apply {
-            moveTo(centerX - halfL, centerY)
+            moveTo(elevCenterX - halfL, elevCenterY)
             cubicTo(
-                centerX - halfL * 0.7f, centerY - halfW * 0.95f,
-                centerX - halfL * 0.1f, centerY - halfW * 1.05f,
-                centerX + halfL * 0.6f, centerY - halfW * 0.5f
+                elevCenterX - halfL * 0.7f, elevCenterY - halfH * 0.95f,
+                elevCenterX - halfL * 0.1f, elevCenterY - halfH * 1.05f,
+                elevCenterX + halfL * 0.6f, elevCenterY - halfH * 0.5f
             )
-            lineTo(centerX + halfL, centerY)
+            lineTo(elevCenterX + halfL, elevCenterY)
             cubicTo(
-                centerX + halfL * 0.6f, centerY + halfW * 0.5f,
-                centerX - halfL * 0.1f, centerY + halfW * 0.9f,
-                centerX - halfL * 0.7f, centerY + halfW * 0.7f
+                elevCenterX + halfL * 0.6f, elevCenterY + halfH * 0.5f,
+                elevCenterX - halfL * 0.1f, elevCenterY + halfH * 0.9f,
+                elevCenterX - halfL * 0.7f, elevCenterY + halfH * 0.7f
             )
             close()
         }
 
         val fillPaint = Paint().apply {
             shader = LinearGradient(
-                centerX, centerY - halfW,
-                centerX, centerY + halfW,
+                elevCenterX, elevCenterY - halfH,
+                elevCenterX, elevCenterY + halfH,
                 config.baseColorHex.toInt(),
                 config.accentColorHex.toInt(),
                 Shader.TileMode.CLAMP
             )
             isAntiAlias = true
-            alpha = 180
+            alpha = 175
         }
         canvas.drawPath(bodyPath, fillPaint)
-
-        val outlinePaint = Paint().apply {
-            color = Color.rgb(15, 23, 42)
-            style = Paint.Style.STROKE
-            strokeWidth = 1.5f
-            isAntiAlias = true
-        }
         canvas.drawPath(bodyPath, outlinePaint)
 
         // Diving Lip / Bib
         val lipPath = Path().apply {
-            moveTo(centerX - halfL + 4f, centerY + 3f)
-            lineTo(centerX - halfL - 22f * scaleLength, centerY + 24f * scaleLength)
-            lineTo(centerX - halfL - 14f * scaleLength, centerY + 28f * scaleLength)
-            lineTo(centerX - halfL + 10f, centerY + 9f)
+            moveTo(elevCenterX - halfL + 4f, elevCenterY + 2f)
+            lineTo(elevCenterX - halfL - 18f * scaleL, elevCenterY + 18f * scaleL)
+            lineTo(elevCenterX - halfL - 11f * scaleL, elevCenterY + 22f * scaleL)
+            lineTo(elevCenterX - halfL + 9f, elevCenterY + 7f)
             close()
         }
         val lipPaint = Paint().apply {
@@ -993,82 +1261,149 @@ object PdfGenerator {
 
         // Lateral Line
         val lateralPaint = Paint().apply {
-            color = Color.rgb(255, 255, 255)
+            color = Color.WHITE
             style = Paint.Style.STROKE
-            strokeWidth = 1.2f
+            strokeWidth = 1.1f
             isAntiAlias = true
         }
-        canvas.drawLine(centerX - halfL + 12f, centerY - 2f, centerX + halfL - 10f, centerY, lateralPaint)
+        canvas.drawLine(elevCenterX - halfL + 12f, elevCenterY - 2f, elevCenterX + halfL - 10f, elevCenterY, lateralPaint)
 
-        // Belly Hanger & Tail Hanger
+        // Belly Hanger & Tail Hanger Rings
         val ringPaint = Paint().apply {
             color = Color.rgb(100, 116, 139)
             style = Paint.Style.STROKE
             strokeWidth = 1.8f
             isAntiAlias = true
         }
-        canvas.drawCircle(centerX - 8f, centerY + halfW * 0.85f + 4f, 4.5f, ringPaint)
-        canvas.drawCircle(centerX + halfL + 6f, centerY, 4.5f, ringPaint)
+        canvas.drawCircle(elevCenterX - 8f, elevCenterY + halfH * 0.85f + 4f, 4f, ringPaint)
+        canvas.drawCircle(elevCenterX + halfL + 6f, elevCenterY, 4f, ringPaint)
 
         // 3D Lure Eye
-        val eyeBase = Paint().apply {
-            color = Color.rgb(255, 255, 255)
-            style = Paint.Style.FILL
-            isAntiAlias = true
-        }
-        val eyePupil = Paint().apply {
-            color = Color.rgb(15, 23, 42)
-            style = Paint.Style.FILL
-            isAntiAlias = true
-        }
-        val eyeX = centerX - halfL + 20f * scaleLength
-        val eyeY = centerY - 5f
-        canvas.drawCircle(eyeX, eyeY, 4.5f, eyeBase)
-        canvas.drawCircle(eyeX, eyeY, 4.5f, outlinePaint)
-        canvas.drawCircle(eyeX + 1f, eyeY, 2.2f, eyePupil)
+        val eyeX = elevCenterX - halfL + 18f * scaleL
+        val eyeY = elevCenterY - 4f
+        canvas.drawCircle(eyeX, eyeY, 4f, Paint().apply { color = Color.WHITE; style = Paint.Style.FILL; isAntiAlias = true })
+        canvas.drawCircle(eyeX, eyeY, 4f, outlinePaint)
+        canvas.drawCircle(eyeX + 0.8f, eyeY, 2f, Paint().apply { color = Color.rgb(15, 23, 42); style = Paint.Style.FILL; isAntiAlias = true })
+
+        // Center of Gravity Marker (Neutral balance)
+        drawCenterOfGravitySymbol(canvas, elevCenterX - halfL * 0.05f, elevCenterY, "CG NEUTRAL")
 
         // Dimensions
-        val dimY = centerY - halfW - 22f
         drawDimensionLine(
             canvas = canvas,
-            x1 = centerX - halfL - 12f,
-            y1 = dimY,
-            x2 = centerX + halfL + 12f,
-            y2 = dimY,
-            extY1 = centerY,
-            extY2 = centerY,
-            label = "LENGTH = ${config.lengthMm.toInt()} mm"
+            x1 = elevCenterX - halfL - 10f,
+            y1 = elevCenterY - halfH - 18f,
+            x2 = elevCenterX + halfL + 10f,
+            y2 = elevCenterY - halfH - 18f,
+            extY1 = elevCenterY,
+            extY2 = elevCenterY,
+            label = "OVERALL LENGTH = ${config.lengthMm.toInt()} mm"
         )
 
-        val dimX = centerX + halfL + 35f
         drawVerticalDimensionLine(
             canvas = canvas,
-            y1 = centerY - halfW,
-            x1 = dimX,
-            y2 = centerY + halfW,
-            x2 = dimX,
-            extX1 = centerX,
-            extX2 = centerX,
+            y1 = elevCenterY - halfH,
+            x1 = elevCenterX + halfL + 25f,
+            y2 = elevCenterY + halfH,
+            x2 = elevCenterX + halfL + 25f,
+            extX1 = elevCenterX,
+            extX2 = elevCenterX,
+            label = "H = ${config.heightMm.toInt()} mm"
+        )
+
+        // Callout: Bib Angle & Diving depth
+        val calloutPaint = Paint().apply {
+            color = Color.rgb(71, 85, 105)
+            textSize = 5.5f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
+            isAntiAlias = true
+        }
+        canvas.drawLine(elevCenterX - halfL - 14f, elevCenterY + 20f, elevCenterX - halfL - 25f, elevCenterY + 34f, outlinePaint)
+        canvas.drawLine(elevCenterX - halfL - 25f, elevCenterY + 34f, elevCenterX - halfL - 50f, elevCenterY + 34f, outlinePaint)
+        canvas.drawText("DEPTH: ${String.format(Locale.US, "%.1f", config.divingDepthMeters)}m", elevCenterX - halfL - 50f, elevCenterY + 32f, calloutPaint)
+
+        // -------------------------------------------------------------
+        // VIEW B: TOP PLAN PROJECTION
+        // -------------------------------------------------------------
+        canvas.drawText("VIEW B: PLAN / TOP PROJECTION (DATUM X-X)", boxX + 12f, boxY + 152f, viewTagPaint)
+
+        val planCenterY = boxY + 190f
+        val planHalfW = (config.widthMm / 25f).coerceIn(0.55f, 1.25f) * 14f
+
+        canvas.drawLine(elevCenterX - halfL - 28f, planCenterY, elevCenterX + halfL + 28f, planCenterY, centerLinePaint)
+
+        val planPath = Path().apply {
+            moveTo(elevCenterX - halfL, planCenterY)
+            cubicTo(
+                elevCenterX - halfL * 0.45f, planCenterY - planHalfW,
+                elevCenterX + halfL * 0.2f, planCenterY - planHalfW * 0.8f,
+                elevCenterX + halfL, planCenterY
+            )
+            cubicTo(
+                elevCenterX + halfL * 0.2f, planCenterY + planHalfW * 0.8f,
+                elevCenterX - halfL * 0.45f, planCenterY + planHalfW,
+                elevCenterX - halfL, planCenterY
+            )
+            close()
+        }
+        canvas.drawPath(planPath, fillPaint)
+        canvas.drawPath(planPath, outlinePaint)
+
+        drawVerticalDimensionLine(
+            canvas = canvas,
+            y1 = planCenterY - planHalfW,
+            x1 = elevCenterX + halfL + 25f,
+            y2 = planCenterY + planHalfW,
+            x2 = elevCenterX + halfL + 25f,
+            extX1 = elevCenterX,
+            extX2 = elevCenterX,
             label = "WIDTH = ${config.widthMm.toInt()} mm"
         )
 
-        // Specification Badge
-        val badgeBg = Paint().apply {
+        // -------------------------------------------------------------
+        // VIEW C: TRANSVERSE FRONT / BIB SECTION
+        // -------------------------------------------------------------
+        val secX = boxX + boxWidth - 62f
+        val secY = boxY + 95f
+        canvas.drawText("VIEW C: FRONT", secX - 25f, boxY + 24f, viewTagPaint)
+        canvas.drawText("DIVING BIB", secX - 25f, boxY + 32f, viewTagPaint)
+
+        canvas.drawLine(secX - 25f, secY, secX + 25f, secY, centerLinePaint)
+        canvas.drawLine(secX, secY - 30f, secX, secY + 30f, centerLinePaint)
+
+        val bibPath = Path().apply {
+            moveTo(secX - planHalfW * 1.1f, secY + 6f)
+            lineTo(secX + planHalfW * 1.1f, secY + 6f)
+            lineTo(secX + planHalfW * 0.7f, secY + 22f)
+            lineTo(secX - planHalfW * 0.7f, secY + 22f)
+            close()
+        }
+        canvas.drawPath(bibPath, lipPaint)
+        canvas.drawPath(bibPath, outlinePaint)
+
+        // Upper body oval in front view
+        val frontBody = RectF(secX - planHalfW * 0.85f, secY - 20f, secX + planHalfW * 0.85f, secY + 6f)
+        canvas.drawOval(frontBody, fillPaint)
+        canvas.drawOval(frontBody, outlinePaint)
+        canvas.drawCircle(secX, secY - 4f, 2.5f, ringPaint)
+
+        canvas.drawText("DATUM Y-Y", secX - 18f, secY + 34f, calloutPaint)
+
+        // Bottom CAD Parameter Callout Strip
+        val paramBg = Paint().apply {
             color = Color.rgb(15, 23, 42)
             style = Paint.Style.FILL
             isAntiAlias = true
         }
-        canvas.drawRoundRect(boxX + 12f, boxY + boxHeight - 48f, boxX + 175f, boxY + boxHeight - 12f, 4f, 4f, badgeBg)
+        canvas.drawRoundRect(boxX + 12f, boxY + boxHeight - 24f, boxX + 280f, boxY + boxHeight - 6f, 3f, 3f, paramBg)
 
-        val badgeText = Paint().apply {
+        val paramText = Paint().apply {
             color = Color.rgb(56, 189, 248)
-            textSize = 7.5f
+            textSize = 6.5f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
             isAntiAlias = true
         }
-        canvas.drawText("MASS: ${String.format(Locale.US, "%.1f", config.weightGrams)}g | DEPTH: ${String.format(Locale.US, "%.1f", config.divingDepthMeters)}m", boxX + 18f, boxY + boxHeight - 34f, badgeText)
-        badgeText.color = Color.WHITE
-        canvas.drawText("HOOK: ${config.hookType.ifEmpty { "#4 Heavy Treble" }}", boxX + 18f, boxY + boxHeight - 20f, badgeText)
+        canvas.drawText("MASS: ${String.format(Locale.US, "%.1f", config.weightGrams)}g (${config.weightTolerance}) | ${config.hookQuantity}x ${config.hookType}", boxX + 18f, boxY + boxHeight - 12f, paramText)
     }
 
     private fun drawRodCadDrawing(canvas: Canvas, boxX: Float, boxY: Float, boxWidth: Float, boxHeight: Float, config: ProductConfiguration) {

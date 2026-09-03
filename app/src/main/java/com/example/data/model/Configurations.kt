@@ -22,12 +22,33 @@ data class ProductConfiguration(
     val weightGrams: Float = 40f,
     val lengthMm: Float = 110f,
     val widthMm: Float = 22f, // or blank diameter for rods
-    // Specs
+    val heightMm: Float = 14f, // thickness / depth
+    // Specs & Appearance
     val material: String = "Stainless Steel",
+    val shape: String = "Football",
     val colorName: String = "Orange-Black",
     val baseColorHex: Long = 0xFFEA580C,
     val accentColorHex: Long = 0xFF0F172A,
+    val hasAccentColor: Boolean = true,
+    val finishType: String = "Holographic",
     val patternType: JigPatternType = JigPatternType.SOLID_STRIPE,
+    val patternName: String = "Stripes",
+    // Eye Configuration
+    val eyeStyle: String = "3D",
+    val eyeShape: String = "Round",
+    val eyeColorHex: Long = 0xFFFFD700,
+    // Hardware Configuration
+    val hookLevel: String = "Standard",
+    val hookStyle: String = "O'Shaughnessy",
+    val hookSize: String = "2/0",
+    val hookQuantity: Int = 1,
+    val additionalComponent: String = "None",
+    // Special Features
+    val hasGlow: Boolean = false,
+    val hasUvReactive: Boolean = false,
+    val hasRattle: Boolean = false,
+    val hasWeedGuard: Boolean = false,
+    val customMarking: String = "",
     // Rod Specifics
     val rodType: String = "Spinning Rod",
     val power: String = "Medium",
@@ -41,10 +62,28 @@ data class ProductConfiguration(
     val divingDepthMeters: Float = 1.8f,
     val hookType: String = "VMC Saltwater 3X Treble",
     val buoyancy: String = "Suspending",
-    // Metadata
-    val notes: String = "Standard precision manufacturing tolerances apply (±0.15mm). ISO 9001 certified finish.",
+    // Manufacturing & Technical Drawing Metadata
+    val revision: String = "A",
+    val drawingStatus: String = "FOR REVIEW",
+    val drawingNumber: String = "",
+    val generalTolerance: String = "TBD",
+    val weightTolerance: String = "TBD",
+    val densityGrade: String = "Standard Production Alloy",
+    val datumA: String = "Primary Centerline X-X",
+    val datumB: String = "Head Reference Plane Y-Y",
+    val coating: String = "UV Marine Clear Coat",
+    val coatingThickness: String = "0.08 mm",
+    val notes: String = "Standard precision manufacturing tolerances apply. ISO 9001 certified finish.",
     val timestamp: Long = System.currentTimeMillis()
 ) {
+    val effectiveDrawingNumber: String
+        get() = if (drawingNumber.isNotBlank()) drawingNumber else {
+            when (configType) {
+                ConfigType.JIG -> "7H-JIG-${modelNumber.ifBlank { "0001" }}"
+                ConfigType.ROD -> "7H-ROD-${modelNumber.ifBlank { "0001" }}"
+                ConfigType.LURE -> "7H-LUR-${modelNumber.ifBlank { "0001" }}"
+            }
+        }
     companion object {
         fun generateConfigId(): String = "CFG-${System.currentTimeMillis()}"
         
