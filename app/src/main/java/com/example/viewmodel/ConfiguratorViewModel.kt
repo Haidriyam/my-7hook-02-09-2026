@@ -44,6 +44,10 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
     private val _selectedRodProduct = MutableStateFlow<RodProduct>(ProductCatalog.rods.first())
     val selectedRodProduct: StateFlow<RodProduct> = _selectedRodProduct.asStateFlow()
 
+    // Current selected lure product definition
+    private val _selectedLureProduct = MutableStateFlow<LureProduct>(ProductCatalog.lures.first())
+    val selectedLureProduct: StateFlow<LureProduct> = _selectedLureProduct.asStateFlow()
+
     // Saved Configurations Flow
     val savedConfigs: StateFlow<List<SavedConfigEntity>> = configDao.getAllConfigs()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -74,6 +78,28 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
             baseColorHex = jig.baseColorHex,
             accentColorHex = jig.accentColorHex,
             patternType = jig.patternType
+        )
+    }
+
+    fun selectLure(lure: LureProduct) {
+        _selectedLureProduct.value = lure
+        _currentConfig.value = ProductConfiguration(
+            configType = ConfigType.LURE,
+            productId = lure.id,
+            productName = lure.name,
+            modelNumber = lure.modelNumber,
+            category = lure.category,
+            weightGrams = lure.defaultWeightGrams,
+            lengthMm = lure.defaultLengthMm,
+            widthMm = lure.defaultWidthMm,
+            material = lure.materials.firstOrNull() ?: "High-Impact ABS Resin",
+            colorName = "Ghost Ayu",
+            baseColorHex = lure.baseColorHex,
+            accentColorHex = lure.accentColorHex,
+            patternType = lure.patternType,
+            divingDepthMeters = lure.divingDepthMeters,
+            hookType = lure.hookType,
+            buoyancy = lure.buoyancy
         )
     }
 
@@ -150,6 +176,19 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
         )
     }
 
+    fun updateLureParameters(
+        divingDepth: Float? = null,
+        hookType: String? = null,
+        buoyancy: String? = null
+    ) {
+        val cur = _currentConfig.value
+        _currentConfig.value = cur.copy(
+            divingDepthMeters = divingDepth ?: cur.divingDepthMeters,
+            hookType = hookType ?: cur.hookType,
+            buoyancy = buoyancy ?: cur.buoyancy
+        )
+    }
+
     fun generatePdf(context: Context) {
         viewModelScope.launch {
             _isGeneratingPdf.value = true
@@ -157,6 +196,7 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
             val result = when (config.configType) {
                 ConfigType.JIG -> PdfGenerator.generateJigPdf(context, config)
                 ConfigType.ROD -> PdfGenerator.generateRodPdf(context, config)
+                ConfigType.LURE -> PdfGenerator.generateLurePdf(context, config)
             }
             _pdfValidationResult.value = result
             _isGeneratingPdf.value = false
@@ -189,6 +229,9 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
                 recommendedLureWeight = c.recommendedLureWeight,
                 maximumLoadKg = c.maximumLoadKg,
                 handleLengthMm = c.handleLengthMm,
+                divingDepthMeters = c.divingDepthMeters,
+                hookType = c.hookType,
+                buoyancy = c.buoyancy,
                 notes = c.notes,
                 timestamp = System.currentTimeMillis()
             )
@@ -222,6 +265,9 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
             recommendedLureWeight = entity.recommendedLureWeight,
             maximumLoadKg = entity.maximumLoadKg,
             handleLengthMm = entity.handleLengthMm,
+            divingDepthMeters = entity.divingDepthMeters,
+            hookType = entity.hookType,
+            buoyancy = entity.buoyancy,
             notes = entity.notes,
             timestamp = entity.timestamp
         )

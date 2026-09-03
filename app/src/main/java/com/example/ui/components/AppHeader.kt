@@ -112,7 +112,6 @@ fun AppHeader(
                             val nextMode = when (currentMode) {
                                 AppThemeMode.LIGHT -> AppThemeMode.DARK
                                 AppThemeMode.DARK -> AppThemeMode.LIGHT
-                                AppThemeMode.SYSTEM -> AppThemeMode.DARK
                             }
                             ThemeManager.setThemeMode(context, nextMode)
                         },
@@ -127,21 +126,7 @@ fun AppHeader(
                     }
 
                     // 7Hooks Official Branding Logo Image
-                    Box(
-                        modifier = Modifier
-                            .height(32.dp)
-                            .widthIn(max = 110.dp),
-                        contentAlignment = Alignment.CenterEnd
-                    ) {
-                        AsyncImage(
-                            model = "https://7hooks.com/wp-content/uploads/2025/11/cropped-394608127_1379560635982079_6192428464456395363_n-removebg-preview-e1764314943627.png",
-                            contentDescription = "7Hooks Brand Logo",
-                            contentScale = ContentScale.Fit,
-                            error = painterResource(id = R.drawable.ic_7hooks_logo),
-                            fallback = painterResource(id = R.drawable.ic_7hooks_logo),
-                            modifier = Modifier.fillMaxHeight()
-                        )
-                    }
+                    Official7HooksLogo(height = 28.dp)
 
                     if (currentUser != null && onLogoutClick != null) {
                         IconButton(

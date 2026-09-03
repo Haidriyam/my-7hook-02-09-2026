@@ -72,7 +72,7 @@ fun RodConfigScreen(
                         onClick = onNavigateToEngineering,
                         variant = TactileButtonVariant.SECONDARY,
                         icon = Icons.AutoMirrored.Filled.ArrowForward,
-                        text = "Engineering CAD",
+                        text = "Technical Drawing",
                         testTag = "rod_continue_to_dashboard_button"
                     )
                 }
@@ -94,7 +94,7 @@ fun RodConfigScreen(
             TactileStepIndicator(
                 currentStep = 2,
                 totalSteps = 3,
-                stepTitles = listOf("Choose Rod", "Technical Specs", "CAD Document"),
+                stepTitles = listOf("Choose Rod", "Technical Specs", "Technical Drawing"),
                 modifier = Modifier.padding(horizontal = 0.dp)
             )
 
@@ -145,41 +145,6 @@ fun RodConfigScreen(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
-                }
-            }
-
-            // LIVE CAD & DEFLECTION PREVIEWS
-            TactileCard(
-                modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 3.dp
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = "LIVE ROD CAD SCHEMATIC PREVIEW",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.secondary,
-                        letterSpacing = 0.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    RodEngineeringCanvas(config = currentConfig)
-                }
-            }
-
-            TactileCard(
-                modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 3.dp
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = "DYNAMIC DEFLECTION & FINITE ELEMENT LOAD SIMULATION",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.secondary,
-                        letterSpacing = 0.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    RodBreakageAnimation(config = currentConfig)
                 }
             }
 
@@ -367,6 +332,42 @@ fun RodConfigScreen(
                             )
                         }
                     }
+                }
+            }
+
+            // LIVE TECHNICAL DRAWING SCHEMATIC PREVIEW
+            TactileCard(
+                modifier = Modifier.fillMaxWidth(),
+                shadowElevation = 3.dp
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "TECHNICAL DRAWING SCHEMATIC",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    RodEngineeringCanvas(config = currentConfig)
+                }
+            }
+
+            // ILLUSTRATIVE FINITE ELEMENT LOAD SIMULATION (At bottom, per Section 13 & 22)
+            TactileCard(
+                modifier = Modifier.fillMaxWidth(),
+                shadowElevation = 3.dp
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "FINITE ELEMENT DEFLECTION & LOAD SIMULATION",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    RodBreakageAnimation(config = currentConfig)
                 }
             }
 

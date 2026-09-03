@@ -106,7 +106,6 @@ fun SevenHooksTheme(
     val isDark = when (themeMode) {
         AppThemeMode.LIGHT -> false
         AppThemeMode.DARK -> true
-        AppThemeMode.SYSTEM -> systemInDark
     }
 
     val colorScheme = if (isDark) DarkColorScheme else LightColorScheme

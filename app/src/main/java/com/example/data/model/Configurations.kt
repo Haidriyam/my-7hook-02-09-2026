@@ -6,7 +6,8 @@ import java.util.Locale
 
 enum class ConfigType {
     JIG,
-    ROD
+    ROD,
+    LURE
 }
 
 data class ProductConfiguration(
@@ -36,8 +37,12 @@ data class ProductConfiguration(
     val recommendedLureWeight: String = "15 - 60 g",
     val maximumLoadKg: Float = 12f,
     val handleLengthMm: Float = 420f,
+    // Lure Specifics
+    val divingDepthMeters: Float = 1.8f,
+    val hookType: String = "VMC Saltwater 3X Treble",
+    val buoyancy: String = "Suspending",
     // Metadata
-    val notes: String = "Standard precision manufacturing tolerances apply (±0.2mm). ISO 9001 certified finish.",
+    val notes: String = "Standard precision manufacturing tolerances apply (±0.15mm). ISO 9001 certified finish.",
     val timestamp: Long = System.currentTimeMillis()
 ) {
     companion object {
@@ -49,6 +54,7 @@ data class ProductConfiguration(
             return when (type) {
                 ConfigType.JIG -> "7H-JIG-$year-$seq"
                 ConfigType.ROD -> "7H-ROD-$year-$seq"
+                ConfigType.LURE -> "7H-LUR-$year-$seq"
             }
         }
     }

@@ -99,29 +99,16 @@ fun LoginScreen(
                 }
 
                 // 1. Primary 7Hooks Brand Logo (Clean & properly proportioned)
-                Box(
-                    modifier = Modifier
-                        .height(68.dp)
-                        .widthIn(max = 220.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AsyncImage(
-                        model = "https://7hooks.com/wp-content/uploads/2025/11/cropped-394608127_1379560635982079_6192428464456395363_n-removebg-preview-e1764314943627.png",
-                        contentDescription = "7Hooks Brand Logo",
-                        contentScale = ContentScale.Fit,
-                        error = painterResource(id = R.drawable.ic_7hooks_logo),
-                        fallback = painterResource(id = R.drawable.ic_7hooks_logo),
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+                Official7HooksLogo(height = 64.dp)
 
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "Product Configurator & CAD Portal",
+                    text = "Professional Fishing Product Configuration Studio",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.5.sp,
+                    textAlign = TextAlign.Center
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -243,8 +230,23 @@ fun LoginScreen(
                             },
                             modifier = Modifier.fillMaxWidth(),
                             variant = TactileButtonVariant.PRIMARY,
-                            text = "Sign In to Portal",
+                            text = "Sign In to Studio",
                             testTag = "login_submit_button"
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Fast guest/preview access (Section 4)
+                        TactileButton(
+                            onClick = {
+                                focusManager.clearFocus()
+                                authViewModel.loginAsGuest()
+                                onLoginSuccess()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            variant = TactileButtonVariant.OUTLINE,
+                            text = "Explore as Guest / Studio Demo",
+                            testTag = "login_guest_button"
                         )
                     }
                 }

@@ -93,7 +93,7 @@ object PdfGenerator {
             // 3. ENGINEERING CAD DRAWING SECTION
             val drawingBoxTop = 140f
             val drawingBoxHeight = 270f
-            drawEngineeringDrawingFrame(canvas, 40f, drawingBoxTop, (PAGE_WIDTH - 80).toFloat(), drawingBoxHeight, "CAD SCHEMATIC & DIMENSIONAL PROJECTION")
+            drawEngineeringDrawingFrame(canvas, 40f, drawingBoxTop, (PAGE_WIDTH - 80).toFloat(), drawingBoxHeight, "TECHNICAL DRAWING & DIMENSIONAL PROJECTION")
             
             // Draw CAD Drawing of the Jig
             drawJigCadDrawing(
@@ -298,6 +298,127 @@ object PdfGenerator {
         }
     }
 
+    fun generateLurePdf(context: Context, config: ProductConfiguration): PdfValidationResult {
+        val document = PdfDocument()
+        val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, 1).create()
+        val page = document.startPage(pageInfo)
+        val canvas = page.canvas
+
+        try {
+            canvas.drawColor(Color.WHITE)
+
+            // Outer technical border
+            val borderPaint = Paint().apply {
+                color = Color.rgb(203, 213, 225)
+                style = Paint.Style.STROKE
+                strokeWidth = 1f
+                isAntiAlias = true
+            }
+            canvas.drawRect(25f, 25f, (PAGE_WIDTH - 25).toFloat(), (PAGE_HEIGHT - 25).toFloat(), borderPaint)
+
+            // Inner technical margin line
+            borderPaint.strokeWidth = 0.5f
+            borderPaint.color = Color.rgb(226, 232, 240)
+            canvas.drawRect(28f, 28f, (PAGE_WIDTH - 28).toFloat(), (PAGE_HEIGHT - 28).toFloat(), borderPaint)
+
+            // 1. TOP HEADER: 7Hooks Official Brand Logo
+            drawBrandLogo(context, canvas, 40f, 38f, 120f, 40f)
+
+            // Document Reference Box (Top Right)
+            drawDocRefBox(canvas, PAGE_WIDTH - 200f, 40f, config.referenceNumber, "LURE SPECIFICATION")
+
+            // 2. DOCUMENT TITLE
+            val titlePaint = Paint().apply {
+                color = Color.rgb(15, 23, 42)
+                textSize = 15f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                isAntiAlias = true
+                letterSpacing = 0.05f
+            }
+            canvas.drawText("LURE ENGINEERING SPECIFICATION", 40f, 105f, titlePaint)
+
+            val subtitlePaint = Paint().apply {
+                color = Color.rgb(2, 132, 199)
+                textSize = 12f
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                isAntiAlias = true
+            }
+            canvas.drawText("${config.productName} — Model: ${config.modelNumber}", 40f, 122f, subtitlePaint)
+
+            val dividerPaint = Paint().apply {
+                color = Color.rgb(2, 132, 199)
+                strokeWidth = 1.5f
+                isAntiAlias = true
+            }
+            canvas.drawLine(40f, 130f, (PAGE_WIDTH - 40).toFloat(), 130f, dividerPaint)
+
+            // 3. ENGINEERING CAD DRAWING SECTION
+            val drawingBoxTop = 140f
+            val drawingBoxHeight = 270f
+            drawEngineeringDrawingFrame(canvas, 40f, drawingBoxTop, (PAGE_WIDTH - 80).toFloat(), drawingBoxHeight, "CAD SCHEMATIC & HYDRODYNAMIC PROJECTION")
+
+            drawLureCadDrawing(
+                canvas = canvas,
+                boxX = 40f,
+                boxY = drawingBoxTop,
+                boxWidth = (PAGE_WIDTH - 80).toFloat(),
+                boxHeight = drawingBoxHeight,
+                config = config
+            )
+
+            // 4. TECHNICAL SPECIFICATIONS TABLE
+            val tableTop = drawingBoxTop + drawingBoxHeight + 15f
+            drawSectionHeader(canvas, 40f, tableTop, "TECHNICAL SPECIFICATIONS")
+
+            val specs = listOf(
+                "Product Name" to config.productName,
+                "Model Number" to config.modelNumber,
+                "Lure Category" to config.category,
+                "Body Material" to config.material,
+                "Target Weight" to "${String.format(Locale.US, "%.1f", config.weightGrams)} g (±0.5g tolerance)",
+                "Overall Length" to "${config.lengthMm.toInt()} mm",
+                "Max Body Width" to "${config.widthMm.toInt()} mm",
+                "Color Theme" to config.colorName,
+                "Diving Depth" to "${String.format(Locale.US, "%.1f", config.divingDepthMeters)} meters",
+                "Hook Assembly" to config.hookType.ifEmpty { "#4 BKK Heavy Treble" },
+                "Buoyancy Action" to config.buoyancy.ifEmpty { "Suspending" }
+            )
+
+            drawTable(canvas, 40f, tableTop + 15f, (PAGE_WIDTH - 80).toFloat(), specs)
+
+            // 5. MANUFACTURING TOLERANCES
+            val tolTop = tableTop + 15f + (specs.size * 18f) + 15f
+            drawSectionHeader(canvas, 40f, tolTop, "MANUFACTURING TOLERANCES & HYDRODYNAMICS")
+
+            val tolerances = listOf(
+                "Dimensional Tolerance" to "±0.15 mm (CNC Resin / ABS Injection)",
+                "Weight Accuracy" to "±0.50 grams (Tungsten internal weight balance)",
+                "Hardware Grade" to "Heavy-Duty Stainless Steel Split Rings & Wire-Through Keel",
+                "Finish Application" to "Multi-Layer UV High-Gloss Automotive Topcoat"
+            )
+            drawTable(canvas, 40f, tolTop + 15f, (PAGE_WIDTH - 80).toFloat(), tolerances)
+
+            // 6. FOOTER
+            drawDocumentFooter(canvas, config.referenceNumber)
+
+            document.finishPage(page)
+
+            val sanitizedModel = config.modelNumber.replace("[^a-zA-Z0-9]".toRegex(), "_")
+            val fileName = "7Hooks_Lure_${sanitizedModel}_${config.referenceNumber}.pdf"
+            val file = File(context.cacheDir, fileName)
+            val outputStream = FileOutputStream(file)
+            document.writeTo(outputStream)
+            outputStream.flush()
+            outputStream.close()
+            document.close()
+
+            return validatePdf(context, file, PAGE_WIDTH, PAGE_HEIGHT)
+        } catch (e: Exception) {
+            document.close()
+            return PdfValidationResult(isValid = false, errorMessage = "PDF Generation Error: ${e.localizedMessage}")
+        }
+    }
+
     fun generatePackagingPdf(context: Context, config: PackagingConfiguration): PdfValidationResult {
         val document = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, 1).create()
@@ -478,7 +599,7 @@ object PdfGenerator {
     // --- Vector CAD / Blueprint Drawing Helpers for PDF ---
 
     private fun drawBrandLogo(context: Context, canvas: Canvas, x: Float, y: Float, width: Float, height: Float) {
-        val drawable = androidx.core.content.ContextCompat.getDrawable(context, com.example.R.drawable.ic_7hooks_logo)
+        val drawable = androidx.core.content.ContextCompat.getDrawable(context, com.example.R.drawable.official_7hooks_logo)
         if (drawable != null) {
             drawable.setBounds(x.toInt(), y.toInt(), (x + width).toInt(), (y + height).toInt())
             drawable.draw(canvas)
@@ -792,6 +913,162 @@ object PdfGenerator {
         canvas.drawText("MASS: ${config.weightGrams.toInt()}g | MAT: ${config.material}", boxX + 18f, boxY + boxHeight - 34f, badgeText)
         badgeText.color = Color.WHITE
         canvas.drawText("SCALE: 1:1 ENGINEERING VIEW", boxX + 18f, boxY + boxHeight - 20f, badgeText)
+    }
+
+    private fun drawLureCadDrawing(canvas: Canvas, boxX: Float, boxY: Float, boxWidth: Float, boxHeight: Float, config: ProductConfiguration) {
+        val centerX = boxX + boxWidth * 0.45f
+        val centerY = boxY + boxHeight * 0.52f
+
+        val scaleLength = (config.lengthMm / 160f).coerceIn(0.6f, 1.4f)
+        val scaleWidth = (config.widthMm / 26f).coerceIn(0.6f, 1.4f)
+        val lureDrawLength = 220f * scaleLength
+        val lureDrawWidth = 46f * scaleWidth
+
+        val halfL = lureDrawLength / 2f
+        val halfW = lureDrawWidth / 2f
+
+        // Centerlines
+        val centerLinePaint = Paint().apply {
+            color = Color.rgb(239, 68, 68)
+            strokeWidth = 0.8f
+            pathEffect = DashPathEffect(floatArrayOf(12f, 4f, 2f, 4f), 0f)
+            isAntiAlias = true
+        }
+        canvas.drawLine(centerX - halfL - 40f, centerY, centerX + halfL + 40f, centerY, centerLinePaint)
+        canvas.drawLine(centerX, centerY - halfW - 35f, centerX, centerY + halfW + 35f, centerLinePaint)
+
+        // Lure Main Body Profile
+        val bodyPath = Path().apply {
+            moveTo(centerX - halfL, centerY)
+            cubicTo(
+                centerX - halfL * 0.7f, centerY - halfW * 0.95f,
+                centerX - halfL * 0.1f, centerY - halfW * 1.05f,
+                centerX + halfL * 0.6f, centerY - halfW * 0.5f
+            )
+            lineTo(centerX + halfL, centerY)
+            cubicTo(
+                centerX + halfL * 0.6f, centerY + halfW * 0.5f,
+                centerX - halfL * 0.1f, centerY + halfW * 0.9f,
+                centerX - halfL * 0.7f, centerY + halfW * 0.7f
+            )
+            close()
+        }
+
+        val fillPaint = Paint().apply {
+            shader = LinearGradient(
+                centerX, centerY - halfW,
+                centerX, centerY + halfW,
+                config.baseColorHex.toInt(),
+                config.accentColorHex.toInt(),
+                Shader.TileMode.CLAMP
+            )
+            isAntiAlias = true
+            alpha = 180
+        }
+        canvas.drawPath(bodyPath, fillPaint)
+
+        val outlinePaint = Paint().apply {
+            color = Color.rgb(15, 23, 42)
+            style = Paint.Style.STROKE
+            strokeWidth = 1.5f
+            isAntiAlias = true
+        }
+        canvas.drawPath(bodyPath, outlinePaint)
+
+        // Diving Lip / Bib
+        val lipPath = Path().apply {
+            moveTo(centerX - halfL + 4f, centerY + 3f)
+            lineTo(centerX - halfL - 22f * scaleLength, centerY + 24f * scaleLength)
+            lineTo(centerX - halfL - 14f * scaleLength, centerY + 28f * scaleLength)
+            lineTo(centerX - halfL + 10f, centerY + 9f)
+            close()
+        }
+        val lipPaint = Paint().apply {
+            color = Color.argb(160, 226, 232, 240)
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+        canvas.drawPath(lipPath, lipPaint)
+        canvas.drawPath(lipPath, outlinePaint)
+
+        // Lateral Line
+        val lateralPaint = Paint().apply {
+            color = Color.rgb(255, 255, 255)
+            style = Paint.Style.STROKE
+            strokeWidth = 1.2f
+            isAntiAlias = true
+        }
+        canvas.drawLine(centerX - halfL + 12f, centerY - 2f, centerX + halfL - 10f, centerY, lateralPaint)
+
+        // Belly Hanger & Tail Hanger
+        val ringPaint = Paint().apply {
+            color = Color.rgb(100, 116, 139)
+            style = Paint.Style.STROKE
+            strokeWidth = 1.8f
+            isAntiAlias = true
+        }
+        canvas.drawCircle(centerX - 8f, centerY + halfW * 0.85f + 4f, 4.5f, ringPaint)
+        canvas.drawCircle(centerX + halfL + 6f, centerY, 4.5f, ringPaint)
+
+        // 3D Lure Eye
+        val eyeBase = Paint().apply {
+            color = Color.rgb(255, 255, 255)
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+        val eyePupil = Paint().apply {
+            color = Color.rgb(15, 23, 42)
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+        val eyeX = centerX - halfL + 20f * scaleLength
+        val eyeY = centerY - 5f
+        canvas.drawCircle(eyeX, eyeY, 4.5f, eyeBase)
+        canvas.drawCircle(eyeX, eyeY, 4.5f, outlinePaint)
+        canvas.drawCircle(eyeX + 1f, eyeY, 2.2f, eyePupil)
+
+        // Dimensions
+        val dimY = centerY - halfW - 22f
+        drawDimensionLine(
+            canvas = canvas,
+            x1 = centerX - halfL - 12f,
+            y1 = dimY,
+            x2 = centerX + halfL + 12f,
+            y2 = dimY,
+            extY1 = centerY,
+            extY2 = centerY,
+            label = "LENGTH = ${config.lengthMm.toInt()} mm"
+        )
+
+        val dimX = centerX + halfL + 35f
+        drawVerticalDimensionLine(
+            canvas = canvas,
+            y1 = centerY - halfW,
+            x1 = dimX,
+            y2 = centerY + halfW,
+            x2 = dimX,
+            extX1 = centerX,
+            extX2 = centerX,
+            label = "WIDTH = ${config.widthMm.toInt()} mm"
+        )
+
+        // Specification Badge
+        val badgeBg = Paint().apply {
+            color = Color.rgb(15, 23, 42)
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+        canvas.drawRoundRect(boxX + 12f, boxY + boxHeight - 48f, boxX + 175f, boxY + boxHeight - 12f, 4f, 4f, badgeBg)
+
+        val badgeText = Paint().apply {
+            color = Color.rgb(56, 189, 248)
+            textSize = 7.5f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            isAntiAlias = true
+        }
+        canvas.drawText("MASS: ${String.format(Locale.US, "%.1f", config.weightGrams)}g | DEPTH: ${String.format(Locale.US, "%.1f", config.divingDepthMeters)}m", boxX + 18f, boxY + boxHeight - 34f, badgeText)
+        badgeText.color = Color.WHITE
+        canvas.drawText("HOOK: ${config.hookType.ifEmpty { "#4 Heavy Treble" }}", boxX + 18f, boxY + boxHeight - 20f, badgeText)
     }
 
     private fun drawRodCadDrawing(canvas: Canvas, boxX: Float, boxY: Float, boxWidth: Float, boxHeight: Float, config: ProductConfiguration) {

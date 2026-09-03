@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,7 +46,7 @@ data class RealisticFinish(
 )
 
 object RealisticFinishes {
-    val allFinishes = listOf(
+    val factoryFinishes = listOf(
         RealisticFinish(
             id = "orange_black",
             name = "Orange / Black",
@@ -119,6 +120,30 @@ object RealisticFinishes {
             description = "Multi-angle reflection with yellow gold flash and royal spine."
         )
     )
+
+    // EXPANDED CUSTOM APPEARANCE FINISHES (Requirement 13)
+    val customAppearanceFinishes = listOf(
+        RealisticFinish("gloss_orange", "Gloss Orange", "Mirror Polyurethane", Color(0xFFFF6D00), Color(0xFFFF9E40), JigPatternType.SOLID_STRIPE, "Deep mirror gloss high-saturation blaze orange."),
+        RealisticFinish("matte_orange", "Matte Orange", "Anti-Glare Frosted", Color(0xFFD84315), Color(0xFFBF360C), JigPatternType.SOLID_STRIPE, "Matte anti-reflective orange for high sun visibility."),
+        RealisticFinish("gloss_yellow", "Gloss Yellow", "Solar Gloss Coat", Color(0xFFFFD600), Color(0xFFFFEA00), JigPatternType.SOLID_STRIPE, "Brilliant vibrant high-gloss solar canary yellow."),
+        RealisticFinish("matte_yellow", "Matte Yellow", "Satin Low-Sheen", Color(0xFFFBC02D), Color(0xFFF57F17), JigPatternType.SOLID_STRIPE, "Soft satin finish yellow body with stealth edge."),
+        RealisticFinish("gloss_black", "Gloss Black", "Onyx Piano Gloss", Color(0xFF1E293B), Color(0xFF0F172A), JigPatternType.SOLID_STRIPE, "Piano black deep lacquer with obsidian reflective sheen."),
+        RealisticFinish("pearl_white", "Pearl White", "Iridescent Mother-of-Pearl", Color(0xFFF8FAFC), Color(0xFFE2E8F0), JigPatternType.CRYSTAL_FACET, "Multi-chromatic pearlescent finish resembling natural scale luster."),
+        RealisticFinish("pearl_blue", "Pearl Blue", "Oceanic Pearl Sparkle", Color(0xFF38BDF8), Color(0xFF0284C7), JigPatternType.CRYSTAL_FACET, "Shimmering deep sea pelagic pearl blue."),
+        RealisticFinish("metallic_silver", "Metallic Silver", "Polished Chrome Flash", Color(0xFFCBD5E1), Color(0xFF94A3B8), JigPatternType.HOLOGRAPHIC_SLASH, "High-reflective mirror chrome simulating fresh baitfish flash."),
+        RealisticFinish("metallic_gold", "Metallic Gold", "24K Gold Leaf Anodize", Color(0xFFEAB308), Color(0xFFCA8A04), JigPatternType.HOLOGRAPHIC_SLASH, "Rich gold anodized foil finish for stained and dark waters."),
+        RealisticFinish("translucent_blue", "Translucent Blue", "Clear Tint Cyan", Color(0xFF00E5FF).copy(alpha = 0.85f), Color(0xFF0091EA), JigPatternType.CRYSTAL_FACET, "Semi-transparent clear resin showing core refraction."),
+        RealisticFinish("translucent_pink", "Translucent Pink", "Ghost Coral Tint", Color(0xFFFF4081).copy(alpha = 0.85f), Color(0xFFC51162), JigPatternType.CRYSTAL_FACET, "Ghost translucent pink for high-pressure spooky fish."),
+        RealisticFinish("translucent_yellow", "Translucent Yellow", "Chartreuse Amber Tint", Color(0xFFEEFF41).copy(alpha = 0.85f), Color(0xFFAEEA00), JigPatternType.CRYSTAL_FACET, "High-visibility chartreuse ghost tint for murky estuary water."),
+        RealisticFinish("crystal_blue", "Crystal Blue", "Facet Diamond Blue", Color(0xFF0284C7), Color(0xFF7DD3FC), JigPatternType.CRYSTAL_FACET, "Prismatic crystalline cut with intense blue refraction."),
+        RealisticFinish("crystal_pink", "Crystal Pink", "Ruby Prismatic Facet", Color(0xFFF43F5E), Color(0xFFFDA4AF), JigPatternType.CRYSTAL_FACET, "Diamond-faceted ruby pink body refracting 360-degree light."),
+        RealisticFinish("holographic", "Holographic", "Rainbow Laser Sheen", Color(0xFFA855F7), Color(0xFF06B6D4), JigPatternType.HOLOGRAPHIC_SLASH, "Full-spectrum laser holographic foil that changes color at every angle."),
+        RealisticFinish("clear_coat", "Clear Coat", "Optical Polycarbonate", Color(0xFFF1F5F9), Color(0xFFE2E8F0), JigPatternType.SOLID_STRIPE, "Ultra-durable scratch resistant 2K crystal clear coat."),
+        RealisticFinish("smoke_tint", "Smoke Tint", "Smoked Gray Translucent", Color(0xFF475569), Color(0xFF1E293B), JigPatternType.SOLID_STRIPE, "Stealthy smoked glass appearance with dark silhouette."),
+        RealisticFinish("natural_titanium", "Natural Titanium/Tungsten", "Raw Industrial Metal", Color(0xFF64748B), Color(0xFF334155), JigPatternType.SOLID_STRIPE, "Uncoated raw sintered alloy with industrial micro-brush texture.")
+    )
+
+    val allFinishes: List<RealisticFinish> = factoryFinishes + customAppearanceFinishes
 }
 
 @Composable
@@ -344,6 +369,9 @@ fun RealisticFinishSelector(
     onSelectFinish: (RealisticFinish) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var selectedTab by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    val displayFinishes = if (selectedTab == 0) RealisticFinishes.factoryFinishes else RealisticFinishes.customAppearanceFinishes
+
     TactileCard(
         modifier = modifier
             .fillMaxWidth()
@@ -358,16 +386,65 @@ fun RealisticFinishSelector(
             ) {
                 Column {
                     Text(
-                        text = "FINISH / MATERIAL APPEARANCE",
+                        text = "MATERIAL AND LOOK",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                         letterSpacing = 0.5.sp
                     )
                     Text(
-                        text = "Realistic hydrodynamic coatings & visual material textures",
+                        text = "Realistic factory coatings & custom appearance finishes",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Two distinct sections selector (Requirement 13)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .padding(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Surface(
+                    color = if (selectedTab == 0) MaterialTheme.colorScheme.surface else Color.Transparent,
+                    shape = RoundedCornerShape(6.dp),
+                    shadowElevation = if (selectedTab == 0) 2.dp else 0.dp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { selectedTab = 0 }
+                ) {
+                    Text(
+                        text = "Available Product Finish",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium,
+                        color = if (selectedTab == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+
+                Surface(
+                    color = if (selectedTab == 1) MaterialTheme.colorScheme.surface else Color.Transparent,
+                    shape = RoundedCornerShape(6.dp),
+                    shadowElevation = if (selectedTab == 1) 2.dp else 0.dp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { selectedTab = 1 }
+                ) {
+                    Text(
+                        text = "Custom Appearance",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium,
+                        color = if (selectedTab == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
             }
@@ -381,7 +458,7 @@ fun RealisticFinishSelector(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                RealisticFinishes.allFinishes.forEach { finish ->
+                displayFinishes.forEach { finish ->
                     val isSelected = selectedColorName.contains(finish.name.substringBefore(" /"), ignoreCase = true) ||
                             selectedColorName.contains(finish.id.replace("_", " "), ignoreCase = true)
 

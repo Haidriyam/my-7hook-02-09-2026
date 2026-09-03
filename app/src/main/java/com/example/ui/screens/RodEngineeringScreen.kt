@@ -53,7 +53,7 @@ fun RodEngineeringScreen(
     Scaffold(
         topBar = {
             AppHeader(
-                title = "Dashboard",
+                title = "Technical Drawing",
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )
@@ -91,7 +91,7 @@ fun RodEngineeringScreen(
                             modifier = Modifier.weight(1f),
                             variant = TactileButtonVariant.SECONDARY,
                             icon = Icons.Default.BookmarkBorder,
-                            text = "Save",
+                            text = "Save Blueprint",
                             testTag = "rod_engineering_save_button"
                         )
                     }
@@ -104,9 +104,9 @@ fun RodEngineeringScreen(
                             onClick = { configViewModel.generatePdf(context) },
                             enabled = !isGeneratingPdf,
                             modifier = Modifier.weight(1f),
-                            variant = TactileButtonVariant.SECONDARY,
+                            variant = TactileButtonVariant.PRIMARY,
                             icon = if (isGeneratingPdf) null else Icons.Default.PictureAsPdf,
-                            text = if (isGeneratingPdf) "Generating..." else "Generate A4 PDF",
+                            text = if (isGeneratingPdf) "Generating..." else "Export A4 PDF",
                             testTag = "rod_engineering_generate_pdf_button"
                         )
 
@@ -119,7 +119,7 @@ fun RodEngineeringScreen(
                                         putExtra(Intent.EXTRA_STREAM, uri)
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Share Rod Specification PDF"))
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share Technical Drawing PDF"))
                                 },
                                 variant = TactileButtonVariant.SUCCESS,
                                 icon = Icons.Default.Share,
@@ -147,7 +147,7 @@ fun RodEngineeringScreen(
             TactileStepIndicator(
                 currentStep = 3,
                 totalSteps = 3,
-                stepTitles = listOf("Choose Rod", "Technical Specs", "CAD Document"),
+                stepTitles = listOf("Choose Rod", "Technical Specs", "Technical Drawing"),
                 modifier = Modifier.padding(horizontal = 0.dp)
             )
 
@@ -165,7 +165,7 @@ fun RodEngineeringScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "ROD CAD ENGINEERING BLUEPRINT",
+                            text = "TECHNICAL SPECIFICATION BLUEPRINT",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface

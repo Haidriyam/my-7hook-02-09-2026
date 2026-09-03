@@ -61,7 +61,7 @@ fun RodCategoryScreen(
                 TactileStepIndicator(
                     currentStep = 1,
                     totalSteps = 3,
-                    stepTitles = listOf("Choose Rod", "Technical Specs", "CAD Document"),
+                    stepTitles = listOf("Choose Rod", "Technical Specs", "Technical Drawing"),
                     modifier = Modifier.padding(horizontal = 0.dp)
                 )
             }
@@ -80,7 +80,7 @@ fun RodCategoryScreen(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Select an engineered rod discipline and initial blank length group to enter finite element load testing, carbon fiber layups, and engineering CAD export.",
+                            text = "Select an engineered rod discipline and initial blank length group to enter finite element load testing, carbon fiber layups, and technical drawing export.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

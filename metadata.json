@@ -1,6 +1,6 @@
 {
   "name": "7Hooks Product Configurator",
-  "description": "Professional product configurator and A4 engineering drawing PDF generator for 7Hooks fishing jigs, rods, and custom packaging.",
+  "description": "Professional product configurator and A4 engineering drawing PDF generator for 7Hooks fishing jigs, rods, lures, and custom packaging.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

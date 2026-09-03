@@ -3,6 +3,7 @@ package com.example.ui.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -46,9 +47,9 @@ fun PackagingScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Image Picker for custom logo
+    // Zero-permission Photo Picker for custom logo (Google Play policy compliant)
     val logoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         if (uri != null) {
             packagingViewModel.updateCustomLogoUri(uri.toString())
@@ -226,7 +227,7 @@ fun PackagingScreen(
 
                             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 TactileButton(
-                                    onClick = { logoPickerLauncher.launch("image/*") },
+                                    onClick = { logoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                                     modifier = Modifier.fillMaxWidth(),
                                     variant = TactileButtonVariant.PRIMARY,
                                     icon = Icons.Default.CloudUpload,
@@ -242,7 +243,7 @@ fun PackagingScreen(
                             }
                         } else {
                             TactileButton(
-                                onClick = { logoPickerLauncher.launch("image/*") },
+                                onClick = { logoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .testTag("upload_logo_button"),

@@ -163,63 +163,40 @@ fun JigFishingAnimation(
                     style = Stroke(width = 1.2f)
                 )
 
-                // Fish Swimming In & Striking Animation
-                // Fish approaches from right at phase 0.55..0.9
-                if (cycleProgress >= 0.45f) {
-                    val strikeT = ((cycleProgress - 0.45f) / 0.55f).coerceIn(0f, 1f)
-                    val fishStartX = w + 40.dp.toPx()
-                    val fishTargetX = jigX + 16.dp.toPx()
-                    val fishX = when {
-                        strikeT < 0.65f -> fishStartX - (fishStartX - fishTargetX) * (strikeT / 0.65f)
-                        else -> fishTargetX + (strikeT - 0.65f) * 15.dp.toPx()
-                    }
-                    val fishY = currentJigY + sin((strikeT * 6.28f).toDouble()).toFloat() * 8.dp.toPx()
+                // Water current & hydrodynamic vortex trails behind flutter
+                for (v in 0..3) {
+                    val vortexProgress = (cycleProgress * 2f + v * 0.25f) % 1f
+                    val vy = currentJigY + 18.dp.toPx() + vortexProgress * 24.dp.toPx()
+                    val vxOffset = if (v % 2 == 0) -12.dp.toPx() else 12.dp.toPx()
+                    drawCircle(
+                        color = Color(0x2238BDF8),
+                        radius = (3f + vortexProgress * 6f).dp.toPx(),
+                        center = Offset(jigX + vxOffset * (1f - vortexProgress), vy),
+                        style = Stroke(width = 1f)
+                    )
+                }
 
-                    // Fish silhouette
-                    val fishPath = Path().apply {
-                        moveTo(fishX - 22.dp.toPx(), fishY) // Nose
-                        cubicTo(
-                            fishX - 5.dp.toPx(), fishY - 10.dp.toPx(),
-                            fishX + 15.dp.toPx(), fishY - 8.dp.toPx(),
-                            fishX + 32.dp.toPx(), fishY - 2.dp.toPx() // Body to tail
-                        )
-                        lineTo(fishX + 42.dp.toPx(), fishY - 12.dp.toPx()) // Tail upper
-                        lineTo(fishX + 38.dp.toPx(), fishY)
-                        lineTo(fishX + 42.dp.toPx(), fishY + 12.dp.toPx()) // Tail lower
-                        lineTo(fishX + 32.dp.toPx(), fishY + 2.dp.toPx())
-                        cubicTo(
-                            fishX + 15.dp.toPx(), fishY + 8.dp.toPx(),
-                            fishX - 5.dp.toPx(), fishY + 10.dp.toPx(),
-                            fishX - 22.dp.toPx(), fishY
-                        )
-                        close()
-                    }
-
-                    drawPath(fishPath, color = Color(0xFF1E40AF))
-                    drawPath(fishPath, color = Color(0xFF60A5FA), style = Stroke(width = 1.2f))
-                    // Fish eye
-                    drawCircle(Color(0xFF38BDF8), radius = 2.dp.toPx(), center = Offset(fishX - 16.dp.toPx(), fishY - 2.dp.toPx()))
-
-                    // Strike splash effect
-                    if (strikeT in 0.6f..0.8f) {
-                        drawCircle(
-                            color = Color(0xAAFFFFFF),
-                            radius = 12.dp.toPx(),
-                            center = Offset(jigX, currentJigY),
-                            style = Stroke(width = 1.5.dp.toPx())
-                        )
-                    }
+                // Hydrodynamic drift lines
+                for (i in 0..2) {
+                    val streamX = w * (0.15f + i * 0.35f)
+                    val streamProgress = (cycleProgress + i * 0.33f) % 1f
+                    drawLine(
+                        color = Color(0x1838BDF8),
+                        start = Offset(streamX, streamProgress * h),
+                        end = Offset(streamX + 15.dp.toPx(), (streamProgress * h) + 25.dp.toPx()),
+                        strokeWidth = 1f
+                    )
                 }
             }
 
             // Overlay Badge
             Surface(
-                color = Color(0xCC0F172A),
+                color = Color(0xDD0F172A),
                 shape = RoundedCornerShape(bottomEnd = 8.dp),
                 modifier = Modifier.align(Alignment.TopStart)
             ) {
                 Text(
-                    text = "ACTION VISUALIZATION • VERTICAL FLUTTER",
+                    text = "PRODUCT IN-USE DEMONSTRATION • Hydrodynamic Balance & Flutter Sink",
                     color = Color(0xFF38BDF8),
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
@@ -424,9 +401,13 @@ fun RodBreakageAnimation(
                     }
                     drawPath(brokenTip, color = Color(0xFFEF4444), style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
 
-                    // Fracture Spark / Particle bursts
-                    drawCircle(Color(0xFFFFEA00), radius = 6.dp.toPx(), center = Offset(breakX, breakY))
-                    drawCircle(Color(0xFFEF4444), radius = 12.dp.toPx(), center = Offset(breakX, breakY), style = Stroke(width = 1.5.dp.toPx()))
+                    // Structural fracture line indicator (clean finite element stress failure point)
+                    drawLine(
+                        color = Color(0xFFEF4444),
+                        start = Offset(breakX - 4.dp.toPx(), breakY - 4.dp.toPx()),
+                        end = Offset(breakX + 4.dp.toPx(), breakY + 4.dp.toPx()),
+                        strokeWidth = 2.dp.toPx()
+                    )
                 }
             }
         }
@@ -455,18 +436,19 @@ fun RodBreakageAnimation(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Mandatory Disclaimer Notice
+        // Mandatory Disclaimer Notice (Section 13)
         Surface(
-            color = Color(0x33F59E0B),
+            color = Color(0x22F59E0B),
             shape = RoundedCornerShape(4.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "Illustrative load visualization. Actual performance depends on material, construction, manufacturing tolerances and test conditions.",
+                text = "Illustrative simulation — actual rod performance requires physical testing.",
                 color = Color(0xFFFCD34D),
-                fontSize = 9.5.sp,
-                lineHeight = 13.sp,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                lineHeight = 14.sp,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
             )
         }
     }

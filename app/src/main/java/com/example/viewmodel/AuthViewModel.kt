@@ -40,6 +40,16 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         return sessionManager.login(email)
     }
 
+    fun loginAsGuest(): Boolean {
+        _loginError.value = null
+        return sessionManager.signup(
+            name = "Guest Engineer",
+            email = "guest@7hooks.com",
+            company = "7Hooks Studio Demo",
+            phone = "+1 (800) 555-0199"
+        )
+    }
+
     fun signup(name: String, email: String, password: String, confirmPass: String, company: String, phone: String): Boolean {
         if (name.isBlank()) {
             _signupError.value = "Please enter your name."

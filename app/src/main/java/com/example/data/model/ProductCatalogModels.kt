@@ -30,6 +30,38 @@ enum class JigPatternType {
     CRYSTAL_FACET
 }
 
+data class LureProduct(
+    val id: String,
+    val name: String,
+    val category: String,
+    val imageUrl: String,
+    val baseColorHex: Long,
+    val accentColorHex: Long,
+    val defaultWeightGrams: Float = 35f,
+    val minWeightGrams: Float = 10f,
+    val maxWeightGrams: Float = 120f,
+    val defaultLengthMm: Float = 110f,
+    val minLengthMm: Float = 50f,
+    val maxLengthMm: Float = 220f,
+    val defaultWidthMm: Float = 20f,
+    val minWidthMm: Float = 10f,
+    val maxWidthMm: Float = 36f,
+    val materials: List<String> = listOf("ABS Engineered Resin", "Solid Balsa Core", "Polycarbonate", "Tungsten Weight Core", "Zinc Alloy"),
+    val modelNumber: String,
+    val description: String,
+    val isNew: Boolean = false,
+    val patternType: JigPatternType = JigPatternType.SOLID_STRIPE,
+    val divingDepthMeters: Float = 1.8f,
+    val minDivingDepthMeters: Float = 0.0f,
+    val maxDivingDepthMeters: Float = 8.0f,
+    val hookType: String = "VMC Saltwater 3X Treble",
+    val buoyancy: String = "Suspending"
+) {
+    val defaultDivingDepthMeters: Float get() = divingDepthMeters
+    val defaultHookType: String get() = hookType
+    val defaultBuoyancy: String get() = buoyancy
+}
+
 enum class RodCategoryType(val displayName: String, val subtitle: String, val imageUrl: String) {
     SPINNING(
         displayName = "Spinning Rod",

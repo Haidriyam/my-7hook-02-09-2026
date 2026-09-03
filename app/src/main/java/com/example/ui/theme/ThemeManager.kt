@@ -8,8 +8,7 @@ import androidx.compose.runtime.setValue
 
 enum class AppThemeMode(val title: String) {
     LIGHT("Light"),
-    DARK("Dark"),
-    SYSTEM("System")
+    DARK("Dark")
 }
 
 object ThemeManager {

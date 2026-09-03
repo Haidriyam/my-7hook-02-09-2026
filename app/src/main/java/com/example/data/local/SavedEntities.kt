@@ -27,6 +27,9 @@ data class SavedConfigEntity(
     val recommendedLureWeight: String,
     val maximumLoadKg: Float,
     val handleLengthMm: Float,
+    val divingDepthMeters: Float = 0f,
+    val hookType: String = "",
+    val buoyancy: String = "",
     val notes: String,
     val timestamp: Long
 )

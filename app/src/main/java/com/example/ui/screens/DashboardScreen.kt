@@ -42,6 +42,7 @@ fun DashboardScreen(
     configViewModel: ConfiguratorViewModel,
     onNavigateToJigs: () -> Unit,
     onNavigateToRods: () -> Unit,
+    onNavigateToLures: () -> Unit = {},
     onNavigateToPackaging: () -> Unit,
     onNavigateToEngineering: (SavedConfigEntity) -> Unit,
     onLogout: () -> Unit,
@@ -66,17 +67,10 @@ fun DashboardScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 12.dp)
                 ) {
-                    Box(modifier = Modifier.height(36.dp)) {
-                        AsyncImage(
-                            model = "https://7hooks.com/wp-content/uploads/2025/11/cropped-394608127_1379560635982079_6192428464456395363_n-removebg-preview-e1764314943627.png",
-                            contentDescription = "7Hooks Brand",
-                            contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-                            error = painterResource(id = R.drawable.ic_7hooks_logo),
-                            fallback = painterResource(id = R.drawable.ic_7hooks_logo),
-                            modifier = Modifier.fillMaxHeight()
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Official7HooksLogo(
+                        height = 34.dp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
                         text = currentUser?.name ?: "Technical Configurator",
                         style = MaterialTheme.typography.titleMedium,
@@ -84,7 +78,7 @@ fun DashboardScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = currentUser?.company?.ifEmpty { "OEM Fishing Division" } ?: "OEM Fishing Division",
+                        text = currentUser?.company?.ifEmpty { "7Hooks OEM Manufacturing" } ?: "7Hooks OEM Manufacturing",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -145,6 +139,27 @@ fun DashboardScreen(
                     modifier = Modifier
                         .padding(NavigationDrawerItemDefaults.ItemPadding)
                         .testTag("drawer_nav_rods")
+                )
+
+                NavigationDrawerItem(
+                    icon = {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_lure_icon),
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    },
+                    label = { Text("Hard Lures", fontWeight = FontWeight.SemiBold) },
+                    selected = false,
+                    onClick = {
+                        coroutineScope.launch {
+                            drawerState.close()
+                            onNavigateToLures()
+                        }
+                    },
+                    modifier = Modifier
+                        .padding(NavigationDrawerItemDefaults.ItemPadding)
+                        .testTag("drawer_nav_lures")
                 )
 
                 NavigationDrawerItem(
@@ -225,68 +240,94 @@ fun DashboardScreen(
                 contentPadding = PaddingValues(top = 10.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Welcome Hero Header
+                // High-End Industrial Brand Header Block (Clean, professional, non-generic)
                 item {
                     TactileCard(
                         modifier = Modifier.fillMaxWidth(),
-                        shadowElevation = 3.dp
+                        shadowElevation = 2.dp
                     ) {
-                        Column(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = if (currentUser != null) "Welcome, ${currentUser.name}" else "7Hooks Engineering Hub",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "Precision CAD & Technical Customization Platform",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-
-                                ThemeSelectorRow()
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "7HOOKS PRODUCT CONFIGURATOR",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    letterSpacing = 1.sp
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Commercial Specification Platform",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "ISO / ANSI Y14.5 CAD schematics & A4 technical manufacturing PDFs",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Select a product category to configure custom technical specifications, view CAD drawings, and generate true A4 manufacturing specification PDFs.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 16.sp
-                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            ThemeSelectorRow()
                         }
                     }
                 }
 
-                // PRIMARY CONFIGURATION OPTIONS
+                // SECTION TITLE: PRODUCT CATALOG & SPECIFICATION
+                item {
+                    Text(
+                        text = "SELECT PRODUCT MODULE",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.8.sp,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                    )
+                }
+
+                // 4-CARD COMMERCIAL PRODUCT MODULES (Jigs, Rods, Lures, Packaging)
                 item {
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                         val isWide = maxWidth >= 600.dp
                         if (isWide) {
-                            Row(
+                            Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
-                                JigConfigDashboardCard(
-                                    modifier = Modifier.weight(1f),
-                                    onNavigateToJigs = onNavigateToJigs
-                                )
-                                RodConfigDashboardCard(
-                                    modifier = Modifier.weight(1f),
-                                    onNavigateToRods = onNavigateToRods
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                ) {
+                                    JigConfigDashboardCard(
+                                        modifier = Modifier.weight(1f),
+                                        onNavigateToJigs = onNavigateToJigs
+                                    )
+                                    RodConfigDashboardCard(
+                                        modifier = Modifier.weight(1f),
+                                        onNavigateToRods = onNavigateToRods
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                ) {
+                                    LureConfigDashboardCard(
+                                        modifier = Modifier.weight(1f),
+                                        onNavigateToLures = onNavigateToLures
+                                    )
+                                    PackagingConfigDashboardCard(
+                                        modifier = Modifier.weight(1f),
+                                        onNavigateToPackaging = onNavigateToPackaging
+                                    )
+                                }
                             }
                         } else {
                             Column(
@@ -301,94 +342,36 @@ fun DashboardScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     onNavigateToRods = onNavigateToRods
                                 )
-                            }
-                        }
-                    }
-                }
-
-                // PACKAGING CONFIGURATOR QUICK ACCESS
-                item {
-                    TactileCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNavigateToPackaging() }
-                            .testTag("dashboard_packaging_card"),
-                        shadowElevation = 3.dp
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(
-                                        Brush.linearGradient(
-                                            listOf(Color(0xFF475569), Color(0xFF1E293B))
-                                        )
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_package_box),
-                                    contentDescription = "Packaging Box Icon",
-                                    modifier = Modifier.size(32.dp)
+                                LureConfigDashboardCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onNavigateToLures = onNavigateToLures
+                                )
+                                PackagingConfigDashboardCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onNavigateToPackaging = onNavigateToPackaging
                                 )
                             }
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "PACKAGING CONFIGURATOR",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    letterSpacing = 0.5.sp
-                                )
-                                Text(
-                                    text = "Design Custom Product Packaging",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Upload company logo • 2.5D Mockup • A4 Packaging PDF",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 11.sp
-                                )
-                            }
-
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                contentDescription = "Open Packaging",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
                         }
                     }
                 }
 
                 // SAVED CONFIGURATIONS SECTION
                 item {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "SAVED CONFIGURATIONS",
+                            text = "SAVED CONFIGURATIONS & BLUEPRINTS",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
                             letterSpacing = 0.8.sp
                         )
                         Text(
-                            text = "${savedConfigs.size} saved blueprints",
+                            text = "${savedConfigs.size} archived",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.SemiBold
@@ -422,7 +405,7 @@ fun DashboardScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "Configure a Jig or Rod and tap 'Save' on the CAD screen to archive blueprints.",
+                                    text = "Configure a Jig, Rod, or Lure and tap 'Save' on the CAD screen to archive blueprints.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                                 )
@@ -481,17 +464,37 @@ private fun SavedConfigItemCard(
                         .size(42.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(
-                            if (configEntity.configType == "JIG") MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.secondaryContainer
+                            when (configEntity.configType) {
+                                "JIG" -> MaterialTheme.colorScheme.primaryContainer
+                                "ROD" -> MaterialTheme.colorScheme.secondaryContainer
+                                else -> MaterialTheme.colorScheme.tertiaryContainer
+                            }
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = if (configEntity.configType == "JIG") Icons.Default.PrecisionManufacturing else Icons.Default.Tune,
-                        contentDescription = null,
-                        tint = if (configEntity.configType == "JIG") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    when (configEntity.configType) {
+                        "JIG" -> {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_jig_icon),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        "ROD" -> {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_rod_icon),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        else -> {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_lure_icon),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                 }
 
                 Column {
@@ -509,7 +512,11 @@ private fun SavedConfigItemCard(
                         fontFamily = FontFamily.Monospace
                     )
                     Text(
-                        text = "Specs: ${configEntity.lengthMm.toInt()}mm | ${configEntity.weightGrams.toInt()}g | ${configEntity.material}",
+                        text = if (configEntity.configType == "LURE") {
+                            "Specs: ${configEntity.lengthMm.toInt()}mm | ${String.format(Locale.US, "%.1f", configEntity.weightGrams)}g | Lip: ${String.format(Locale.US, "%.1f", configEntity.divingDepthMeters)}m"
+                        } else {
+                            "Specs: ${configEntity.lengthMm.toInt()}mm | ${configEntity.weightGrams.toInt()}g | ${configEntity.material}"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 11.sp,
@@ -535,8 +542,7 @@ private fun JigConfigDashboardCard(
     onNavigateToJigs: () -> Unit
 ) {
     TactileCard(
-        modifier = modifier
-            .testTag("dashboard_jig_configurator_card"),
+        modifier = modifier.testTag("dashboard_jig_configurator_card"),
         shadowElevation = 3.dp
     ) {
         Column(
@@ -576,7 +582,7 @@ private fun JigConfigDashboardCard(
                         letterSpacing = 0.8.sp
                     )
                     Text(
-                        text = "Many jig options",
+                        text = "Jigheads & Spoons",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -585,7 +591,7 @@ private fun JigConfigDashboardCard(
             }
 
             Text(
-                text = "Configure jig dimensions, materials, colors and technical specifications.",
+                text = "Tungsten & lead heads, Mustad ultra-points, 3D holographic eyes & powder finishes.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 16.sp
@@ -609,8 +615,7 @@ private fun RodConfigDashboardCard(
     onNavigateToRods: () -> Unit
 ) {
     TactileCard(
-        modifier = modifier
-            .testTag("dashboard_rod_configurator_card"),
+        modifier = modifier.testTag("dashboard_rod_configurator_card"),
         shadowElevation = 3.dp
     ) {
         Column(
@@ -650,7 +655,7 @@ private fun RodConfigDashboardCard(
                         letterSpacing = 0.8.sp
                     )
                     Text(
-                        text = "Rod Configurator",
+                        text = "Custom Rod Blanks",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -659,7 +664,7 @@ private fun RodConfigDashboardCard(
             }
 
             Text(
-                text = "Configure rod length, materials, specifications and load characteristics.",
+                text = "Toray carbon fiber blanks, Fuji guide systems, action taper & customized grip ergonomics.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 16.sp
@@ -672,6 +677,152 @@ private fun RodConfigDashboardCard(
                 icon = Icons.Default.Tune,
                 text = "Configure Rod",
                 testTag = "configure_rod_button"
+            )
+        }
+    }
+}
+
+@Composable
+private fun LureConfigDashboardCard(
+    modifier: Modifier = Modifier,
+    onNavigateToLures: () -> Unit
+) {
+    TactileCard(
+        modifier = modifier.testTag("dashboard_lure_configurator_card"),
+        shadowElevation = 3.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            Brush.linearGradient(
+                                listOf(Color(0xFF0D9488), Color(0xFF0F766E))
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_lure_icon),
+                        contentDescription = "Hard Lure Icon",
+                        modifier = Modifier.size(34.dp)
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "HARD LURE CONFIGURATOR",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0D9488),
+                        letterSpacing = 0.8.sp
+                    )
+                    Text(
+                        text = "Minnows, Cranks & Poppers",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            Text(
+                text = "ABS shell geometry, internal weight transfer chambers, diving depths & holographic coats.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 16.sp
+            )
+
+            TactileButton(
+                onClick = onNavigateToLures,
+                modifier = Modifier.fillMaxWidth(),
+                variant = TactileButtonVariant.PRIMARY,
+                icon = Icons.Default.Tune,
+                text = "Configure Lures",
+                testTag = "configure_lure_button"
+            )
+        }
+    }
+}
+
+@Composable
+private fun PackagingConfigDashboardCard(
+    modifier: Modifier = Modifier,
+    onNavigateToPackaging: () -> Unit
+) {
+    TactileCard(
+        modifier = modifier.testTag("dashboard_packaging_card"),
+        shadowElevation = 3.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            Brush.linearGradient(
+                                listOf(Color(0xFF475569), Color(0xFF1E293B))
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_package_box),
+                        contentDescription = "Packaging Box Icon",
+                        modifier = Modifier.size(34.dp)
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "PACKAGING CONFIGURATOR",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF64748B),
+                        letterSpacing = 0.8.sp
+                    )
+                    Text(
+                        text = "Retail Packaging & Box",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            Text(
+                text = "Custom blister cards, header polybags, rigid gift boxes, logo embossing & die-cut sheets.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 16.sp
+            )
+
+            TactileButton(
+                onClick = onNavigateToPackaging,
+                modifier = Modifier.fillMaxWidth(),
+                variant = TactileButtonVariant.OUTLINE,
+                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                text = "Design Packaging",
+                testTag = "configure_packaging_button"
             )
         }
     }

@@ -85,7 +85,7 @@ fun JigConfigScreen(
                         onClick = onNavigateToEngineering,
                         variant = TactileButtonVariant.PRIMARY,
                         icon = Icons.AutoMirrored.Filled.ArrowForward,
-                        text = "Engineering CAD",
+                        text = "Technical Drawing",
                         testTag = "jig_continue_to_dashboard_button"
                     )
                 }
@@ -107,7 +107,7 @@ fun JigConfigScreen(
             TactileStepIndicator(
                 currentStep = 2,
                 totalSteps = 3,
-                stepTitles = listOf("Choose Jig", "Technical Specs", "CAD Document"),
+                stepTitles = listOf("Choose Jig", "Technical Specs", "Technical Drawing"),
                 modifier = Modifier.padding(horizontal = 0.dp)
             )
 
@@ -160,42 +160,7 @@ fun JigConfigScreen(
                 }
             }
 
-            // SECTION 2: LIVE CAD & DYNAMIC ACTION PREVIEWS
-            TactileCard(
-                modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 3.dp
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = "LIVE CAD SCHEMATIC PREVIEW",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    JigEngineeringCanvas(config = currentConfig)
-                }
-            }
-
-            TactileCard(
-                modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 3.dp
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = "UNDERWATER ACTION & STRIKE VISUALIZATION",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    JigFishingAnimation(config = currentConfig)
-                }
-            }
-
-            // SECTION 3: DIMENSIONAL PARAMETERS (Tactile Synchronized Sliders)
+            // SECTION 2: DIMENSIONAL PARAMETERS (Tactile Synchronized Sliders)
             Text(
                 text = "DIMENSIONAL PARAMETERS",
                 style = MaterialTheme.typography.labelMedium,
@@ -241,19 +206,7 @@ fun JigConfigScreen(
                 testTagPrefix = "jig_width"
             )
 
-            // SECTION 4: REALISTIC MATERIAL & FINISH SELECTION
-            RealisticFinishSelector(
-                selectedColorName = currentConfig.colorName,
-                onSelectFinish = { finish ->
-                    configViewModel.updateColor(
-                        name = finish.name.substringBefore(" /"),
-                        baseHex = (finish.baseColor.value shr 32).toLong(),
-                        accentHex = (finish.accentColor.value shr 32).toLong()
-                    )
-                }
-            )
-
-            // Alloy Material Selection
+            // SECTION 3: ALLOY & CORE CONSTRUCTION
             TactileCard(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 2.dp
@@ -287,6 +240,18 @@ fun JigConfigScreen(
                 }
             }
 
+            // SECTION 4: REALISTIC MATERIAL & FINISH SELECTION
+            RealisticFinishSelector(
+                selectedColorName = currentConfig.colorName,
+                onSelectFinish = { finish ->
+                    configViewModel.updateColor(
+                        name = finish.name.substringBefore(" /"),
+                        baseHex = (finish.baseColor.value shr 32).toLong(),
+                        accentHex = (finish.accentColor.value shr 32).toLong()
+                    )
+                }
+            )
+
             // Material & Finish Preview Spec Card
             MaterialAndFinishPreviewCard(
                 material = currentConfig.material,
@@ -295,6 +260,42 @@ fun JigConfigScreen(
                 accentColor = Color(currentConfig.accentColorHex),
                 pattern = currentConfig.patternType
             )
+
+            // SECTION 5: LIVE TECHNICAL DRAWING SCHEMATIC PREVIEW
+            TactileCard(
+                modifier = Modifier.fillMaxWidth(),
+                shadowElevation = 3.dp
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "TECHNICAL DRAWING SCHEMATIC",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    JigEngineeringCanvas(config = currentConfig)
+                }
+            }
+
+            // SECTION 6: PRODUCT IN-USE DEMONSTRATION (At bottom of configurator, per Section 12 & 22)
+            TactileCard(
+                modifier = Modifier.fillMaxWidth(),
+                shadowElevation = 3.dp
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "PRODUCT IN-USE DEMONSTRATION",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    JigFishingAnimation(config = currentConfig)
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }

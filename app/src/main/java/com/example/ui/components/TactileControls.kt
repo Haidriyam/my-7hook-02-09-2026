@@ -337,7 +337,7 @@ fun ThemeSelectorRow(
             horizontalArrangement = Arrangement.spacedBy(2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AppThemeMode.values().forEach { mode ->
+            AppThemeMode.entries.forEach { mode ->
                 val isSelected = currentMode == mode
                 val bg by animateColorAsState(
                     targetValue = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
@@ -365,7 +365,6 @@ fun ThemeSelectorRow(
                             imageVector = when (mode) {
                                 AppThemeMode.LIGHT -> Icons.Default.LightMode
                                 AppThemeMode.DARK -> Icons.Default.DarkMode
-                                AppThemeMode.SYSTEM -> Icons.Default.SettingsBrightness
                             },
                             contentDescription = mode.title,
                             tint = tint,

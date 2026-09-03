@@ -24,6 +24,9 @@ sealed class Screen(val route: String) {
     object RodCategory : Screen("rod_category")
     object RodConfig : Screen("rod_config")
     object RodEngineering : Screen("rod_engineering")
+    object LureCatalog : Screen("lure_catalog")
+    object LureConfig : Screen("lure_config")
+    object LureEngineering : Screen("lure_engineering")
     object Packaging : Screen("packaging")
     object VisualQa : Screen("visual_qa")
 }
@@ -83,15 +86,19 @@ fun AppNavHost(
                 onNavigateToRods = {
                     navController.navigate(Screen.RodCategory.route)
                 },
+                onNavigateToLures = {
+                    navController.navigate(Screen.LureCatalog.route)
+                },
                 onNavigateToPackaging = {
                     navController.navigate(Screen.Packaging.route)
                 },
                 onNavigateToEngineering = { entity ->
                     configViewModel.loadSavedConfig(entity)
-                    if (entity.configType == ConfigType.JIG.name) {
-                        navController.navigate(Screen.JigEngineering.route)
-                    } else {
-                        navController.navigate(Screen.RodEngineering.route)
+                    when (entity.configType) {
+                        ConfigType.JIG.name -> navController.navigate(Screen.JigEngineering.route)
+                        ConfigType.ROD.name -> navController.navigate(Screen.RodEngineering.route)
+                        ConfigType.LURE.name -> navController.navigate(Screen.LureEngineering.route)
+                        else -> navController.navigate(Screen.JigEngineering.route)
                     }
                 },
                 onLogout = {
@@ -176,6 +183,45 @@ fun AppNavHost(
                 onNavigateToEdit = {
                     navController.navigate(Screen.RodConfig.route) {
                         popUpTo(Screen.RodEngineering.route) { inclusive = true }
+                    }
+                },
+                onNavigateBack = {
+                    navController.popBackStack(Screen.Dashboard.route, inclusive = false)
+                }
+            )
+        }
+
+        // LURE FLOW
+        composable(Screen.LureCatalog.route) {
+            LureCatalogScreen(
+                onSelectLure = { selectedLure ->
+                    configViewModel.selectLure(selectedLure)
+                    navController.navigate(Screen.LureConfig.route)
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.LureConfig.route) {
+            LureConfigScreen(
+                configViewModel = configViewModel,
+                onNavigateToEngineering = {
+                    navController.navigate(Screen.LureEngineering.route)
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.LureEngineering.route) {
+            LureEngineeringScreen(
+                configViewModel = configViewModel,
+                onNavigateToEdit = {
+                    navController.navigate(Screen.LureConfig.route) {
+                        popUpTo(Screen.LureEngineering.route) { inclusive = true }
                     }
                 },
                 onNavigateBack = {

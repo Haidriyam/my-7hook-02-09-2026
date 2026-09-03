@@ -67,7 +67,7 @@ fun JigCatalogScreen(
                 TactileStepIndicator(
                     currentStep = 1,
                     totalSteps = 3,
-                    stepTitles = listOf("Choose Jig", "Technical Specs", "CAD Document"),
+                    stepTitles = listOf("Choose Jig", "Technical Specs", "Technical Drawing"),
                     modifier = Modifier.padding(horizontal = 0.dp)
                 )
             }
@@ -87,7 +87,7 @@ fun JigCatalogScreen(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Choose from the 2026 new releases or tournament classics to customize alloy weight, length, hydrodynamic hydrofoil finish, and generate engineering CAD sheets.",
+                            text = "Choose from tournament classics or heavy sea models to customize alloy weight, length, hydrodynamic hydrofoil finish, and generate engineering technical drawings.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

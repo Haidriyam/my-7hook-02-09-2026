@@ -57,7 +57,7 @@ fun JigEngineeringScreen(
     Scaffold(
         topBar = {
             AppHeader(
-                title = "Dashboard",
+                title = "Technical Drawing",
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )
@@ -95,7 +95,7 @@ fun JigEngineeringScreen(
                             modifier = Modifier.weight(1f),
                             variant = TactileButtonVariant.SECONDARY,
                             icon = Icons.Default.BookmarkBorder,
-                            text = "Save",
+                            text = "Save Blueprint",
                             testTag = "engineering_save_button"
                         )
                     }
@@ -110,7 +110,7 @@ fun JigEngineeringScreen(
                             modifier = Modifier.weight(1f),
                             variant = TactileButtonVariant.PRIMARY,
                             icon = if (isGeneratingPdf) null else Icons.Default.PictureAsPdf,
-                            text = if (isGeneratingPdf) "Generating..." else "Generate A4 PDF",
+                            text = if (isGeneratingPdf) "Generating..." else "Export A4 PDF",
                             testTag = "engineering_generate_pdf_button"
                         )
 
@@ -123,7 +123,7 @@ fun JigEngineeringScreen(
                                         putExtra(Intent.EXTRA_STREAM, uri)
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Share Jig Specification PDF"))
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share Technical Drawing PDF"))
                                 },
                                 variant = TactileButtonVariant.SUCCESS,
                                 icon = Icons.Default.Share,
@@ -151,7 +151,7 @@ fun JigEngineeringScreen(
             TactileStepIndicator(
                 currentStep = 3,
                 totalSteps = 3,
-                stepTitles = listOf("Choose Jig", "Technical Specs", "CAD Document"),
+                stepTitles = listOf("Choose Jig", "Technical Specs", "Technical Drawing"),
                 modifier = Modifier.padding(horizontal = 0.dp)
             )
 
@@ -169,7 +169,7 @@ fun JigEngineeringScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "CAD ENGINEERING SPECIFICATION",
+                            text = "TECHNICAL DRAWING SPECIFICATION",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
