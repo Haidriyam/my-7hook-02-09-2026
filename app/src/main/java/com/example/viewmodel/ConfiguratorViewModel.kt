@@ -147,104 +147,15 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
         _currentConfig.value = _currentConfig.value.copy(widthMm = width)
     }
 
-    fun updateHeight(height: Float) {
-        _currentConfig.value = _currentConfig.value.copy(heightMm = height)
-    }
-
-    fun updateShape(shape: String) {
-        _currentConfig.value = _currentConfig.value.copy(shape = shape)
-    }
-
     fun updateMaterial(material: String) {
         _currentConfig.value = _currentConfig.value.copy(material = material)
     }
 
-    fun updateColor(name: String, baseHex: Long, accentHex: Long, hasAccent: Boolean = true) {
+    fun updateColor(name: String, baseHex: Long, accentHex: Long) {
         _currentConfig.value = _currentConfig.value.copy(
             colorName = name,
             baseColorHex = baseHex,
-            accentColorHex = accentHex,
-            hasAccentColor = hasAccent
-        )
-    }
-
-    fun updateFinish(finish: String) {
-        _currentConfig.value = _currentConfig.value.copy(finishType = finish)
-    }
-
-    fun updatePattern(patternName: String, patternType: JigPatternType) {
-        _currentConfig.value = _currentConfig.value.copy(
-            patternName = patternName,
-            patternType = patternType
-        )
-    }
-
-    fun updateEye(style: String, shape: String, colorHex: Long) {
-        _currentConfig.value = _currentConfig.value.copy(
-            eyeStyle = style,
-            eyeShape = shape,
-            eyeColorHex = colorHex
-        )
-    }
-
-    fun updateHook(level: String, style: String, size: String, quantity: Int = 1) {
-        _currentConfig.value = _currentConfig.value.copy(
-            hookLevel = level,
-            hookStyle = style,
-            hookSize = size,
-            hookQuantity = quantity
-        )
-    }
-
-    fun updateAdditionalComponent(component: String) {
-        _currentConfig.value = _currentConfig.value.copy(additionalComponent = component)
-    }
-
-    fun updateSpecialFeatures(
-        glow: Boolean,
-        uvReactive: Boolean,
-        rattle: Boolean,
-        weedGuard: Boolean,
-        customMarking: String = ""
-    ) {
-        _currentConfig.value = _currentConfig.value.copy(
-            hasGlow = glow,
-            hasUvReactive = uvReactive,
-            hasRattle = rattle,
-            hasWeedGuard = weedGuard,
-            customMarking = customMarking
-        )
-    }
-
-    fun updateRevision(rev: String) {
-        _currentConfig.value = _currentConfig.value.copy(revision = rev)
-    }
-
-    fun updateDrawingStatus(status: String) {
-        _currentConfig.value = _currentConfig.value.copy(drawingStatus = status)
-    }
-
-    fun updateTolerances(generalTol: String, weightTol: String) {
-        _currentConfig.value = _currentConfig.value.copy(
-            generalTolerance = generalTol,
-            weightTolerance = weightTol
-        )
-    }
-
-    fun updateAdvancedProductionSpecs(
-        densityGrade: String? = null,
-        coating: String? = null,
-        coatingThickness: String? = null,
-        datumA: String? = null,
-        datumB: String? = null
-    ) {
-        val cur = _currentConfig.value
-        _currentConfig.value = cur.copy(
-            densityGrade = densityGrade ?: cur.densityGrade,
-            coating = coating ?: cur.coating,
-            coatingThickness = coatingThickness ?: cur.coatingThickness,
-            datumA = datumA ?: cur.datumA,
-            datumB = datumB ?: cur.datumB
+            accentColorHex = accentHex
         )
     }
 

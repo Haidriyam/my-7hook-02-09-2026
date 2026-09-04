@@ -39,7 +39,7 @@ import java.util.Locale
 @Composable
 fun JigEngineeringCanvas(
     config: ProductConfiguration,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier.height(320.dp)
 ) {
     JigOrthographicCanvas(config = config, modifier = modifier)
 }
@@ -48,16 +48,16 @@ fun JigEngineeringCanvas(
 @Composable
 fun JigOrthographicCanvas(
     config: ProductConfiguration,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier.height(320.dp)
 ) {
     val textMeasurer = rememberTextMeasurer()
 
     Box(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .height(340.dp)
+            .then(modifier)
             .background(Color(0xFFFCFDFE), RoundedCornerShape(8.dp))
-            .border(1.5.dp, Color(0xFFCBD5E1), RoundedCornerShape(8.dp))
+            .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(8.dp))
     ) {
         Canvas(modifier = Modifier.fillMaxSize().padding(10.dp)) {
             val canvasW = size.width
@@ -243,7 +243,7 @@ fun JigOrthographicCanvas(
 @Composable
 fun LureEngineeringCanvas(
     config: ProductConfiguration,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier.height(320.dp)
 ) {
     LureOrthographicCanvas(config = config, modifier = modifier)
 }
@@ -252,16 +252,16 @@ fun LureEngineeringCanvas(
 @Composable
 fun LureOrthographicCanvas(
     config: ProductConfiguration,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier.height(320.dp)
 ) {
     val textMeasurer = rememberTextMeasurer()
 
     Box(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .height(340.dp)
+            .then(modifier)
             .background(Color(0xFFFCFDFE), RoundedCornerShape(8.dp))
-            .border(1.5.dp, Color(0xFFCBD5E1), RoundedCornerShape(8.dp))
+            .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(8.dp))
     ) {
         Canvas(modifier = Modifier.fillMaxSize().padding(10.dp)) {
             val canvasW = size.width
@@ -439,7 +439,7 @@ fun LureOrthographicCanvas(
 @Composable
 fun RodEngineeringCanvas(
     config: ProductConfiguration,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier.height(320.dp)
 ) {
     RodOrthographicCanvas(config = config, modifier = modifier)
 }
@@ -448,16 +448,16 @@ fun RodEngineeringCanvas(
 @Composable
 fun RodOrthographicCanvas(
     config: ProductConfiguration,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier.height(320.dp)
 ) {
     val textMeasurer = rememberTextMeasurer()
 
     Box(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .height(340.dp)
+            .then(modifier)
             .background(Color(0xFFFCFDFE), RoundedCornerShape(8.dp))
-            .border(1.5.dp, Color(0xFFCBD5E1), RoundedCornerShape(8.dp))
+            .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(8.dp))
     ) {
         Canvas(modifier = Modifier.fillMaxSize().padding(10.dp)) {
             val canvasW = size.width

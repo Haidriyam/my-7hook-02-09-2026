@@ -242,115 +242,63 @@ fun DashboardScreen(
             ) {
                 // High-End Industrial Brand Header Block (Clean, professional, non-generic)
                 item {
-                    TactileCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        shadowElevation = 2.dp
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "7HOOKS PRODUCT CONFIGURATOR",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    letterSpacing = 1.sp
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Commercial Specification Platform",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "ISO / ANSI Y14.5 CAD schematics & A4 technical manufacturing PDFs",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            ThemeSelectorRow()
+                        Column {
+                            Text(
+                                text = "Product Studio",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 18.sp
+                            )
+                            Text(
+                                text = "Commercial specifications & ISO technical schematics",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 12.sp
+                            )
                         }
+                        ThemeSelectorRow()
                     }
                 }
 
-                // SECTION TITLE: PRODUCT CATALOG & SPECIFICATION
+                // 4-MODULE COMPACT GRID (Jigs, Rods, Lures, Packaging)
                 item {
-                    Text(
-                        text = "SELECT PRODUCT MODULE",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.8.sp,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
-                    )
-                }
-
-                // 4-CARD COMMERCIAL PRODUCT MODULES (Jigs, Rods, Lures, Packaging)
-                item {
-                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                        val isWide = maxWidth >= 600.dp
-                        if (isWide) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(14.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                                ) {
-                                    JigConfigDashboardCard(
-                                        modifier = Modifier.weight(1f),
-                                        onNavigateToJigs = onNavigateToJigs
-                                    )
-                                    RodConfigDashboardCard(
-                                        modifier = Modifier.weight(1f),
-                                        onNavigateToRods = onNavigateToRods
-                                    )
-                                }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                                ) {
-                                    LureConfigDashboardCard(
-                                        modifier = Modifier.weight(1f),
-                                        onNavigateToLures = onNavigateToLures
-                                    )
-                                    PackagingConfigDashboardCard(
-                                        modifier = Modifier.weight(1f),
-                                        onNavigateToPackaging = onNavigateToPackaging
-                                    )
-                                }
-                            }
-                        } else {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(14.dp)
-                            ) {
-                                JigConfigDashboardCard(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    onNavigateToJigs = onNavigateToJigs
-                                )
-                                RodConfigDashboardCard(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    onNavigateToRods = onNavigateToRods
-                                )
-                                LureConfigDashboardCard(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    onNavigateToLures = onNavigateToLures
-                                )
-                                PackagingConfigDashboardCard(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    onNavigateToPackaging = onNavigateToPackaging
-                                )
-                            }
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            JigConfigDashboardCard(
+                                modifier = Modifier.weight(1f),
+                                onNavigateToJigs = onNavigateToJigs
+                            )
+                            RodConfigDashboardCard(
+                                modifier = Modifier.weight(1f),
+                                onNavigateToRods = onNavigateToRods
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            LureConfigDashboardCard(
+                                modifier = Modifier.weight(1f),
+                                onNavigateToLures = onNavigateToLures
+                            )
+                            PackagingConfigDashboardCard(
+                                modifier = Modifier.weight(1f),
+                                onNavigateToPackaging = onNavigateToPackaging
+                            )
                         }
                     }
                 }
@@ -542,23 +490,26 @@ private fun JigConfigDashboardCard(
     onNavigateToJigs: () -> Unit
 ) {
     TactileCard(
-        modifier = modifier.testTag("dashboard_jig_configurator_card"),
-        shadowElevation = 3.dp
+        modifier = modifier
+            .testTag("dashboard_jig_configurator_card")
+            .clickable { onNavigateToJigs() },
+        shadowElevation = 1.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(54.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(8.dp))
                         .background(
                             Brush.linearGradient(
                                 listOf(Color(0xFF0284C7), Color(0xFF0369A1))
@@ -569,40 +520,41 @@ private fun JigConfigDashboardCard(
                     Image(
                         painter = painterResource(id = R.drawable.ic_jig_icon),
                         contentDescription = "Fishing Jig Icon",
-                        modifier = Modifier.size(34.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "JIG CONFIGURATOR",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.8.sp
-                    )
-                    Text(
-                        text = "Jigheads & Spoons",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
             }
 
-            Text(
-                text = "Tungsten & lead heads, Mustad ultra-points, 3D holographic eyes & powder finishes.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 16.sp
-            )
+            Column {
+                Text(
+                    text = "Jigs",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 15.sp
+                )
+                Text(
+                    text = "Jigheads, spoons & pelagics",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.5.sp,
+                    maxLines = 1
+                )
+            }
 
             TactileButton(
                 onClick = onNavigateToJigs,
                 modifier = Modifier.fillMaxWidth(),
                 variant = TactileButtonVariant.PRIMARY,
-                icon = Icons.Default.Tune,
-                text = "Configure Jig",
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                text = "Configure",
                 testTag = "configure_jig_button"
             )
         }
@@ -615,23 +567,26 @@ private fun RodConfigDashboardCard(
     onNavigateToRods: () -> Unit
 ) {
     TactileCard(
-        modifier = modifier.testTag("dashboard_rod_configurator_card"),
-        shadowElevation = 3.dp
+        modifier = modifier
+            .testTag("dashboard_rod_configurator_card")
+            .clickable { onNavigateToRods() },
+        shadowElevation = 1.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(54.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(8.dp))
                         .background(
                             Brush.linearGradient(
                                 listOf(Color(0xFFEA580C), Color(0xFFC2410C))
@@ -642,40 +597,41 @@ private fun RodConfigDashboardCard(
                     Image(
                         painter = painterResource(id = R.drawable.ic_rod_icon),
                         contentDescription = "Fishing Rod Icon",
-                        modifier = Modifier.size(34.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "ROD CONFIGURATOR",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFEA580C),
-                        letterSpacing = 0.8.sp
-                    )
-                    Text(
-                        text = "Custom Rod Blanks",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = Color(0xFFEA580C),
+                    modifier = Modifier.size(16.dp)
+                )
             }
 
-            Text(
-                text = "Toray carbon fiber blanks, Fuji guide systems, action taper & customized grip ergonomics.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 16.sp
-            )
+            Column {
+                Text(
+                    text = "Rods",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 15.sp
+                )
+                Text(
+                    text = "Toray blanks & Fuji guides",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.5.sp,
+                    maxLines = 1
+                )
+            }
 
             TactileButton(
                 onClick = onNavigateToRods,
                 modifier = Modifier.fillMaxWidth(),
                 variant = TactileButtonVariant.SECONDARY,
-                icon = Icons.Default.Tune,
-                text = "Configure Rod",
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                text = "Configure",
                 testTag = "configure_rod_button"
             )
         }
@@ -688,23 +644,26 @@ private fun LureConfigDashboardCard(
     onNavigateToLures: () -> Unit
 ) {
     TactileCard(
-        modifier = modifier.testTag("dashboard_lure_configurator_card"),
-        shadowElevation = 3.dp
+        modifier = modifier
+            .testTag("dashboard_lure_configurator_card")
+            .clickable { onNavigateToLures() },
+        shadowElevation = 1.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(54.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(8.dp))
                         .background(
                             Brush.linearGradient(
                                 listOf(Color(0xFF0D9488), Color(0xFF0F766E))
@@ -715,40 +674,41 @@ private fun LureConfigDashboardCard(
                     Image(
                         painter = painterResource(id = R.drawable.ic_lure_icon),
                         contentDescription = "Hard Lure Icon",
-                        modifier = Modifier.size(34.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "HARD LURE CONFIGURATOR",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0D9488),
-                        letterSpacing = 0.8.sp
-                    )
-                    Text(
-                        text = "Minnows, Cranks & Poppers",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = Color(0xFF0D9488),
+                    modifier = Modifier.size(16.dp)
+                )
             }
 
-            Text(
-                text = "ABS shell geometry, internal weight transfer chambers, diving depths & holographic coats.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 16.sp
-            )
+            Column {
+                Text(
+                    text = "Lures",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 15.sp
+                )
+                Text(
+                    text = "Minnows, cranks & poppers",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.5.sp,
+                    maxLines = 1
+                )
+            }
 
             TactileButton(
                 onClick = onNavigateToLures,
                 modifier = Modifier.fillMaxWidth(),
                 variant = TactileButtonVariant.PRIMARY,
-                icon = Icons.Default.Tune,
-                text = "Configure Lures",
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                text = "Configure",
                 testTag = "configure_lure_button"
             )
         }
@@ -761,23 +721,26 @@ private fun PackagingConfigDashboardCard(
     onNavigateToPackaging: () -> Unit
 ) {
     TactileCard(
-        modifier = modifier.testTag("dashboard_packaging_card"),
-        shadowElevation = 3.dp
+        modifier = modifier
+            .testTag("dashboard_packaging_card")
+            .clickable { onNavigateToPackaging() },
+        shadowElevation = 1.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(54.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(8.dp))
                         .background(
                             Brush.linearGradient(
                                 listOf(Color(0xFF475569), Color(0xFF1E293B))
@@ -788,40 +751,41 @@ private fun PackagingConfigDashboardCard(
                     Image(
                         painter = painterResource(id = R.drawable.ic_package_box),
                         contentDescription = "Packaging Box Icon",
-                        modifier = Modifier.size(34.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "PACKAGING CONFIGURATOR",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF64748B),
-                        letterSpacing = 0.8.sp
-                    )
-                    Text(
-                        text = "Retail Packaging & Box",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = Color(0xFF64748B),
+                    modifier = Modifier.size(16.dp)
+                )
             }
 
-            Text(
-                text = "Custom blister cards, header polybags, rigid gift boxes, logo embossing & die-cut sheets.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 16.sp
-            )
+            Column {
+                Text(
+                    text = "Packaging",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 15.sp
+                )
+                Text(
+                    text = "Retail boxes & blister packs",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.5.sp,
+                    maxLines = 1
+                )
+            }
 
             TactileButton(
                 onClick = onNavigateToPackaging,
                 modifier = Modifier.fillMaxWidth(),
                 variant = TactileButtonVariant.OUTLINE,
-                icon = Icons.AutoMirrored.Filled.ArrowForward,
-                text = "Design Packaging",
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                text = "Configure",
                 testTag = "configure_packaging_button"
             )
         }

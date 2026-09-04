@@ -55,21 +55,21 @@ fun TactileButton(
     enabled: Boolean = true,
     icon: ImageVector? = null,
     testTag: String? = null,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
     text: String
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Tactile press animation (1.5dp downward shift, shadow compresses)
+    // Tactile press animation
     val pressOffsetY by animateDpAsState(
-        targetValue = if (isPressed && enabled) 2.dp else 0.dp,
+        targetValue = if (isPressed && enabled) 1.dp else 0.dp,
         animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
         label = "pressOffsetY"
     )
 
     val shadowElevation by animateDpAsState(
-        targetValue = if (!enabled) 0.dp else if (isPressed) 1.dp else 4.dp,
+        targetValue = if (!enabled) 0.dp else if (isPressed) 0.5.dp else 2.dp,
         animationSpec = tween(durationMillis = 150),
         label = "shadowElevation"
     )
@@ -127,7 +127,7 @@ fun TactileButton(
         }
     }
 
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(8.dp)
 
     Box(
         modifier = modifier
@@ -136,8 +136,8 @@ fun TactileButton(
             .shadow(
                 elevation = shadowElevation,
                 shape = shape,
-                ambientColor = Color.Black.copy(alpha = 0.25f),
-                spotColor = Color.Black.copy(alpha = 0.3f)
+                ambientColor = Color.Black.copy(alpha = 0.15f),
+                spotColor = Color.Black.copy(alpha = 0.2f)
             )
             .clip(shape)
             .background(surfaceBrush)
@@ -167,15 +167,15 @@ fun TactileButton(
                     contentDescription = null,
                     tint = if (enabled) textColor else textColor.copy(alpha = 0.5f),
                     modifier = Modifier
-                        .size(17.dp)
-                        .padding(end = 6.dp)
+                        .size(15.dp)
+                        .padding(end = 5.dp)
                 )
             }
             Text(
                 text = text,
                 color = if (enabled) textColor else textColor.copy(alpha = 0.5f),
                 fontWeight = FontWeight.Bold,
-                fontSize = 13.5.sp,
+                fontSize = 12.5.sp,
                 letterSpacing = 0.3.sp
             )
         }
@@ -187,10 +187,10 @@ private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, v
 @Composable
 fun TactileCard(
     modifier: Modifier = Modifier,
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp),
-    tonalElevation: Dp = 2.dp,
-    shadowElevation: Dp = 3.dp,
-    border: BorderStroke? = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
+    shape: RoundedCornerShape = RoundedCornerShape(8.dp),
+    tonalElevation: Dp = 1.dp,
+    shadowElevation: Dp = 1.dp,
+    border: BorderStroke? = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
     containerColor: Color = MaterialTheme.colorScheme.surface,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -199,8 +199,8 @@ fun TactileCard(
             .shadow(
                 elevation = shadowElevation,
                 shape = shape,
-                ambientColor = Color.Black.copy(alpha = 0.08f),
-                spotColor = Color.Black.copy(alpha = 0.12f)
+                ambientColor = Color.Black.copy(alpha = 0.05f),
+                spotColor = Color.Black.copy(alpha = 0.08f)
             ),
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = containerColor),
@@ -218,7 +218,7 @@ fun TactileCard(
                         Brush.horizontalGradient(
                             listOf(
                                 Color.Transparent,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                                 Color.Transparent
                             )
                         )

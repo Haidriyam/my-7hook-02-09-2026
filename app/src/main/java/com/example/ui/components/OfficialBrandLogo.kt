@@ -36,26 +36,16 @@ object SevenHooksBrand {
 @Composable
 fun Official7HooksLogo(
     modifier: Modifier = Modifier,
-    height: Dp = 36.dp,
+    height: Dp = 32.dp,
     contentScale: ContentScale = ContentScale.Fit
 ) {
-    val context = LocalContext.current
-    Box(
+    Image(
+        painter = painterResource(id = R.drawable.official_7hooks_logo),
+        contentDescription = "7Hooks Official Logo",
         modifier = modifier
             .height(height)
-            .aspectRatio(512f / 151f),
-        contentAlignment = Alignment.Center
-    ) {
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(SevenHooksBrand.OFFICIAL_LOGO_URL)
-                .crossfade(true)
-                .error(SevenHooksBrand.OFFICIAL_LOGO_RES)
-                .placeholder(SevenHooksBrand.OFFICIAL_LOGO_RES)
-                .fallback(SevenHooksBrand.OFFICIAL_LOGO_RES)
-                .build(),
-            contentDescription = "7Hooks Official Logo",
-            contentScale = contentScale
-        )
-    }
+            .aspectRatio(695f / 243f),
+        contentScale = contentScale
+    )
 }
+

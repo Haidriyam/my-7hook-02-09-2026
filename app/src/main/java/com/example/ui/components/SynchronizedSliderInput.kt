@@ -48,14 +48,14 @@ fun SynchronizedSliderInput(
     TactileCard(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        shadowElevation = 2.dp,
+            .padding(vertical = 2.dp),
+        shadowElevation = 1.dp,
         containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             // Label and Synchronized Numeric Input Field
             Row(
@@ -65,23 +65,23 @@ fun SynchronizedSliderInput(
             ) {
                 Column {
                     Text(
-                        text = label.uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
+                        text = label,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 13.sp
                     )
                     Text(
-                        text = "Range: ${min.toInt()} - ${max.toInt()} $unit",
+                        text = "${min.toInt()} – ${max.toInt()} $unit",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp
+                        fontSize = 10.5.sp
                     )
                 }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     OutlinedTextField(
                         value = textInput,
@@ -93,22 +93,22 @@ fun SynchronizedSliderInput(
                             }
                         },
                         modifier = Modifier
-                            .width(88.dp)
-                            .height(50.dp)
+                            .width(74.dp)
+                            .height(42.dp)
                             .testTag("${testTagPrefix}_field"),
                         textStyle = MaterialTheme.typography.bodyMedium.copy(
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
+                            fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurface
                         ),
                         singleLine = true,
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(6.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
                         ),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal,
@@ -131,21 +131,19 @@ fun SynchronizedSliderInput(
 
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier.padding(start = 2.dp)
+                        shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
                             text = unit,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            fontSize = 11.sp
                         )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(4.dp))
 
             // Tactile Slider
             Slider(
@@ -158,6 +156,7 @@ fun SynchronizedSliderInput(
                 valueRange = min..max,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(30.dp)
                     .testTag("${testTagPrefix}_slider"),
                 colors = SliderDefaults.colors(
                     thumbColor = MaterialTheme.colorScheme.primary,
@@ -165,35 +164,73 @@ fun SynchronizedSliderInput(
                     inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             )
+        }
+    }
+}
 
-            // Precision Range Markers
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+@Composable
+fun CompactSliderRow(
+    label: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    min: Float,
+    max: Float,
+    unit: String,
+    step: Float = 1f,
+    modifier: Modifier = Modifier,
+    testTagPrefix: String = "slider"
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 13.sp
+            )
+
+            Surface(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(6.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
             ) {
                 Text(
-                    text = "${if (min % 1f == 0f) min.toInt() else min} $unit",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 10.sp
-                )
-                Text(
-                    text = "Current: ${if (value % 1f == 0f) value.toInt() else String.format(Locale.US, "%.1f", value)} $unit",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = "${if (value % 1f == 0f) value.toInt() else String.format(Locale.US, "%.1f", value)} $unit",
+                    style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                     fontFamily = FontFamily.Monospace,
-                    fontSize = 11.sp
-                )
-                Text(
-                    text = "${if (max % 1f == 0f) max.toInt() else max} $unit",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 10.sp
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                 )
             }
         }
+
+        Slider(
+            value = value.coerceIn(min, max),
+            onValueChange = { newVal ->
+                val stepped = (Math.round(newVal / step) * step).coerceIn(min, max)
+                onValueChange(stepped)
+            },
+            valueRange = min..max,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(32.dp)
+                .testTag("${testTagPrefix}_slider"),
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        )
     }
 }
