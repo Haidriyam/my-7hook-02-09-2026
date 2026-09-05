@@ -302,7 +302,7 @@ fun PackagingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
                         text = "Branding & Contact Information",
@@ -316,7 +316,8 @@ fun PackagingScreen(
                         onValueChange = { packagingViewModel.updateCompanyName(it) },
                         label = { Text("Company / Distributor Name *") },
                         modifier = Modifier.fillMaxWidth().testTag("packaging_company_input"),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp)
                     )
 
                     OutlinedTextField(
@@ -324,7 +325,8 @@ fun PackagingScreen(
                         onValueChange = { packagingViewModel.updateProductName(it) },
                         label = { Text("Product / Line Name *") },
                         modifier = Modifier.fillMaxWidth().testTag("packaging_product_input"),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp)
                     )
 
                     OutlinedTextField(
@@ -332,7 +334,18 @@ fun PackagingScreen(
                         onValueChange = { packagingViewModel.updateModelNumber(it) },
                         label = { Text("Model Number / SKU *") },
                         modifier = Modifier.fillMaxWidth().testTag("packaging_model_input"),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    Text(
+                        text = "Dimensions & Materials",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
                     )
 
                     OutlinedTextField(
@@ -340,7 +353,8 @@ fun PackagingScreen(
                         onValueChange = { packagingViewModel.updateDetails(dimensions = it) },
                         label = { Text("Dimensions (e.g. 180 x 65 x 25 mm)") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp)
                     )
 
                     OutlinedTextField(
@@ -348,7 +362,18 @@ fun PackagingScreen(
                         onValueChange = { packagingViewModel.updateDetails(material = it) },
                         label = { Text("Material (e.g. 350gsm Kraft Cardstock / PVC Blister)") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    Text(
+                        text = "Distribution & Inquiries",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
                     )
 
                     OutlinedTextField(
@@ -356,7 +381,8 @@ fun PackagingScreen(
                         onValueChange = { packagingViewModel.updateDetails(website = it) },
                         label = { Text("Website") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp)
                     )
 
                     OutlinedTextField(
@@ -364,7 +390,18 @@ fun PackagingScreen(
                         onValueChange = { packagingViewModel.updateDetails(email = it) },
                         label = { Text("Contact Email") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    Text(
+                        text = "Copy & Finishing Notes",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
                     )
 
                     OutlinedTextField(
@@ -372,7 +409,8 @@ fun PackagingScreen(
                         onValueChange = { packagingViewModel.updateDetails(description = it) },
                         label = { Text("Product Description / Back Copy") },
                         modifier = Modifier.fillMaxWidth(),
-                        minLines = 3
+                        minLines = 3,
+                        shape = RoundedCornerShape(8.dp)
                     )
 
                     OutlinedTextField(
@@ -380,7 +418,8 @@ fun PackagingScreen(
                         onValueChange = { packagingViewModel.updateDetails(notes = it) },
                         label = { Text("Die-Cut / Print Finishing Notes (Foil, Spot UV, Euro-Slot)") },
                         modifier = Modifier.fillMaxWidth(),
-                        minLines = 2
+                        minLines = 2,
+                        shape = RoundedCornerShape(8.dp)
                     )
                 }
             }

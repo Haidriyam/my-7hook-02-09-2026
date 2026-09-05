@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -268,39 +269,14 @@ fun DashboardScreen(
                     }
                 }
 
-                // 4-MODULE COMPACT GRID (Jigs, Rods, Lures, Packaging)
+                // 4-MODULE RESPONSIVE SECTION (Jigs, Rods, Lures, Packaging)
                 item {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            JigConfigDashboardCard(
-                                modifier = Modifier.weight(1f),
-                                onNavigateToJigs = onNavigateToJigs
-                            )
-                            RodConfigDashboardCard(
-                                modifier = Modifier.weight(1f),
-                                onNavigateToRods = onNavigateToRods
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            LureConfigDashboardCard(
-                                modifier = Modifier.weight(1f),
-                                onNavigateToLures = onNavigateToLures
-                            )
-                            PackagingConfigDashboardCard(
-                                modifier = Modifier.weight(1f),
-                                onNavigateToPackaging = onNavigateToPackaging
-                            )
-                        }
-                    }
+                    ModuleCardsSection(
+                        onNavigateToJigs = onNavigateToJigs,
+                        onNavigateToRods = onNavigateToRods,
+                        onNavigateToLures = onNavigateToLures,
+                        onNavigateToPackaging = onNavigateToPackaging
+                    )
                 }
 
                 // SAVED CONFIGURATIONS SECTION
@@ -480,6 +456,161 @@ private fun SavedConfigItemCard(
                     tint = MaterialTheme.colorScheme.error
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ModuleCardsSection(
+    onNavigateToJigs: () -> Unit,
+    onNavigateToRods: () -> Unit,
+    onNavigateToLures: () -> Unit,
+    onNavigateToPackaging: () -> Unit
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val isMobile = maxWidth < 480.dp
+        if (isMobile) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CompactModuleRow(
+                    title = "Jigheads & Pelagic Spoons",
+                    subtitle = "Tungsten, lead heads, 3D eyes & powder finishes",
+                    iconRes = R.drawable.ic_jig_icon,
+                    gradient = listOf(Color(0xFF0284C7), Color(0xFF0369A1)),
+                    buttonVariant = TactileButtonVariant.PRIMARY,
+                    onClick = onNavigateToJigs,
+                    testTag = "dashboard_jig_configurator_card"
+                )
+                CompactModuleRow(
+                    title = "Toray Custom Rod Blanks",
+                    subtitle = "Carbon specs, guides, reel seats & deflection",
+                    iconRes = R.drawable.ic_rod_icon,
+                    gradient = listOf(Color(0xFFEA580C), Color(0xFFC2410C)),
+                    buttonVariant = TactileButtonVariant.SECONDARY,
+                    onClick = onNavigateToRods,
+                    testTag = "dashboard_rod_configurator_card"
+                )
+                CompactModuleRow(
+                    title = "Hard Lures & Crankbaits",
+                    subtitle = "ABS shells, weight transfer & diving lip depth",
+                    iconRes = R.drawable.ic_lure_icon,
+                    gradient = listOf(Color(0xFF0D9488), Color(0xFF0F766E)),
+                    buttonVariant = TactileButtonVariant.PRIMARY,
+                    onClick = onNavigateToLures,
+                    testTag = "dashboard_lure_configurator_card"
+                )
+                CompactModuleRow(
+                    title = "Retail Packaging Systems",
+                    subtitle = "Die-cut blister cards, polybags & custom branding",
+                    iconRes = R.drawable.ic_package_box,
+                    gradient = listOf(Color(0xFF475569), Color(0xFF1E293B)),
+                    buttonVariant = TactileButtonVariant.OUTLINE,
+                    onClick = onNavigateToPackaging,
+                    testTag = "dashboard_packaging_card"
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    JigConfigDashboardCard(
+                        modifier = Modifier.weight(1f),
+                        onNavigateToJigs = onNavigateToJigs
+                    )
+                    RodConfigDashboardCard(
+                        modifier = Modifier.weight(1f),
+                        onNavigateToRods = onNavigateToRods
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    LureConfigDashboardCard(
+                        modifier = Modifier.weight(1f),
+                        onNavigateToLures = onNavigateToLures
+                    )
+                    PackagingConfigDashboardCard(
+                        modifier = Modifier.weight(1f),
+                        onNavigateToPackaging = onNavigateToPackaging
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactModuleRow(
+    title: String,
+    subtitle: String,
+    @androidx.annotation.DrawableRes iconRes: Int,
+    gradient: List<Color>,
+    buttonVariant: TactileButtonVariant,
+    onClick: () -> Unit,
+    testTag: String
+) {
+    TactileCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(testTag)
+            .clickable { onClick() },
+        shadowElevation = 1.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Brush.linearGradient(gradient)),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = title,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 14.sp
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.5.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            TactileButton(
+                onClick = onClick,
+                variant = buttonVariant,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                text = "Configure"
+            )
         }
     }
 }

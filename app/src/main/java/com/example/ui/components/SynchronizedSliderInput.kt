@@ -3,8 +3,8 @@ package com.example.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -12,15 +12,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Locale
@@ -48,7 +49,7 @@ fun SynchronizedSliderInput(
     TactileCard(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
+            .padding(vertical = 3.dp),
         shadowElevation = 1.dp,
         containerColor = MaterialTheme.colorScheme.surface
     ) {
@@ -63,27 +64,38 @@ fun SynchronizedSliderInput(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp)
+                ) {
                     Text(
                         text = label,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 13.sp
+                        fontSize = 13.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${min.toInt()} – ${max.toInt()} $unit",
+                        text = "Range: ${min.toInt()} – ${max.toInt()} $unit",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 10.5.sp
                     )
                 }
 
+                // Sleek Integrated Numeric Badge Pill (Never clips, perfectly centered, responsive width)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(6.dp))
                 ) {
-                    OutlinedTextField(
+                    BasicTextField(
                         value = textInput,
                         onValueChange = { newStr ->
                             textInput = newStr
@@ -93,23 +105,17 @@ fun SynchronizedSliderInput(
                             }
                         },
                         modifier = Modifier
-                            .width(74.dp)
-                            .height(42.dp)
+                            .widthIn(min = 46.dp, max = 64.dp)
+                            .padding(horizontal = 6.dp)
                             .testTag("${testTagPrefix}_field"),
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                        textStyle = TextStyle(
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.End
                         ),
                         singleLine = true,
-                        shape = RoundedCornerShape(6.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
-                        ),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal,
                             imeAction = ImeAction.Done
@@ -129,21 +135,34 @@ fun SynchronizedSliderInput(
                         )
                     )
 
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(6.dp)
+                    // Vertical divider
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                    )
+
+                    // Integrated Unit Badge
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f))
+                            .padding(horizontal = 8.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = unit,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            color = MaterialTheme.colorScheme.primary,
                             fontSize = 11.sp
                         )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(2.dp))
 
             // Tactile Slider
             Slider(
@@ -156,7 +175,6 @@ fun SynchronizedSliderInput(
                 valueRange = min..max,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(30.dp)
                     .testTag("${testTagPrefix}_slider"),
                 colors = SliderDefaults.colors(
                     thumbColor = MaterialTheme.colorScheme.primary,
@@ -195,7 +213,12 @@ fun CompactSliderRow(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 13.sp
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
             Surface(
@@ -224,7 +247,6 @@ fun CompactSliderRow(
             valueRange = min..max,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(32.dp)
                 .testTag("${testTagPrefix}_slider"),
             colors = SliderDefaults.colors(
                 thumbColor = MaterialTheme.colorScheme.primary,
