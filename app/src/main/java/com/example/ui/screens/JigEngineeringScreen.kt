@@ -1,7 +1,6 @@
 package com.example.ui.screens
 
 import android.content.Intent
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -16,12 +15,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.example.data.model.ProductCatalog
 import com.example.ui.components.*
 import com.example.viewmodel.ConfiguratorViewModel
 
@@ -38,6 +40,11 @@ fun JigEngineeringScreen(
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Retrieve exact catalog jig product matching selection for true product image
+    val matchedJig = remember(currentConfig.productId) {
+        ProductCatalog.jigs.find { it.id == currentConfig.productId } ?: ProductCatalog.jigs.first()
+    }
 
     LaunchedEffect(saveStatusMessage) {
         saveStatusMessage?.let { msg ->
@@ -57,7 +64,7 @@ fun JigEngineeringScreen(
     Scaffold(
         topBar = {
             AppHeader(
-                title = "Technical Drawing",
+                title = "Technical Specification",
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )
@@ -123,7 +130,7 @@ fun JigEngineeringScreen(
                                         putExtra(Intent.EXTRA_STREAM, uri)
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Share Technical Drawing PDF"))
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share Technical Specification PDF"))
                                 },
                                 variant = TactileButtonVariant.SUCCESS,
                                 icon = Icons.Default.Share,
@@ -147,15 +154,15 @@ fun JigEngineeringScreen(
         ) {
             Spacer(modifier = Modifier.height(2.dp))
 
-            // STEP 3 OF 3 Guided Progress Indicator
+            // Guided Progress Indicator
             TactileStepIndicator(
                 currentStep = 3,
                 totalSteps = 3,
-                stepTitles = listOf("Choose Jig", "Technical Specs", "Technical Drawing"),
+                stepTitles = listOf("Choose Jig", "Configure Specs", "Technical Spec & Drawing"),
                 modifier = Modifier.padding(horizontal = 0.dp)
             )
 
-            // Technical Drawing Title Badge
+            // Technical Specification Header Badge
             TactileCard(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 2.dp
@@ -169,13 +176,13 @@ fun JigEngineeringScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "TECHNICAL DRAWING SPECIFICATION",
+                            text = "TECHNICAL SPECIFICATION",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Ref: ${currentConfig.referenceNumber} • Standard Scale 1:1",
+                            text = "Ref: ${currentConfig.referenceNumber} • Engineering Drawing Standard",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontFamily = FontFamily.Monospace
@@ -197,7 +204,127 @@ fun JigEngineeringScreen(
                 }
             }
 
-            // PRIMARY CENTER CAD DRAWING
+            // SECTION 13: DEDICATED PRODUCT REFERENCE AREA WITH EXACT SELECTED JIG
+            TactileCard(
+                modifier = Modifier.fillMaxWidth(),
+                shadowElevation = 2.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "PRODUCT REFERENCE",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            text = matchedJig.name,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // Controlled, medium-sized image preview of the exact selected jig
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFF8FAFC))
+                            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = matchedJig.imageUrl,
+                            contentDescription = "Selected Jig: ${matchedJig.name}",
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Finish: ${currentConfig.colorName}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = "Thread: ${currentConfig.threadColor}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+
+            // SECTION 14 & 15: SPECIFICATION TABLE
+            TactileCard(
+                modifier = Modifier.fillMaxWidth(),
+                shadowElevation = 2.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Engineering Specifications",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    SpecRow(label = "Product Name", value = currentConfig.productName, isBold = true)
+                    SpecRow(label = "Model Number", value = currentConfig.modelNumber, isMonospace = true)
+                    SpecRow(label = "Category", value = currentConfig.category)
+                    SpecRow(label = "Target Weight", value = "${currentConfig.weightGrams.toInt()} g", isBold = true)
+                    SpecRow(label = "Overall Length", value = "${currentConfig.lengthMm.toInt()} mm", isBold = true)
+                    SpecRow(label = "Max Body Width", value = "${currentConfig.widthMm.toInt()} mm", isBold = true)
+                    SpecRow(label = "Core Construction", value = currentConfig.material)
+                    SpecRow(label = "Primary Color", value = currentConfig.colorName)
+                    SpecRow(label = "Surface Finish", value = currentConfig.finishType)
+                    SpecRow(label = "Pattern Type", value = currentConfig.patternType.name.replace("_", " "))
+                    SpecRow(label = "Strike Eye", value = currentConfig.eyeStyle)
+                    SpecRow(label = "Assist Hook", value = currentConfig.hookTypeJig)
+                    SpecRow(
+                        label = "Thread",
+                        value = if (currentConfig.threadColor == "None") "None" else "${currentConfig.threadColor} (${currentConfig.threadWrapping})",
+                        isBold = currentConfig.threadColor != "None"
+                    )
+                    SpecRow(label = "Line-Tie Eyelets", value = "Dual SUS304 Welded Solid Rings")
+                    
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), modifier = Modifier.padding(vertical = 4.dp))
+                    
+                    // Tolerances block per Section 33 (No fake tolerances)
+                    SpecRow(label = "General Tolerance", value = "TBD", isMonospace = true)
+                    SpecRow(label = "Weight Tolerance", value = "TBD", isMonospace = true)
+                    SpecRow(label = "Dimensional Tolerance", value = "TBD", isMonospace = true)
+                }
+            }
+
+            // PRIMARY ORTHOGRAPHIC TECHNICAL DRAWING SCHEMATIC
             TactileCard(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 3.dp
@@ -215,66 +342,7 @@ fun JigEngineeringScreen(
                 }
             }
 
-            // PRODUCT INFORMATION & TITLE BLOCK
-            TactileCard(
-                modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 2.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = "Title Block & Product Identification",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                    SpecRow(label = "Product Name", value = currentConfig.productName)
-                    SpecRow(label = "Model Number", value = currentConfig.modelNumber, isMonospace = true)
-                    SpecRow(label = "Category", value = currentConfig.category)
-                    SpecRow(label = "Reference Code", value = currentConfig.referenceNumber, isMonospace = true)
-                    SpecRow(label = "Drawing Type", value = "Standard Orthographic Technical Projection")
-                }
-            }
-
-            // TECHNICAL SPECIFICATIONS TABLE
-            TactileCard(
-                modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 2.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = "Dimensional & Physical Parameters",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                    SpecRow(label = "Total Length", value = "${currentConfig.lengthMm.toInt()} mm (±0.5mm)", isBold = true)
-                    SpecRow(label = "Max Body Width", value = "${currentConfig.widthMm.toInt()} mm (±0.3mm)", isBold = true)
-                    SpecRow(label = "Finished Lure Mass", value = "${currentConfig.weightGrams.toInt()} g (±1.5g)", isBold = true)
-                    SpecRow(label = "Core Construction", value = currentConfig.material)
-                    SpecRow(label = "Holographic Finish", value = currentConfig.colorName)
-                    SpecRow(label = "Lure Action / Pattern", value = currentConfig.patternType.name.replace("_", " "))
-                    SpecRow(label = "Line-Tie Eyelets", value = "Dual SUS304 Welded Solid Rings")
-                    SpecRow(label = "Surface Coating", value = "Multi-Layer Anti-Saltwater Epoxy Clear Coat")
-                }
-            }
-
-            // MANUFACTURING TOLERANCE & QUALITY ASSURANCE
+            // QUALITY ASSURANCE & FACTORY NOTES
             TactileCard(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 1.dp
@@ -293,8 +361,9 @@ fun JigEngineeringScreen(
                     )
                     Text(
                         text = "1. Dimensions are specified in millimeters (mm) at standard temperature and pressure.\n" +
-                                "2. Center of gravity is calculated for vertical flutter descent.\n" +
-                                "3. Salt-spray corrosion test rating: 500 hours minimum per 7Hooks QA standards.",
+                                "2. Center of gravity calculated for vertical flutter descent.\n" +
+                                "3. Salt-spray corrosion test: 500 hours minimum per 7Hooks QA marine standards.\n" +
+                                "4. Assist hook rigged with high-tensile braided PE cord and whip-finished thread binding.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp,
@@ -318,7 +387,7 @@ fun SpecRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
+            .padding(vertical = 3.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -338,7 +407,7 @@ fun SpecRow(
             color = if (isBold) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             textAlign = androidx.compose.ui.text.style.TextAlign.End,
             modifier = Modifier.weight(0.56f),
-            fontSize = 12.5.sp
+            fontSize = 12.sp
         )
     }
 }

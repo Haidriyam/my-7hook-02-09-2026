@@ -6,23 +6,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,19 +34,26 @@ fun PackagingPreviewMockup(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(260.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+            .height(280.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9)),
         shape = RoundedCornerShape(10.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1))
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Canvas(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val totalW = maxWidth
+            val totalH = maxHeight
+
+            // Centered Retail Mockup Container
+            val cardW = (totalW * 0.58f).coerceIn(160.dp, 240.dp)
+            val cardH = 240.dp
+
+            Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = size.width
                 val h = size.height
 
-                // Engineering Grid Background
+                // Engineering drafting grid
                 val gridSpacing = 20.dp.toPx()
-                val gridColor = Color(0x180284C7)
+                val gridColor = Color(0x150284C7)
                 var gx = 0f
                 while (gx <= w) {
                     drawLine(gridColor, Offset(gx, 0f), Offset(gx, h), strokeWidth = 1f)
@@ -61,176 +65,233 @@ fun PackagingPreviewMockup(
                     gy += gridSpacing
                 }
 
-                val centerX = w * 0.42f
-                val centerY = h * 0.52f
+                // Shadow under card
+                val cW = cardW.toPx()
+                val cH = cardH.toPx()
+                val startX = (w - cW) / 2f
+                val startY = (h - cH) / 2f + 10.dp.toPx()
 
-                val boxW = 120.dp.toPx()
-                val boxH = 150.dp.toPx()
-                val depth = 35.dp.toPx()
-
-                // 2.5D Isometric Packaging Box
-                // 1. Top Face
-                val topPath = Path().apply {
-                    moveTo(centerX, centerY - boxH / 2)
-                    lineTo(centerX + depth * 0.8f, centerY - boxH / 2 - depth * 0.5f)
-                    lineTo(centerX + boxW + depth * 0.8f, centerY - boxH / 2 - depth * 0.5f)
-                    lineTo(centerX + boxW, centerY - boxH / 2)
-                    close()
-                }
-                drawPath(topPath, color = Color(0xFF38BDF8))
-                drawPath(topPath, color = Color(0xFF0F172A), style = Stroke(width = 1.2.dp.toPx()))
-
-                // 2. Right Side Face
-                val sidePath = Path().apply {
-                    moveTo(centerX + boxW, centerY - boxH / 2)
-                    lineTo(centerX + boxW + depth * 0.8f, centerY - boxH / 2 - depth * 0.5f)
-                    lineTo(centerX + boxW + depth * 0.8f, centerY + boxH / 2 - depth * 0.5f)
-                    lineTo(centerX + boxW, centerY + boxH / 2)
-                    close()
-                }
-                drawPath(sidePath, color = Color(0xFF0369A1))
-                drawPath(sidePath, color = Color(0xFF0F172A), style = Stroke(width = 1.2.dp.toPx()))
-
-                // 3. Front Face
-                drawRect(
-                    color = Color(0xFF0F172A),
-                    topLeft = Offset(centerX, centerY - boxH / 2),
-                    size = Size(boxW, boxH)
-                )
-                // Front Blue Header Band
-                drawRect(
-                    color = Color(0xFF0284C7),
-                    topLeft = Offset(centerX, centerY - boxH / 2),
-                    size = Size(boxW, 35.dp.toPx())
-                )
-
-                // Euro Slot Hang Tab
-                val tabPath = Path().apply {
-                    moveTo(centerX + boxW * 0.35f, centerY - boxH / 2)
-                    lineTo(centerX + boxW * 0.35f, centerY - boxH / 2 - 18.dp.toPx())
-                    lineTo(centerX + boxW * 0.65f, centerY - boxH / 2 - 18.dp.toPx())
-                    lineTo(centerX + boxW * 0.65f, centerY - boxH / 2)
-                    close()
-                }
-                drawPath(tabPath, color = Color(0xFFCBD5E1))
-                drawPath(tabPath, color = Color(0xFF0F172A), style = Stroke(width = 1.dp.toPx()))
-                // Slot Hole
                 drawRoundRect(
-                    color = Color.White,
-                    topLeft = Offset(centerX + boxW * 0.42f, centerY - boxH / 2 - 13.dp.toPx()),
-                    size = Size(boxW * 0.16f, 6.dp.toPx()),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
-                )
-
-                // Window / Blister cut-out preview
-                drawRoundRect(
-                    color = Color(0xFF1E293B),
-                    topLeft = Offset(centerX + 10.dp.toPx(), centerY - boxH / 2 + 75.dp.toPx()),
-                    size = Size(boxW - 20.dp.toPx(), 55.dp.toPx()),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx(), 3.dp.toPx())
-                )
-                drawRoundRect(
-                    color = Color(0xFF38BDF8),
-                    topLeft = Offset(centerX + 10.dp.toPx(), centerY - boxH / 2 + 75.dp.toPx()),
-                    size = Size(boxW - 20.dp.toPx(), 55.dp.toPx()),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx(), 3.dp.toPx()),
-                    style = Stroke(width = 1.dp.toPx())
-                )
-
-                // Outline front
-                drawRect(
-                    color = Color(0xFF0F172A),
-                    topLeft = Offset(centerX, centerY - boxH / 2),
-                    size = Size(boxW, boxH),
-                    style = Stroke(width = 1.2.dp.toPx())
+                    color = Color.Black.copy(alpha = 0.12f),
+                    topLeft = Offset(startX + 6.dp.toPx(), startY + 6.dp.toPx()),
+                    size = Size(cW, cH),
+                    cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx())
                 )
             }
 
-            // Overlay Branding Text & Uploaded Company Logo directly on the 2.5D front face
+            // The actual retail card container
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(start = 135.dp, top = 65.dp)
+                    .align(Alignment.Center)
+                    .width(cardW)
+                    .height(cardH)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF0F172A))
+                    .border(1.dp, Color(0xFF334155), RoundedCornerShape(8.dp))
             ) {
-                Column(modifier = Modifier.width(105.dp)) {
-                    Text(
-                        text = "7HOOKS",
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                    Text(
-                        text = "PRECISION TACKLE",
-                        color = Color(0xFFBAE6FD),
-                        fontSize = 6.5.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    if (config.customLogoUri != null) {
-                        AsyncImage(
-                            model = Uri.parse(config.customLogoUri),
-                            contentDescription = "Uploaded Custom Company Logo",
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // 1. Euro Slot Header Tab
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(26.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Euro slot hole
+                        Box(
                             modifier = Modifier
-                                .height(22.dp)
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(Color.White.copy(alpha = 0.9f)),
-                            contentScale = ContentScale.Fit
-                        )
-                    } else {
-                        Text(
-                            text = config.companyName.take(18),
-                            color = Color(0xFFF97316),
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
+                                .width(36.dp)
+                                .height(9.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFFF1F5F9))
+                                .border(1.dp, Color(0xFF94A3B8), RoundedCornerShape(4.dp))
                         )
                     }
 
-                    Text(
-                        text = config.productName.take(20),
-                        color = Color.White,
-                        fontSize = 7.5.sp,
-                        maxLines = 1
-                    )
-                    Text(
-                        text = "MODEL: ${config.modelNumber}",
-                        color = Color(0xFF94A3B8),
-                        fontSize = 6.5.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    // 2. Header Brand Section
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "7HOOKS",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.5.sp
+                            )
+                            Text(
+                                text = "COMMERCIAL TACKLE",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 6.5.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // Logo display or Badge
+                        if (config.customLogoUri != null) {
+                            AsyncImage(
+                                model = Uri.parse(config.customLogoUri),
+                                contentDescription = "Distributor Logo",
+                                modifier = Modifier
+                                    .size(36.dp, 20.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(Color.White.copy(alpha = 0.95f))
+                                    .padding(2.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                        } else {
+                            Surface(
+                                color = Color(0xFF1E293B),
+                                shape = RoundedCornerShape(3.dp)
+                            ) {
+                                Text(
+                                    text = config.companyName.take(12),
+                                    color = Color(0xFFF97316),
+                                    fontSize = 7.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // 3. Clear Blister Window Cutout with Tackle Mockup inside
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(0xFF091322))
+                            .border(1.dp, Color(0xFF0284C7).copy(alpha = 0.6f), RoundedCornerShape(6.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Subtle tackle silhouette / blister sheen
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val pw = size.width
+                            val ph = size.height
+
+                            // Blister reflection sheen
+                            val sheen = Path().apply {
+                                moveTo(0f, 0f)
+                                lineTo(pw * 0.35f, 0f)
+                                lineTo(pw * 0.15f, ph)
+                                lineTo(0f, ph)
+                                close()
+                            }
+                            drawPath(sheen, color = Color.White.copy(alpha = 0.05f))
+
+                            // Lure / Jig silhouette inside window
+                            val jigL = pw * 0.65f
+                            val jigH = ph * 0.22f
+                            val jx = pw * 0.5f
+                            val jy = ph * 0.5f
+
+                            val jigPath = Path().apply {
+                                moveTo(jx - jigL / 2, jy)
+                                cubicTo(jx - jigL * 0.2f, jy - jigH / 2, jx + jigL * 0.2f, jy - jigH / 2, jx + jigL / 2, jy)
+                                cubicTo(jx + jigL * 0.2f, jy + jigH / 2, jx - jigL * 0.2f, jy + jigH / 2, jx - jigL / 2, jy)
+                                close()
+                            }
+                            drawPath(
+                                path = jigPath,
+                                brush = Brush.horizontalGradient(listOf(Color(0xFF0284C7), Color(0xFF38BDF8)))
+                            )
+                            drawPath(jigPath, color = Color.White.copy(alpha = 0.6f), style = Stroke(width = 1f))
+                        }
+
+                        // Product Title Badge inside blister
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = config.productName.take(24),
+                                color = Color.White,
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "SKU: ${config.modelNumber} • ${config.packagingDimensions}",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 6.5.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // 4. Retail Footer Bar: Barcode & Specs
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(26.dp)
+                            .background(Color.White, RoundedCornerShape(3.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Simulated high-density retail barcode
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(1.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.height(18.dp)
+                        ) {
+                            val barWidths = listOf(2, 1, 3, 1, 2, 4, 1, 2, 1, 3, 2, 1, 4, 2, 1)
+                            barWidths.forEach { w ->
+                                Box(
+                                    modifier = Modifier
+                                        .width(w.dp)
+                                        .fillMaxHeight()
+                                        .background(Color(0xFF0F172A))
+                                )
+                            }
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = config.packagingType.take(16).uppercase(),
+                                color = Color(0xFF0F172A),
+                                fontSize = 6.5.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "QTY: ${config.targetQuantity}",
+                                color = Color(0xFF64748B),
+                                fontSize = 5.5.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
                 }
             }
 
-            // Top Badge
+            // Top Left Overlay Badge
             Surface(
-                color = Color(0xFF0F172A),
+                color = Color(0xDD0F172A),
                 shape = RoundedCornerShape(bottomEnd = 6.dp),
                 modifier = Modifier.align(Alignment.TopStart)
             ) {
                 Text(
-                    text = "2.5D PERSPECTIVE MOCKUP • ${config.packagingType.uppercase()}",
+                    text = "RETAIL MOCKUP • ${config.packagingType.uppercase()}",
                     color = Color(0xFF38BDF8),
-                    fontSize = 9.sp,
+                    fontSize = 8.5.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
-
-            // Dimension Label Bottom Right
-            Surface(
-                color = Color(0xFFE2E8F0),
-                shape = RoundedCornerShape(topStart = 6.dp),
-                modifier = Modifier.align(Alignment.BottomEnd)
-            ) {
-                Text(
-                    text = "DIM: ${config.packagingDimensions}",
-                    color = Color(0xFF0F172A),
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                 )
             }
         }

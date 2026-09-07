@@ -48,7 +48,7 @@ fun JigEngineeringCanvas(
 @Composable
 fun JigOrthographicCanvas(
     config: ProductConfiguration,
-    modifier: Modifier = Modifier.height(320.dp)
+    modifier: Modifier = Modifier.height(380.dp)
 ) {
     val textMeasurer = rememberTextMeasurer()
 
@@ -59,7 +59,7 @@ fun JigOrthographicCanvas(
             .background(Color(0xFFFCFDFE), RoundedCornerShape(8.dp))
             .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(8.dp))
     ) {
-        Canvas(modifier = Modifier.fillMaxSize().padding(10.dp)) {
+        Canvas(modifier = Modifier.fillMaxSize().padding(8.dp)) {
             val canvasW = size.width
             val canvasH = size.height
 
@@ -80,148 +80,265 @@ fun JigOrthographicCanvas(
             )
 
             // Dynamic Scaling
-            val scaleL = (config.lengthMm / 180f).coerceIn(0.55f, 1.35f)
-            val scaleW = (config.widthMm / 28f).coerceIn(0.55f, 1.35f)
-            val drawL = 140.dp.toPx() * scaleL
-            val drawW = 28.dp.toPx() * scaleW
+            val scaleL = (config.lengthMm / 180f).coerceIn(0.55f, 1.25f)
+            val scaleW = (config.widthMm / 28f).coerceIn(0.55f, 1.25f)
+            val drawL = 130.dp.toPx() * scaleL
+            val drawW = 24.dp.toPx() * scaleW
+            val halfL = drawL / 2f
+            val halfW = drawW / 2f
+
+            val leftColX = canvasW * 0.35f
+            val rightColX = canvasW * 0.78f
 
             // -------------------------------------------------------------
-            // VIEW A: FRONT ELEVATION (Left / Center Upper)
+            // 1. FRONT VIEW (Top Left, aligned horizontally with Top View)
             // -------------------------------------------------------------
-            val frontCenterX = canvasW * 0.36f
-            val frontCenterY = canvasH * 0.28f
-
-            drawViewLabel(textMeasurer, "VIEW A: FRONT ELEVATION (1:1)", Offset(14.dp.toPx(), 14.dp.toPx()))
+            val frontY = canvasH * 0.20f
+            drawViewLabel(textMeasurer, "FRONT VIEW • SCALE 1:1", Offset(12.dp.toPx(), frontY - halfW - 14.dp.toPx()))
 
             // Centerline
             drawTechnicalCenterline(
-                start = Offset(frontCenterX - drawL / 2f - 22.dp.toPx(), frontCenterY),
-                end = Offset(frontCenterX + drawL / 2f + 22.dp.toPx(), frontCenterY)
+                start = Offset(leftColX - halfL - 18.dp.toPx(), frontY),
+                end = Offset(leftColX + halfL + 18.dp.toPx(), frontY)
             )
 
             // Jig Body Profile Path
-            val halfL = drawL / 2f
-            val halfW = drawW / 2f
             val frontPath = Path().apply {
-                moveTo(frontCenterX - halfL, frontCenterY)
+                moveTo(leftColX - halfL, frontY)
                 cubicTo(
-                    frontCenterX - halfL * 0.6f, frontCenterY - halfW * 0.9f,
-                    frontCenterX + halfL * 0.1f, frontCenterY - halfW,
-                    frontCenterX + halfL * 0.65f, frontCenterY - halfW * 0.65f
+                    leftColX - halfL * 0.6f, frontY - halfW * 0.9f,
+                    leftColX + halfL * 0.1f, frontY - halfW,
+                    leftColX + halfL * 0.65f, frontY - halfW * 0.65f
                 )
-                lineTo(frontCenterX + halfL, frontCenterY)
+                lineTo(leftColX + halfL, frontY)
                 cubicTo(
-                    frontCenterX + halfL * 0.65f, frontCenterY + halfW * 0.65f,
-                    frontCenterX + halfL * 0.1f, frontCenterY + halfW,
-                    frontCenterX - halfL * 0.6f, frontCenterY + halfW * 0.9f
+                    leftColX + halfL * 0.65f, frontY + halfW * 0.65f,
+                    leftColX + halfL * 0.1f, frontY + halfW,
+                    leftColX - halfL * 0.6f, frontY + halfW * 0.9f
                 )
                 close()
             }
 
-            // Fill and Stroke
             drawPath(
                 path = frontPath,
                 brush = Brush.verticalGradient(
                     colors = listOf(Color(config.baseColorHex).copy(alpha = 0.85f), Color(config.accentColorHex).copy(alpha = 0.85f)),
-                    startY = frontCenterY - halfW,
-                    endY = frontCenterY + halfW
+                    startY = frontY - halfW,
+                    endY = frontY + halfW
                 )
             )
-            drawPath(path = frontPath, color = Color(0xFF0F172A), style = Stroke(width = 1.8.dp.toPx()))
+            drawPath(path = frontPath, color = Color(0xFF0F172A), style = Stroke(width = 1.6.dp.toPx()))
 
-            // Eyelets
-            drawCircle(Color(0xFFE2E8F0), radius = 4.dp.toPx(), center = Offset(frontCenterX - halfL - 5.dp.toPx(), frontCenterY))
-            drawCircle(Color(0xFF475569), radius = 4.dp.toPx(), center = Offset(frontCenterX - halfL - 5.dp.toPx(), frontCenterY), style = Stroke(1.2.dp.toPx()))
-            drawCircle(Color(0xFFE2E8F0), radius = 4.dp.toPx(), center = Offset(frontCenterX + halfL + 5.dp.toPx(), frontCenterY))
-            drawCircle(Color(0xFF475569), radius = 4.dp.toPx(), center = Offset(frontCenterX + halfL + 5.dp.toPx(), frontCenterY), style = Stroke(1.2.dp.toPx()))
+            // Front/Rear Solid Line Ties
+            drawCircle(Color(0xFFE2E8F0), radius = 3.5.dp.toPx(), center = Offset(leftColX - halfL - 4.dp.toPx(), frontY))
+            drawCircle(Color(0xFF475569), radius = 3.5.dp.toPx(), center = Offset(leftColX - halfL - 4.dp.toPx(), frontY), style = Stroke(1.dp.toPx()))
+            drawCircle(Color(0xFFE2E8F0), radius = 3.5.dp.toPx(), center = Offset(leftColX + halfL + 4.dp.toPx(), frontY))
+            drawCircle(Color(0xFF475569), radius = 3.5.dp.toPx(), center = Offset(leftColX + halfL + 4.dp.toPx(), frontY), style = Stroke(1.dp.toPx()))
 
-            // 3D Lure Eye
-            drawCircle(Color.White, radius = 3.5.dp.toPx(), center = Offset(frontCenterX - halfL + 14.dp.toPx() * scaleL, frontCenterY - 3.dp.toPx()))
-            drawCircle(Color(0xFF0F172A), radius = 1.8.dp.toPx(), center = Offset(frontCenterX - halfL + 14.dp.toPx() * scaleL, frontCenterY - 3.dp.toPx()))
+            // 3D Eye
+            drawCircle(Color.White, radius = 3.dp.toPx(), center = Offset(leftColX - halfL + 12.dp.toPx() * scaleL, frontY - 2.5.dp.toPx()))
+            drawCircle(Color(0xFF0F172A), radius = 1.5.dp.toPx(), center = Offset(leftColX - halfL + 12.dp.toPx() * scaleL, frontY - 2.5.dp.toPx()))
 
-            // Front View Dimensions
+            // Cutting Plane A-A Indicator
+            val cutX1 = leftColX - halfL - 10.dp.toPx()
+            val cutX2 = leftColX + halfL + 10.dp.toPx()
+            drawLine(Color(0xFF0284C7), Offset(cutX1, frontY - halfW - 4.dp.toPx()), Offset(cutX1, frontY + halfW + 4.dp.toPx()), strokeWidth = 1.5.dp.toPx())
+            drawLine(Color(0xFF0284C7), Offset(cutX2, frontY - halfW - 4.dp.toPx()), Offset(cutX2, frontY + halfW + 4.dp.toPx()), strokeWidth = 1.5.dp.toPx())
+            drawArrow(this, Offset(cutX1, frontY + halfW + 4.dp.toPx()), isPointingRight = true, color = Color(0xFF0284C7))
+            drawArrow(this, Offset(cutX2, frontY + halfW + 4.dp.toPx()), isPointingRight = true, color = Color(0xFF0284C7))
+
+            // Front Dimensions
             drawHorizontalDimension(
                 measurer = textMeasurer,
-                x1 = frontCenterX - halfL,
-                x2 = frontCenterX + halfL,
-                dimY = frontCenterY - halfW - 14.dp.toPx(),
-                valueText = "${String.format(Locale.US, "%.1f", config.lengthMm)} ± 0.15 mm"
+                x1 = leftColX - halfL,
+                x2 = leftColX + halfL,
+                dimY = frontY - halfW - 6.dp.toPx(),
+                valueText = "${config.lengthMm.toInt()} mm"
             )
             drawVerticalDimension(
                 measurer = textMeasurer,
-                dimX = frontCenterX + halfL + 18.dp.toPx(),
-                y1 = frontCenterY - halfW,
-                y2 = frontCenterY + halfW,
-                valueText = "${String.format(Locale.US, "%.1f", config.widthMm)} ± 0.15"
+                dimX = leftColX + halfL + 14.dp.toPx(),
+                y1 = frontY - halfW,
+                y2 = frontY + halfW,
+                valueText = "${config.widthMm.toInt()} mm"
             )
 
             // -------------------------------------------------------------
-            // VIEW B: TOP PLAN VIEW (Below Elevation)
+            // 2. TOP VIEW (Plan View, directly below Front View, sharing X axis)
             // -------------------------------------------------------------
-            val topCenterY = canvasH * 0.58f
-            drawViewLabel(textMeasurer, "VIEW B: TOP PLAN VIEW (AERODYNAMIC KEEL)", Offset(14.dp.toPx(), topCenterY - 26.dp.toPx()))
+            val topY = canvasH * 0.44f
+            drawViewLabel(textMeasurer, "TOP VIEW • SCALE 1:1", Offset(12.dp.toPx(), topY - 18.dp.toPx()))
 
             drawTechnicalCenterline(
-                start = Offset(frontCenterX - drawL / 2f - 22.dp.toPx(), topCenterY),
-                end = Offset(frontCenterX + drawL / 2f + 22.dp.toPx(), topCenterY)
+                start = Offset(leftColX - halfL - 18.dp.toPx(), topY),
+                end = Offset(leftColX + halfL + 18.dp.toPx(), topY)
             )
 
             val topThickness = drawW * 0.45f
             val topPath = Path().apply {
-                moveTo(frontCenterX - halfL, topCenterY)
+                moveTo(leftColX - halfL, topY)
                 cubicTo(
-                    frontCenterX - halfL * 0.5f, topCenterY - topThickness,
-                    frontCenterX + halfL * 0.2f, topCenterY - topThickness * 1.1f,
-                    frontCenterX + halfL * 0.7f, topCenterY - topThickness * 0.4f
+                    leftColX - halfL * 0.5f, topY - topThickness,
+                    leftColX + halfL * 0.2f, topY - topThickness * 1.1f,
+                    leftColX + halfL * 0.7f, topY - topThickness * 0.4f
                 )
-                lineTo(frontCenterX + halfL, topCenterY)
+                lineTo(leftColX + halfL, topY)
                 cubicTo(
-                    frontCenterX + halfL * 0.7f, topCenterY + topThickness * 0.4f,
-                    frontCenterX + halfL * 0.2f, topCenterY + topThickness * 1.1f,
-                    frontCenterX - halfL * 0.5f, topCenterY + topThickness
+                    leftColX + halfL * 0.7f, topY + topThickness * 0.4f,
+                    leftColX + halfL * 0.2f, topY + topThickness * 1.1f,
+                    leftColX - halfL * 0.5f, topY + topThickness
                 )
                 close()
             }
             drawPath(topPath, color = Color(0xFFF1F5F9))
-            drawPath(topPath, color = Color(0xFF0F172A), style = Stroke(width = 1.5.dp.toPx()))
+            drawPath(topPath, color = Color(0xFF0F172A), style = Stroke(width = 1.4.dp.toPx()))
 
-            // Spine / Ridge line
+            // Spine / Keel Ridge Line
             drawLine(
                 color = Color(0xFF0284C7),
-                start = Offset(frontCenterX - halfL + 8.dp.toPx(), topCenterY),
-                end = Offset(frontCenterX + halfL - 8.dp.toPx(), topCenterY),
-                strokeWidth = 1.4.dp.toPx()
+                start = Offset(leftColX - halfL + 6.dp.toPx(), topY),
+                end = Offset(leftColX + halfL - 6.dp.toPx(), topY),
+                strokeWidth = 1.2.dp.toPx()
+            )
+
+            drawVerticalDimension(
+                measurer = textMeasurer,
+                dimX = leftColX + halfL + 14.dp.toPx(),
+                y1 = topY - topThickness,
+                y2 = topY + topThickness,
+                valueText = "${(config.widthMm * 0.45f).toInt()} mm"
             )
 
             // -------------------------------------------------------------
-            // VIEW C: END PROFILE / SECTION (Top Right)
+            // 3. SECTION A-A (Internal Core, Through-Wire, Weight Cavity, Thread)
             // -------------------------------------------------------------
-            val endCenterX = canvasW * 0.82f
-            val endCenterY = canvasH * 0.26f
-            drawViewLabel(textMeasurer, "VIEW C: END (1:1)", Offset(endCenterX - 28.dp.toPx(), endCenterY - drawW - 12.dp.toPx()))
+            val secY = canvasH * 0.70f
+            drawViewLabel(textMeasurer, "SECTION A-A (INTERNAL CORE & WIRE)", Offset(12.dp.toPx(), secY - halfW - 14.dp.toPx()))
 
             drawTechnicalCenterline(
-                start = Offset(endCenterX - drawW * 0.8f, endCenterY),
-                end = Offset(endCenterX + drawW * 0.8f, endCenterY)
-            )
-            drawTechnicalCenterline(
-                start = Offset(endCenterX, endCenterY - drawW * 0.8f),
-                end = Offset(endCenterX, endCenterY + drawW * 0.8f)
+                start = Offset(leftColX - halfL - 18.dp.toPx(), secY),
+                end = Offset(leftColX + halfL + 18.dp.toPx(), secY)
             )
 
-            // Diamond-hydrofoil end section
+            // Section Outer Envelope
+            val secPath = Path().apply {
+                moveTo(leftColX - halfL, secY)
+                cubicTo(
+                    leftColX - halfL * 0.6f, secY - halfW * 0.9f,
+                    leftColX + halfL * 0.1f, secY - halfW,
+                    leftColX + halfL * 0.65f, secY - halfW * 0.65f
+                )
+                lineTo(leftColX + halfL, secY)
+                cubicTo(
+                    leftColX + halfL * 0.65f, secY + halfW * 0.65f,
+                    leftColX + halfL * 0.1f, secY + halfW,
+                    leftColX - halfL * 0.6f, secY + halfW * 0.9f
+                )
+                close()
+            }
+            drawPath(secPath, color = Color(0xFFF8FAFC))
+
+            // Cross-Hatch Lines (Section ///)
+            var hx = leftColX - halfL
+            val hSpacing = 8.dp.toPx()
+            while (hx <= leftColX + halfL) {
+                drawLine(
+                    color = Color(0x33475569),
+                    start = Offset(hx, secY - halfW * 0.7f),
+                    end = Offset(hx + 10.dp.toPx(), secY + halfW * 0.7f),
+                    strokeWidth = 0.8.dp.toPx()
+                )
+                hx += hSpacing
+            }
+
+            // Internal Lead / Tungsten Ballast Cavity (Rear-biased for flutter)
+            val ballastW = drawL * 0.38f
+            val ballastH = drawW * 0.55f
+            drawRoundRect(
+                color = Color(0xFF64748B),
+                topLeft = Offset(leftColX + drawL * 0.05f, secY - ballastH / 2f),
+                size = Size(ballastW, ballastH),
+                cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
+            )
+            drawRoundRect(
+                color = Color(0xFF0F172A),
+                topLeft = Offset(leftColX + drawL * 0.05f, secY - ballastH / 2f),
+                size = Size(ballastW, ballastH),
+                cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx()),
+                style = Stroke(1.dp.toPx())
+            )
+
+            // Through-Wire Harness (SUS304 Stainless Steel Full Length)
+            drawLine(
+                color = Color(0xFFEF4444),
+                start = Offset(leftColX - halfL - 4.dp.toPx(), secY),
+                end = Offset(leftColX + halfL + 4.dp.toPx(), secY),
+                strokeWidth = 2.dp.toPx()
+            )
+
+            // Assist Hook Binding with Configured Thread Wrap
+            val threadCol = config.threadColorHex?.let { Color(it) } ?: Color(0xFFEA580C)
+            val hookAttachX = leftColX - halfL - 4.dp.toPx()
+            val hookX = hookAttachX - 10.dp.toPx()
+            val hookY = secY + 14.dp.toPx()
+
+            drawLine(Color(0xFFCBD5E1), Offset(hookAttachX, secY), Offset(hookX, hookY), strokeWidth = 1.6.dp.toPx())
+            if (config.threadColor != "None") {
+                drawLine(threadCol, Offset(hookAttachX - 3.dp.toPx(), secY + 4.dp.toPx()), Offset(hookAttachX - 8.dp.toPx(), secY + 11.dp.toPx()), strokeWidth = 3.dp.toPx())
+            }
+            drawCircle(Color(0xFF475569), radius = 3.5.dp.toPx(), center = Offset(hookX, hookY), style = Stroke(1.2.dp.toPx()))
+
+            drawPath(secPath, color = Color(0xFF0F172A), style = Stroke(width = 1.5.dp.toPx()))
+
+            // -------------------------------------------------------------
+            // 4. END VIEW (Right Column, Top)
+            // -------------------------------------------------------------
+            val endY = canvasH * 0.18f
+            drawViewLabel(textMeasurer, "END VIEW • SCALE 1:1", Offset(rightColX - 36.dp.toPx(), endY - halfW - 12.dp.toPx()))
+
+            drawTechnicalCenterline(
+                start = Offset(rightColX - drawW * 0.7f, endY),
+                end = Offset(rightColX + drawW * 0.7f, endY)
+            )
+            drawTechnicalCenterline(
+                start = Offset(rightColX, endY - drawW * 0.7f),
+                end = Offset(rightColX, endY + drawW * 0.7f)
+            )
+
             val endSectionPath = Path().apply {
-                moveTo(endCenterX, endCenterY - halfW)
-                lineTo(endCenterX + topThickness * 0.9f, endCenterY)
-                lineTo(endCenterX, endCenterY + halfW)
-                lineTo(endCenterX - topThickness * 0.9f, endCenterY)
+                moveTo(rightColX, endY - halfW)
+                lineTo(rightColX + topThickness * 0.9f, endY)
+                lineTo(rightColX, endY + halfW)
+                lineTo(rightColX - topThickness * 0.9f, endY)
                 close()
             }
             drawPath(endSectionPath, color = Color(0xFFE2E8F0))
-            drawPath(endSectionPath, color = Color(0xFF0F172A), style = Stroke(1.5.dp.toPx()))
+            drawPath(endSectionPath, color = Color(0xFF0F172A), style = Stroke(1.4.dp.toPx()))
 
             // -------------------------------------------------------------
-            // ENGINEERING TITLE BLOCK (Standard Bottom Right Corner)
+            // 5. ISOMETRIC VIEW (Right Column, Middle)
+            // -------------------------------------------------------------
+            val isoY = canvasH * 0.42f
+            drawViewLabel(textMeasurer, "ISOMETRIC VIEW (REF)", Offset(rightColX - 36.dp.toPx(), isoY - 26.dp.toPx()))
+
+            val isoL = 48.dp.toPx()
+            val isoW = 14.dp.toPx()
+            val isoPath = Path().apply {
+                moveTo(rightColX - isoL / 2, isoY - 6.dp.toPx())
+                lineTo(rightColX + isoL / 2, isoY - 14.dp.toPx())
+                lineTo(rightColX + isoL / 2 + 10.dp.toPx(), isoY + 6.dp.toPx())
+                lineTo(rightColX - isoL / 2 + 10.dp.toPx(), isoY + 14.dp.toPx())
+                close()
+            }
+            drawPath(isoPath, brush = Brush.linearGradient(
+                colors = listOf(Color(config.baseColorHex), Color(config.accentColorHex)),
+                start = Offset(rightColX - isoL / 2, isoY),
+                end = Offset(rightColX + isoL / 2, isoY)
+            ))
+            drawPath(isoPath, color = Color(0xFF0F172A), style = Stroke(1.2.dp.toPx()))
+
+            // -------------------------------------------------------------
+            // 6. ENGINEERING TITLE BLOCK (Standard Bottom Right Corner)
             // -------------------------------------------------------------
             drawEngineeringTitleBlock(
                 measurer = textMeasurer,
@@ -230,8 +347,8 @@ fun JigOrthographicCanvas(
                 title = "JIG INDUSTRIAL SPECIFICATION",
                 modelNo = config.modelNumber,
                 material = config.material,
-                finish = config.colorName,
-                tolerance = "±0.15 mm",
+                finish = "${config.colorName} / ${config.threadColor}",
+                tolerance = "TBD",
                 scale = "1:1 FULL",
                 refNo = config.referenceNumber
             )

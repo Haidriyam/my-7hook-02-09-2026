@@ -261,7 +261,18 @@ fun JigConfigScreen(
                 pattern = currentConfig.patternType
             )
 
-            // SECTION 5: LIVE TECHNICAL DRAWING SCHEMATIC PREVIEW
+            // SECTION 5: THREAD CONFIGURATION (Sections 10, 11, 12)
+            ThreadSelector(
+                selectedThread = currentConfig.threadColor,
+                onSelectThread = { threadOption ->
+                    configViewModel.updateThread(
+                        threadColor = threadOption.name,
+                        colorHex = threadOption.color?.let { (it.value shr 32).toLong() }
+                    )
+                }
+            )
+
+            // SECTION 6: LIVE TECHNICAL DRAWING SCHEMATIC PREVIEW
             TactileCard(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 3.dp
@@ -279,14 +290,14 @@ fun JigConfigScreen(
                 }
             }
 
-            // SECTION 6: PRODUCT IN-USE DEMONSTRATION (At bottom of configurator, per Section 12 & 22)
+            // SECTION 7: PRODUCT PRESENTATION — ACTION & RIGGING (Section 16: Product in Action)
             TactileCard(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 3.dp
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        text = "PRODUCT IN-USE DEMONSTRATION",
+                        text = "PRODUCT PRESENTATION — ACTION & RIGGING",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,

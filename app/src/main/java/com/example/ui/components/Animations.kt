@@ -149,18 +149,57 @@ fun JigFishingAnimation(
                     )
                 }
 
-                // Assist Hooks on Jig
-                drawLine(
-                    color = Color(0xFFF97316),
-                    start = Offset(jigX, currentJigY - jigL / 2),
-                    end = Offset(jigX - 10.dp.toPx(), currentJigY - jigL / 2 + 14.dp.toPx()),
-                    strokeWidth = 1.5.dp.toPx()
-                )
+                // Split Ring & Assist Hook on Jig
+                val threadColor = config.threadColorHex?.let { Color(it) } 
+                    ?: when (config.threadColor.lowercase()) {
+                        "red" -> Color(0xFFDC2626)
+                        "orange" -> Color(0xFFEA580C)
+                        "yellow" -> Color(0xFFEAB308)
+                        "green" -> Color(0xFF16A34A)
+                        "blue" -> Color(0xFF0284C7)
+                        "black" -> Color(0xFF1E293B)
+                        "white" -> Color(0xFFF8FAFC)
+                        "pink" -> Color(0xFFEC4899)
+                        "purple" -> Color(0xFF9333EA)
+                        "gold" -> Color(0xFFE2B024)
+                        "silver" -> Color(0xFFCBD5E1)
+                        else -> null
+                    }
+
+                // Split Ring (SUS304 Stainless)
                 drawCircle(
                     color = Color(0xFFCBD5E1),
-                    radius = 3.dp.toPx(),
-                    center = Offset(jigX - 10.dp.toPx(), currentJigY - jigL / 2 + 14.dp.toPx()),
-                    style = Stroke(width = 1.2f)
+                    radius = 2.5.dp.toPx(),
+                    center = Offset(jigX, currentJigY - jigL / 2 - 2.dp.toPx()),
+                    style = Stroke(width = 1.2.dp.toPx())
+                )
+
+                // Assist Cord (Braided PE)
+                val hookPointX = jigX - 11.dp.toPx()
+                val hookPointY = currentJigY - jigL / 2 + 15.dp.toPx()
+                drawLine(
+                    color = Color(0xFFE2E8F0),
+                    start = Offset(jigX, currentJigY - jigL / 2),
+                    end = Offset(hookPointX, hookPointY),
+                    strokeWidth = 1.8.dp.toPx()
+                )
+
+                // Thread whip wrap around assist hook shank (if thread is configured)
+                if (threadColor != null && config.threadColor != "None") {
+                    drawLine(
+                        color = threadColor,
+                        start = Offset(jigX - 4.dp.toPx(), currentJigY - jigL / 2 + 6.dp.toPx()),
+                        end = Offset(jigX - 9.dp.toPx(), currentJigY - jigL / 2 + 13.dp.toPx()),
+                        strokeWidth = 3.dp.toPx()
+                    )
+                }
+
+                // Assist Hook (Forged High-Carbon Steel)
+                drawCircle(
+                    color = Color(0xFF94A3B8),
+                    radius = 3.5.dp.toPx(),
+                    center = Offset(hookPointX, hookPointY),
+                    style = Stroke(width = 1.4f)
                 )
 
                 // Water current & hydrodynamic vortex trails behind flutter

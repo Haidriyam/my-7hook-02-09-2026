@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:width="72dp"
-        android:height="26dp"
-        android:drawable="@drawable/official_7hooks_logo"
+        android:width="66dp"
+        android:height="66dp"
+        android:drawable="@drawable/ic_launcher_foreground_man"
         android:gravity="center" />
 </layer-list>
 

@@ -83,9 +83,6 @@ fun DashboardScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    ThemeSelectorRow()
                 }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -243,29 +240,24 @@ fun DashboardScreen(
             ) {
                 // High-End Industrial Brand Header Block (Clean, professional, non-generic)
                 item {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(vertical = 4.dp)
                     ) {
-                        Column {
-                            Text(
-                                text = "Product Studio",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 18.sp
-                            )
-                            Text(
-                                text = "Commercial specifications & ISO technical schematics",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 12.sp
-                            )
-                        }
-                        ThemeSelectorRow()
+                        Text(
+                            text = "Product Studio",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            text = "Commercial specifications & ISO technical schematics",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
                     }
                 }
 
@@ -475,8 +467,8 @@ private fun ModuleCardsSection(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 CompactModuleRow(
-                    title = "Jigheads & Pelagic Spoons",
-                    subtitle = "Tungsten, lead heads, 3D eyes & powder finishes",
+                    title = "Jigs",
+                    subtitle = "Metal, tungsten & vertical jigging specifications",
                     iconRes = R.drawable.ic_jig_icon,
                     gradient = listOf(Color(0xFF0284C7), Color(0xFF0369A1)),
                     buttonVariant = TactileButtonVariant.PRIMARY,
@@ -484,8 +476,8 @@ private fun ModuleCardsSection(
                     testTag = "dashboard_jig_configurator_card"
                 )
                 CompactModuleRow(
-                    title = "Toray Custom Rod Blanks",
-                    subtitle = "Carbon specs, guides, reel seats & deflection",
+                    title = "Rods",
+                    subtitle = "Carbon blanks, guide train & action parameters",
                     iconRes = R.drawable.ic_rod_icon,
                     gradient = listOf(Color(0xFFEA580C), Color(0xFFC2410C)),
                     buttonVariant = TactileButtonVariant.SECONDARY,
@@ -493,8 +485,8 @@ private fun ModuleCardsSection(
                     testTag = "dashboard_rod_configurator_card"
                 )
                 CompactModuleRow(
-                    title = "Hard Lures & Crankbaits",
-                    subtitle = "ABS shells, weight transfer & diving lip depth",
+                    title = "Lures",
+                    subtitle = "Hardbody lures, swimming lip & ballast design",
                     iconRes = R.drawable.ic_lure_icon,
                     gradient = listOf(Color(0xFF0D9488), Color(0xFF0F766E)),
                     buttonVariant = TactileButtonVariant.PRIMARY,
@@ -502,8 +494,8 @@ private fun ModuleCardsSection(
                     testTag = "dashboard_lure_configurator_card"
                 )
                 CompactModuleRow(
-                    title = "Retail Packaging Systems",
-                    subtitle = "Die-cut blister cards, polybags & custom branding",
+                    title = "Packaging",
+                    subtitle = "Retail blister cards, rigid boxes & custom branding",
                     iconRes = R.drawable.ic_package_box,
                     gradient = listOf(Color(0xFF475569), Color(0xFF1E293B)),
                     buttonVariant = TactileButtonVariant.OUTLINE,

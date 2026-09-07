@@ -57,7 +57,12 @@ class PackagingViewModel(application: Application) : AndroidViewModel(applicatio
         email: String? = null,
         notes: String? = null,
         material: String? = null,
-        dimensions: String? = null
+        dimensions: String? = null,
+        cardStock: String? = null,
+        windowStyle: String? = null,
+        hangingSlot: String? = null,
+        printingProcess: String? = null,
+        quantity: String? = null
     ) {
         val cur = _packagingConfig.value
         _packagingConfig.value = cur.copy(
@@ -67,7 +72,12 @@ class PackagingViewModel(application: Application) : AndroidViewModel(applicatio
             contactEmail = email ?: cur.contactEmail,
             packagingNotes = notes ?: cur.packagingNotes,
             packagingMaterial = material ?: cur.packagingMaterial,
-            packagingDimensions = dimensions ?: cur.packagingDimensions
+            packagingDimensions = dimensions ?: cur.packagingDimensions,
+            cardStock = cardStock ?: cur.cardStock,
+            windowStyle = windowStyle ?: cur.windowStyle,
+            hangingSlot = hangingSlot ?: cur.hangingSlot,
+            printingProcess = printingProcess ?: cur.printingProcess,
+            targetQuantity = quantity ?: cur.targetQuantity
         )
     }
 

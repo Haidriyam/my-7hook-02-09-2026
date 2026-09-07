@@ -28,6 +28,14 @@ data class ProductConfiguration(
     val baseColorHex: Long = 0xFFEA580C,
     val accentColorHex: Long = 0xFF0F172A,
     val patternType: JigPatternType = JigPatternType.SOLID_STRIPE,
+    // Thread & Hardware Configuration (Sections 10, 11, 12)
+    val threadColor: String = "None",
+    val threadColorHex: Long? = null,
+    val threadWrapping: String = "Assist Hook Shank",
+    val threadStyle: String = "High-Tensile Braided Filament",
+    val finishType: String = "Multi-Layer UV Holographic",
+    val hookTypeJig: String = "Mustad Saltwater Assist 3/0",
+    val eyeStyle: String = "3D Hydro-Luminous Strike Eye",
     // Rod Specifics
     val rodType: String = "Spinning Rod",
     val power: String = "Medium",
@@ -42,7 +50,7 @@ data class ProductConfiguration(
     val hookType: String = "VMC Saltwater 3X Treble",
     val buoyancy: String = "Suspending",
     // Metadata
-    val notes: String = "Standard precision manufacturing tolerances apply (±0.15mm). ISO 9001 certified finish.",
+    val notes: String = "Dimensions in mm. Tolerances and material grades subject to manufacturer confirmation.",
     val timestamp: Long = System.currentTimeMillis()
 ) {
     companion object {
@@ -63,7 +71,7 @@ data class ProductConfiguration(
 data class PackagingConfiguration(
     val packagingId: String = "PKG-${System.currentTimeMillis()}",
     val referenceNumber: String = "7H-PKG-${SimpleDateFormat("yyyy", Locale.US).format(Date())}-${(1000..9999).random()}",
-    val packagingType: String = "Box", // Box, Sleeve, Pouch, Blister, Custom
+    val packagingType: String = "Retail Hanging Box",
     val productName: String = "7Hooks Precision Tackle",
     val modelNumber: String = "7H-PKG-001",
     val companyName: String = "7Hooks Global Tackle",
@@ -73,9 +81,14 @@ data class PackagingConfiguration(
     val contactPhone: String = "+1 (800) 746-6571",
     val contactEmail: String = "engineering@7hooks.com",
     val packagingNotes: String = "FSC-certified recyclable packaging with UV spot varnished 7Hooks branding.",
-    val packagingMaterial: String = "High-Density Cardboard 350gsm",
+    val packagingMaterial: String = "Cardboard 350gsm",
+    val cardStock: String = "350gsm Coated SBS Board",
+    val windowStyle: String = "High-Clarity PET Window",
+    val hangingSlot: String = "Euro Slot",
+    val printingProcess: String = "CMYK + Spot UV",
     val packagingColor: String = "Nautical Navy / Metallic Cyan",
     val packagingDimensions: String = "180 x 60 x 30 mm",
+    val targetQuantity: String = "1,000 pcs (OEM Minimum)",
     val timestamp: Long = System.currentTimeMillis()
 )
 

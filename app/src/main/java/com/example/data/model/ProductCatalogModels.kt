@@ -86,12 +86,12 @@ enum class RodLengthGroup(val displayName: String, val defaultLengthMm: Float, v
     FULL_LENGTH("Full Length (2.7m - 3.6m)", 3000f, 2700f, 3600f)
 }
 
-enum class PackagingType(val displayName: String) {
-    BOX("Box"),
-    SLEEVE("Sleeve"),
-    POUCH("Pouch"),
-    BLISTER("Blister"),
-    CUSTOM("Custom")
+enum class PackagingType(val displayName: String, val subtitle: String) {
+    CLAMSHELL_BLISTER("Clamshell / Blister Pack", "Thermoformed clear PET with heat-sealed backing card"),
+    HEADER_CARD_POLYBAG("Header Card / Polybag", "Fold-over cardboard header with heavy-gauge polybag"),
+    RETAIL_HANGING_BOX("Retail Hanging Box", "Die-cut tuck-end cardboard box with euro-slot tab"),
+    RIGID_GIFT_BOX("Rigid Gift Box", "Heavy paperboard two-piece box with custom EVA foam insert"),
+    BULK_OEM_PACK("Bulk OEM Pack", "Industrial master carton with compartment divider trays")
 }
 
 data class RodProduct(

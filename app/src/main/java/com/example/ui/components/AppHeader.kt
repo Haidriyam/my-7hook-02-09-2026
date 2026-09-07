@@ -101,30 +101,11 @@ fun AppHeader(
                     }
                 }
 
-                // Right side: Quick Theme Switcher, 7Hooks Brand Logo & Logout
+                // Right side: 7Hooks Brand Logo & Logout
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // Quick Light / Dark Mode Toggle Button
-                    IconButton(
-                        onClick = {
-                            val nextMode = when (currentMode) {
-                                AppThemeMode.LIGHT -> AppThemeMode.DARK
-                                AppThemeMode.DARK -> AppThemeMode.LIGHT
-                            }
-                            ThemeManager.setThemeMode(context, nextMode)
-                        },
-                        modifier = Modifier.testTag("header_theme_toggle")
-                    ) {
-                        Icon(
-                            imageVector = if (currentMode == AppThemeMode.DARK) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = "Toggle theme mode",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
                     // 7Hooks Official Branding Logo Image
                     Official7HooksLogo(height = 28.dp)
 

@@ -114,18 +114,21 @@ object PdfGenerator {
                 "Model Number" to config.modelNumber,
                 "Category / Action" to config.category,
                 "Primary Material" to config.material,
-                "Target Weight" to "${config.weightGrams.toInt()} g (±0.5g tolerance)",
+                "Target Weight" to "${config.weightGrams.toInt()} g",
                 "Overall Length" to "${config.lengthMm.toInt()} mm",
                 "Max Body Width" to "${config.widthMm.toInt()} mm",
                 "Color Theme" to config.colorName,
+                "Thread Binding" to if (config.threadColor == "None") "None" else "${config.threadColor} (${config.threadWrapping})",
                 "Eyelet Construction" to "Integrated Solid Stainless Steel Through-Wire (1.2mm)",
-                "Surface Treatment" to "Multi-layer UV Luminous & Holographic Hard Coat"
+                "General Tolerance" to "TBD",
+                "Weight Tolerance" to "TBD",
+                "Dimensional Tolerance" to "TBD"
             )
 
             drawTable(canvas, 40f, tableTop + 15f, (PAGE_WIDTH - 80).toFloat(), specs)
 
             // 5. MANUFACTURING & PRODUCT NOTES
-            val notesTop = tableTop + 15f + (specs.size * 18f) + 20f
+            val notesTop = tableTop + 15f + (specs.size * 18f) + 15f
             drawSectionHeader(canvas, 40f, notesTop, "MANUFACTURING & QUALITY CONTROL NOTES")
 
             val bodyPaint = Paint().apply {
@@ -134,10 +137,12 @@ object PdfGenerator {
                 typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
                 isAntiAlias = true
             }
-            canvas.drawText("• Precision hydrodynamic balance optimized for rapid vertical descent and high-frequency flutter on retrieve.", 40f, notesTop + 16f, bodyPaint)
-            canvas.drawText("• Center of gravity weighted 60/40 rear-bias for aerodynamic long-distance casting and strike triggering.", 40f, notesTop + 28f, bodyPaint)
-            canvas.drawText("• Saltwater corrosion resistance: 500-hour ASTM B117 salt-spray tested without degradation.", 40f, notesTop + 40f, bodyPaint)
-            canvas.drawText("• Configuration certified for automated CNC die casting and robotized electrostatic lacquer application.", 40f, notesTop + 52f, bodyPaint)
+            canvas.drawText("1. All dimensions are in millimeters (mm) unless otherwise specified.", 40f, notesTop + 16f, bodyPaint)
+            canvas.drawText("2. Material and finish must conform to 7Hooks specification.", 40f, notesTop + 28f, bodyPaint)
+            canvas.drawText("3. Remove all burrs and sharp edges.", 40f, notesTop + 40f, bodyPaint)
+            canvas.drawText("4. Internal ballast must be secure and free from rattle unless specified.", 40f, notesTop + 52f, bodyPaint)
+            canvas.drawText("5. Through-wire / harness must withstand minimum rated load.", 40f, notesTop + 64f, bodyPaint)
+            canvas.drawText("6. Tolerances: TBD", 40f, notesTop + 76f, bodyPaint)
 
             // 6. FOOTER
             drawDocumentFooter(canvas, config.referenceNumber)
@@ -729,62 +734,67 @@ object PdfGenerator {
     }
 
     private fun drawJigCadDrawing(canvas: Canvas, boxX: Float, boxY: Float, boxWidth: Float, boxHeight: Float, config: ProductConfiguration) {
-        val centerX = boxX + boxWidth * 0.45f
-        val centerY = boxY + boxHeight * 0.52f
+        val centerX = boxX + boxWidth * 0.44f
+        val frontY = boxY + boxHeight * 0.32f
 
         // Calculate scaled dimensions for CAD drawing
-        val scaleLength = (config.lengthMm / 200f).coerceIn(0.6f, 1.4f)
-        val scaleWidth = (config.widthMm / 30f).coerceIn(0.6f, 1.4f)
-        val jigDrawLength = 220f * scaleLength
-        val jigDrawWidth = 46f * scaleWidth
+        val scaleLength = (config.lengthMm / 200f).coerceIn(0.6f, 1.3f)
+        val scaleWidth = (config.widthMm / 30f).coerceIn(0.6f, 1.3f)
+        val jigDrawLength = 200f * scaleLength
+        val jigDrawWidth = 40f * scaleWidth
 
         val halfL = jigDrawLength / 2f
         val halfW = jigDrawWidth / 2f
 
-        // 1. Centerlines (Dash-dot technical lines)
+        // 1. FRONT VIEW
+        val viewTitlePaint = Paint().apply {
+            color = Color.rgb(2, 132, 199) // Sky 600
+            textSize = 8.5f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            isAntiAlias = true
+        }
+        canvas.drawText("FRONT ELEVATION (1:1)", boxX + 16f, frontY - halfW - 16f, viewTitlePaint)
+
+        // Centerlines (Dash-dot technical lines)
         val centerLinePaint = Paint().apply {
             color = Color.rgb(239, 68, 68) // Red 500
             strokeWidth = 0.8f
             pathEffect = DashPathEffect(floatArrayOf(12f, 4f, 2f, 4f), 0f)
             isAntiAlias = true
         }
-        canvas.drawLine(centerX - halfL - 40f, centerY, centerX + halfL + 40f, centerY, centerLinePaint)
-        canvas.drawLine(centerX, centerY - halfW - 35f, centerX, centerY + halfW + 35f, centerLinePaint)
+        canvas.drawLine(centerX - halfL - 30f, frontY, centerX + halfL + 30f, frontY, centerLinePaint)
 
-        // 2. Jig Main Body Profile (Horizontal projection)
+        // Jig Main Body Profile
         val bodyPath = Path().apply {
-            moveTo(centerX - halfL, centerY) // Front nose eyelet base
-            // Top aerodynamic curve
+            moveTo(centerX - halfL, frontY)
             cubicTo(
-                centerX - halfL * 0.6f, centerY - halfW * 0.85f,
-                centerX + halfL * 0.1f, centerY - halfW,
-                centerX + halfL * 0.6f, centerY - halfW * 0.7f
+                centerX - halfL * 0.6f, frontY - halfW * 0.85f,
+                centerX + halfL * 0.1f, frontY - halfW,
+                centerX + halfL * 0.6f, frontY - halfW * 0.7f
             )
-            lineTo(centerX + halfL, centerY) // Tail eyelet base
-            // Bottom hydrodynamic curve
+            lineTo(centerX + halfL, frontY)
             cubicTo(
-                centerX + halfL * 0.6f, centerY + halfW * 0.7f,
-                centerX + halfL * 0.1f, centerY + halfW,
-                centerX - halfL * 0.6f, centerY + halfW * 0.85f
+                centerX + halfL * 0.6f, frontY + halfW * 0.7f,
+                centerX + halfL * 0.1f, frontY + halfW,
+                centerX - halfL * 0.6f, frontY + halfW * 0.85f
             )
             close()
         }
 
-        // Fill with subtle gradient reflecting selected color
+        // Fill with gradient reflecting selected finish
         val fillPaint = Paint().apply {
             shader = LinearGradient(
-                centerX, centerY - halfW,
-                centerX, centerY + halfW,
+                centerX, frontY - halfW,
+                centerX, frontY + halfW,
                 config.baseColorHex.toInt(),
                 config.accentColorHex.toInt(),
                 Shader.TileMode.CLAMP
             )
             isAntiAlias = true
-            alpha = 180
+            alpha = 200
         }
         canvas.drawPath(bodyPath, fillPaint)
 
-        // Body outline (CAD crisp stroke)
         val outlinePaint = Paint().apply {
             color = Color.rgb(15, 23, 42)
             style = Paint.Style.STROKE
@@ -793,44 +803,7 @@ object PdfGenerator {
         }
         canvas.drawPath(bodyPath, outlinePaint)
 
-        // Lateral keel / facet line
-        val facetPaint = Paint().apply {
-            color = Color.rgb(255, 255, 255)
-            style = Paint.Style.STROKE
-            strokeWidth = 1.2f
-            isAntiAlias = true
-        }
-        canvas.drawLine(centerX - halfL + 10f, centerY, centerX + halfL - 10f, centerY, facetPaint)
-
-        // Holographic slashes or dots depending on pattern
-        when (config.patternType) {
-            JigPatternType.DOT_PATTERN -> {
-                val dotPaint = Paint().apply {
-                    color = config.accentColorHex.toInt()
-                    style = Paint.Style.FILL
-                    isAntiAlias = true
-                }
-                for (i in -3..3) {
-                    val dx = centerX + i * 18f * scaleLength
-                    canvas.drawCircle(dx, centerY - 6f, 2.5f, dotPaint)
-                    canvas.drawCircle(dx + 9f, centerY + 6f, 2.5f, dotPaint)
-                }
-            }
-            else -> {
-                val slashPaint = Paint().apply {
-                    color = Color.argb(120, 255, 255, 255)
-                    style = Paint.Style.STROKE
-                    strokeWidth = 1.5f
-                    isAntiAlias = true
-                }
-                for (i in -4..4) {
-                    val sx = centerX + i * 16f * scaleLength
-                    canvas.drawLine(sx - 8f, centerY - 14f, sx + 8f, centerY + 14f, slashPaint)
-                }
-            }
-        }
-
-        // Eyelet Rings (Stainless Steel Rings)
+        // Eyelet Rings
         val ringPaint = Paint().apply {
             color = Color.rgb(100, 116, 139)
             style = Paint.Style.STROKE
@@ -842,77 +815,149 @@ object PdfGenerator {
             style = Paint.Style.FILL
             isAntiAlias = true
         }
-        // Front eyelet
-        canvas.drawCircle(centerX - halfL - 7f, centerY, 5f, ringFill)
-        canvas.drawCircle(centerX - halfL - 7f, centerY, 5f, ringPaint)
-        canvas.drawCircle(centerX - halfL - 7f, centerY, 2f, outlinePaint)
-
-        // Rear eyelet
-        canvas.drawCircle(centerX + halfL + 7f, centerY, 5f, ringFill)
-        canvas.drawCircle(centerX + halfL + 7f, centerY, 5f, ringPaint)
-        canvas.drawCircle(centerX + halfL + 7f, centerY, 2f, outlinePaint)
+        canvas.drawCircle(centerX - halfL - 6f, frontY, 4.5f, ringFill)
+        canvas.drawCircle(centerX - halfL - 6f, frontY, 4.5f, ringPaint)
+        canvas.drawCircle(centerX + halfL + 6f, frontY, 4.5f, ringFill)
+        canvas.drawCircle(centerX + halfL + 6f, frontY, 4.5f, ringPaint)
 
         // 3D Lure Eye
-        val eyeBase = Paint().apply {
-            color = Color.rgb(255, 255, 255)
-            style = Paint.Style.FILL
-            isAntiAlias = true
-        }
-        val eyePupil = Paint().apply {
-            color = Color.rgb(15, 23, 42)
-            style = Paint.Style.FILL
-            isAntiAlias = true
-        }
-        val eyeX = centerX - halfL + 25f * scaleLength
-        val eyeY = centerY - 5f
-        canvas.drawCircle(eyeX, eyeY, 4.5f, eyeBase)
-        canvas.drawCircle(eyeX, eyeY, 4.5f, outlinePaint)
-        canvas.drawCircle(eyeX + 1f, eyeY, 2.2f, eyePupil)
+        val eyeBase = Paint().apply { color = Color.WHITE; style = Paint.Style.FILL; isAntiAlias = true }
+        val eyePupil = Paint().apply { color = Color.rgb(15, 23, 42); style = Paint.Style.FILL; isAntiAlias = true }
+        val eyeX = centerX - halfL + 22f * scaleLength
+        val eyeY = frontY - 4f
+        canvas.drawCircle(eyeX, eyeY, 4f, eyeBase)
+        canvas.drawCircle(eyeX, eyeY, 4f, outlinePaint)
+        canvas.drawCircle(eyeX + 1f, eyeY, 2f, eyePupil)
 
-        // 3. DIMENSION LINES & CALLOUTS
-        // Overall Length Dimension (Top)
-        val dimY = centerY - halfW - 22f
+        // Cutting plane line A-A
+        val cutPaint = Paint().apply {
+            color = Color.rgb(2, 132, 199)
+            strokeWidth = 1.2f
+            isAntiAlias = true
+        }
+        canvas.drawLine(centerX - halfL - 10f, frontY - halfW - 6f, centerX - halfL - 10f, frontY + halfW + 6f, cutPaint)
+        canvas.drawLine(centerX + halfL + 10f, frontY - halfW - 6f, centerX + halfL + 10f, frontY + halfW + 6f, cutPaint)
+        canvas.drawText("A", centerX - halfL - 14f, frontY - halfW - 8f, viewTitlePaint)
+        canvas.drawText("A", centerX + halfL + 8f, frontY - halfW - 8f, viewTitlePaint)
+
+        // Dimensions
+        val dimY = frontY - halfW - 10f
         drawDimensionLine(
             canvas = canvas,
-            x1 = centerX - halfL - 12f,
+            x1 = centerX - halfL,
             y1 = dimY,
-            x2 = centerX + halfL + 12f,
+            x2 = centerX + halfL,
             y2 = dimY,
-            extY1 = centerY,
-            extY2 = centerY,
-            label = "LENGTH = ${config.lengthMm.toInt()} mm"
+            extY1 = frontY,
+            extY2 = frontY,
+            label = "${config.lengthMm.toInt()} mm"
         )
-
-        // Width Dimension (Right)
-        val dimX = centerX + halfL + 35f
         drawVerticalDimensionLine(
             canvas = canvas,
-            y1 = centerY - halfW,
-            x1 = dimX,
-            y2 = centerY + halfW,
-            x2 = dimX,
+            y1 = frontY - halfW,
+            x1 = centerX + halfL + 24f,
+            y2 = frontY + halfW,
+            x2 = centerX + halfL + 24f,
             extX1 = centerX,
             extX2 = centerX,
-            label = "WIDTH = ${config.widthMm.toInt()} mm"
+            label = "${config.widthMm.toInt()} mm"
         )
 
-        // Weight & Model Callout Badge (Bottom Left)
-        val badgeBg = Paint().apply {
+        // 2. SECTION A-A (INTERNAL CORE, WIRE & ASSIST HOOK THREAD)
+        val secY = boxY + boxHeight * 0.72f
+        canvas.drawText("SECTION A-A (INTERNAL CORE & THREAD BINDING)", boxX + 16f, secY - halfW - 12f, viewTitlePaint)
+        canvas.drawLine(centerX - halfL - 30f, secY, centerX + halfL + 30f, secY, centerLinePaint)
+
+        // Outer section envelope
+        val secPath = Path().apply {
+            moveTo(centerX - halfL, secY)
+            cubicTo(
+                centerX - halfL * 0.6f, secY - halfW * 0.85f,
+                centerX + halfL * 0.1f, secY - halfW,
+                centerX + halfL * 0.6f, secY - halfW * 0.7f
+            )
+            lineTo(centerX + halfL, secY)
+            cubicTo(
+                centerX + halfL * 0.6f, secY + halfW * 0.7f,
+                centerX + halfL * 0.1f, secY + halfW,
+                centerX - halfL * 0.6f, secY + halfW * 0.85f
+            )
+            close()
+        }
+        val secFill = Paint().apply { color = Color.rgb(248, 250, 252); style = Paint.Style.FILL; isAntiAlias = true }
+        canvas.drawPath(secPath, secFill)
+
+        // Section hatching (///)
+        val hatchPaint = Paint().apply {
+            color = Color.rgb(203, 213, 225)
+            strokeWidth = 0.8f
+            isAntiAlias = true
+        }
+        var hx = centerX - halfL
+        while (hx <= centerX + halfL) {
+            canvas.drawLine(hx, secY - halfW * 0.65f, hx + 10f, secY + halfW * 0.65f, hatchPaint)
+            hx += 10f
+        }
+
+        // Internal Ballast Cavity
+        val ballastPaint = Paint().apply { color = Color.rgb(100, 116, 139); style = Paint.Style.FILL; isAntiAlias = true }
+        val ballastW = jigDrawLength * 0.35f
+        val ballastH = jigDrawWidth * 0.5f
+        canvas.drawRoundRect(centerX + 8f, secY - ballastH / 2f, centerX + 8f + ballastW, secY + ballastH / 2f, 3f, 3f, ballastPaint)
+
+        // Through-wire (Full Length SUS304)
+        val wirePaint = Paint().apply { color = Color.rgb(239, 68, 68); strokeWidth = 2f; isAntiAlias = true }
+        canvas.drawLine(centerX - halfL - 6f, secY, centerX + halfL + 6f, secY, wirePaint)
+
+        // Assist hook with configured thread wrap
+        val threadColorInt = config.threadColorHex?.toInt() ?: when (config.threadColor.lowercase()) {
+            "red" -> Color.rgb(220, 38, 38)
+            "orange" -> Color.rgb(234, 88, 12)
+            "yellow" -> Color.rgb(234, 179, 8)
+            "green" -> Color.rgb(22, 163, 74)
+            "blue" -> Color.rgb(2, 132, 199)
+            "black" -> Color.rgb(30, 41, 59)
+            "white" -> Color.rgb(248, 250, 252)
+            "pink" -> Color.rgb(236, 72, 153)
+            "purple" -> Color.rgb(147, 51, 234)
+            "gold" -> Color.rgb(226, 176, 36)
+            "silver" -> Color.rgb(203, 213, 225)
+            else -> Color.rgb(234, 88, 12)
+        }
+        val cordPaint = Paint().apply { color = Color.rgb(203, 213, 225); strokeWidth = 1.8f; isAntiAlias = true }
+        val hookAttachX = centerX - halfL - 6f
+        canvas.drawLine(hookAttachX, secY, hookAttachX - 12f, secY + 16f, cordPaint)
+
+        if (config.threadColor != "None") {
+            val threadPaint = Paint().apply { color = threadColorInt; strokeWidth = 3f; isAntiAlias = true }
+            canvas.drawLine(hookAttachX - 4f, secY + 5f, hookAttachX - 10f, secY + 13f, threadPaint)
+        }
+        canvas.drawCircle(hookAttachX - 12f, secY + 16f, 3.5f, ringPaint)
+
+        canvas.drawPath(secPath, outlinePaint)
+
+        // Engineering Title & Quality Block (Bottom Right)
+        val titleBlockPaint = Paint().apply {
             color = Color.rgb(15, 23, 42)
             style = Paint.Style.FILL
             isAntiAlias = true
         }
-        canvas.drawRoundRect(boxX + 12f, boxY + boxHeight - 48f, boxX + 160f, boxY + boxHeight - 12f, 4f, 4f, badgeBg)
+        val tbW = 160f
+        val tbH = 40f
+        val tbX = boxX + boxWidth - tbW - 10f
+        val tbY = boxY + boxHeight - tbH - 8f
+        canvas.drawRoundRect(tbX, tbY, tbX + tbW, tbY + tbH, 4f, 4f, titleBlockPaint)
 
-        val badgeText = Paint().apply {
-            color = Color.rgb(56, 189, 248) // Sky 400
-            textSize = 7.5f
+        val tbText = Paint().apply {
+            color = Color.rgb(56, 189, 248)
+            textSize = 7f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
             isAntiAlias = true
         }
-        canvas.drawText("MASS: ${config.weightGrams.toInt()}g | MAT: ${config.material}", boxX + 18f, boxY + boxHeight - 34f, badgeText)
-        badgeText.color = Color.WHITE
-        canvas.drawText("SCALE: 1:1 ENGINEERING VIEW", boxX + 18f, boxY + boxHeight - 20f, badgeText)
+        canvas.drawText("7HOOKS • JIG SPECIFICATION", tbX + 8f, tbY + 13f, tbText)
+        tbText.color = Color.WHITE
+        canvas.drawText("SCALE: 1:1 | TOLERANCES: TBD", tbX + 8f, tbY + 24f, tbText)
+        canvas.drawText("THREAD: ${config.threadColor.uppercase()}", tbX + 8f, tbY + 34f, tbText)
     }
 
     private fun drawLureCadDrawing(canvas: Canvas, boxX: Float, boxY: Float, boxWidth: Float, boxHeight: Float, config: ProductConfiguration) {

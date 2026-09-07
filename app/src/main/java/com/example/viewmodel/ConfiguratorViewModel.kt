@@ -159,6 +159,13 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
         )
     }
 
+    fun updateThread(threadColor: String, colorHex: Long? = null) {
+        _currentConfig.value = _currentConfig.value.copy(
+            threadColor = threadColor,
+            threadColorHex = colorHex
+        )
+    }
+
     fun updateRodParameters(
         power: String? = null,
         action: String? = null,
