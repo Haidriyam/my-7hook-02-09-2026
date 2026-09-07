@@ -135,6 +135,44 @@ fun JigOrthographicCanvas(
             drawCircle(Color(0xFFE2E8F0), radius = 3.5.dp.toPx(), center = Offset(leftColX + halfL + 4.dp.toPx(), frontY))
             drawCircle(Color(0xFF475569), radius = 3.5.dp.toPx(), center = Offset(leftColX + halfL + 4.dp.toPx(), frontY), style = Stroke(1.dp.toPx()))
 
+            // Front Ring in Technical Front View (Requirement 15)
+            if (config.frontRing != "None") {
+                val frontRingR = if (config.frontRing == "Heavy Duty") 5.5.dp.toPx() else 4.5.dp.toPx()
+                val ringCenterX = leftColX - halfL - 9.dp.toPx()
+                drawCircle(Color(0xFFE2E8F0), radius = frontRingR, center = Offset(ringCenterX, frontY))
+                drawCircle(Color(0xFF0F172A), radius = frontRingR, center = Offset(ringCenterX, frontY), style = Stroke(1.2.dp.toPx()))
+                // Leader Callout for Front Ring
+                val lStart = Offset(ringCenterX, frontY - frontRingR)
+                val lMid = Offset(ringCenterX - 12.dp.toPx(), frontY - frontRingR - 8.dp.toPx())
+                val lEnd = Offset(ringCenterX - 42.dp.toPx(), frontY - frontRingR - 8.dp.toPx())
+                drawLine(Color(0xFF0284C7), lStart, lMid, strokeWidth = 1.dp.toPx())
+                drawLine(Color(0xFF0284C7), lMid, lEnd, strokeWidth = 1.dp.toPx())
+                val calloutText = textMeasurer.measure(
+                    AnnotatedString("FRONT RING: ${config.frontRing.uppercase()}"),
+                    style = TextStyle(color = Color(0xFF0284C7), fontSize = 6.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                )
+                drawText(calloutText, topLeft = Offset(lEnd.x, lEnd.y - 8.dp.toPx()))
+            }
+
+            // Back Ring in Technical Front View (Requirement 15)
+            if (config.backRing != "None") {
+                val backRingR = if (config.backRing == "Heavy Duty") 5.5.dp.toPx() else 4.5.dp.toPx()
+                val ringCenterX = leftColX + halfL + 9.dp.toPx()
+                drawCircle(Color(0xFFE2E8F0), radius = backRingR, center = Offset(ringCenterX, frontY))
+                drawCircle(Color(0xFF0F172A), radius = backRingR, center = Offset(ringCenterX, frontY), style = Stroke(1.2.dp.toPx()))
+                // Leader Callout for Back Ring
+                val lStart = Offset(ringCenterX, frontY - backRingR)
+                val lMid = Offset(ringCenterX + 12.dp.toPx(), frontY - backRingR - 8.dp.toPx())
+                val lEnd = Offset(ringCenterX + 42.dp.toPx(), frontY - backRingR - 8.dp.toPx())
+                drawLine(Color(0xFF0284C7), lStart, lMid, strokeWidth = 1.dp.toPx())
+                drawLine(Color(0xFF0284C7), lMid, lEnd, strokeWidth = 1.dp.toPx())
+                val calloutText = textMeasurer.measure(
+                    AnnotatedString("BACK RING: ${config.backRing.uppercase()}"),
+                    style = TextStyle(color = Color(0xFF0284C7), fontSize = 6.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                )
+                drawText(calloutText, topLeft = Offset(lMid.x, lEnd.y - 8.dp.toPx()))
+            }
+
             // 3D Eye
             drawCircle(Color.White, radius = 3.dp.toPx(), center = Offset(leftColX - halfL + 12.dp.toPx() * scaleL, frontY - 2.5.dp.toPx()))
             drawCircle(Color(0xFF0F172A), radius = 1.5.dp.toPx(), center = Offset(leftColX - halfL + 12.dp.toPx() * scaleL, frontY - 2.5.dp.toPx()))
@@ -285,6 +323,12 @@ fun JigOrthographicCanvas(
             drawLine(Color(0xFFCBD5E1), Offset(hookAttachX, secY), Offset(hookX, hookY), strokeWidth = 1.6.dp.toPx())
             if (config.threadColor != "None") {
                 drawLine(threadCol, Offset(hookAttachX - 3.dp.toPx(), secY + 4.dp.toPx()), Offset(hookAttachX - 8.dp.toPx(), secY + 11.dp.toPx()), strokeWidth = 3.dp.toPx())
+                // Callout for thread wrap
+                val threadCallout = textMeasurer.measure(
+                    AnnotatedString("THREAD: ${config.threadColor.uppercase()}"),
+                    style = TextStyle(color = threadCol, fontSize = 6.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                )
+                drawText(threadCallout, topLeft = Offset(hookAttachX - 52.dp.toPx(), secY + 18.dp.toPx()))
             }
             drawCircle(Color(0xFF475569), radius = 3.5.dp.toPx(), center = Offset(hookX, hookY), style = Stroke(1.2.dp.toPx()))
 
@@ -347,7 +391,7 @@ fun JigOrthographicCanvas(
                 title = "JIG INDUSTRIAL SPECIFICATION",
                 modelNo = config.modelNumber,
                 material = config.material,
-                finish = "${config.colorName} / ${config.threadColor}",
+                finish = "${config.colorName} • FR: ${config.frontRing} • BR: ${config.backRing}",
                 tolerance = "TBD",
                 scale = "1:1 FULL",
                 refNo = config.referenceNumber

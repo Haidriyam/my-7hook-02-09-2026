@@ -18,6 +18,7 @@ data class ProductConfiguration(
     val productName: String = "",
     val modelNumber: String = "",
     val category: String = "",
+    val imageUrl: String = "",
     // Dimensions
     val weightGrams: Float = 40f,
     val lengthMm: Float = 110f,
@@ -28,14 +29,17 @@ data class ProductConfiguration(
     val baseColorHex: Long = 0xFFEA580C,
     val accentColorHex: Long = 0xFF0F172A,
     val patternType: JigPatternType = JigPatternType.SOLID_STRIPE,
-    // Thread & Hardware Configuration (Sections 10, 11, 12)
+    // Hardware & Rigging Configuration (Rings, Hook, Thread, Finish)
+    val frontRing: String = "Standard", // "None", "Standard", "Heavy Duty", "Custom"
+    val backRing: String = "Standard",  // "None", "Standard", "Heavy Duty", "Custom"
+    val hookTypeJig: String = "Mustad Saltwater Assist 3/0",
+    val assistCord: String = "Braided PE (200 lb)",
     val threadColor: String = "None",
     val threadColorHex: Long? = null,
     val threadWrapping: String = "Assist Hook Shank",
     val threadStyle: String = "High-Tensile Braided Filament",
-    val finishType: String = "Multi-Layer UV Holographic",
-    val hookTypeJig: String = "Mustad Saltwater Assist 3/0",
-    val eyeStyle: String = "3D Hydro-Luminous Strike Eye",
+    val finishType: String = "High-Gloss Metallic",
+    val eyeStyle: String = "3D Luminous Strike Eye",
     // Rod Specifics
     val rodType: String = "Spinning Rod",
     val power: String = "Medium",

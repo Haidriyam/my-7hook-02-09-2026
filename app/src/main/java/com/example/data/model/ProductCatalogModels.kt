@@ -20,7 +20,13 @@ data class JigProduct(
     val modelNumber: String,
     val description: String,
     val isNew: Boolean = false,
-    val patternType: JigPatternType = JigPatternType.SOLID_STRIPE
+    val patternType: JigPatternType = JigPatternType.SOLID_STRIPE,
+    val availableFrontRings: List<String> = listOf("None", "Standard", "Heavy Duty"),
+    val availableBackRings: List<String> = listOf("None", "Standard", "Heavy Duty"),
+    val defaultFrontRing: String = "Standard",
+    val defaultBackRing: String = "Standard",
+    val defaultHook: String = "Mustad Saltwater Assist 3/0",
+    val availableHooks: List<String> = listOf("None", "Mustad Saltwater Assist 3/0", "BKK Deep Sea Jig Hook", "Owner Monster Assist 5/0", "Twin Assist Rig 3/0", "Heavy Wire Tuna Hook")
 )
 
 enum class JigPatternType {

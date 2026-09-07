@@ -24,6 +24,7 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
             productName = ProductCatalog.jigs.first().name,
             modelNumber = ProductCatalog.jigs.first().modelNumber,
             category = ProductCatalog.jigs.first().category,
+            imageUrl = ProductCatalog.jigs.first().imageUrl,
             weightGrams = ProductCatalog.jigs.first().defaultWeightGrams,
             lengthMm = ProductCatalog.jigs.first().defaultLengthMm,
             widthMm = ProductCatalog.jigs.first().defaultWidthMm,
@@ -31,7 +32,10 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
             colorName = ProductCatalog.jigs.first().name.substringBefore(" Jigs"),
             baseColorHex = ProductCatalog.jigs.first().baseColorHex,
             accentColorHex = ProductCatalog.jigs.first().accentColorHex,
-            patternType = ProductCatalog.jigs.first().patternType
+            patternType = ProductCatalog.jigs.first().patternType,
+            frontRing = ProductCatalog.jigs.first().defaultFrontRing,
+            backRing = ProductCatalog.jigs.first().defaultBackRing,
+            hookTypeJig = ProductCatalog.jigs.first().defaultHook
         )
     )
     val currentConfig: StateFlow<ProductConfiguration> = _currentConfig.asStateFlow()
@@ -70,6 +74,7 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
             productName = jig.name,
             modelNumber = jig.modelNumber,
             category = jig.category,
+            imageUrl = jig.imageUrl,
             weightGrams = jig.defaultWeightGrams,
             lengthMm = jig.defaultLengthMm,
             widthMm = jig.defaultWidthMm,
@@ -77,7 +82,11 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
             colorName = jig.name.substringBefore(" Jigs"),
             baseColorHex = jig.baseColorHex,
             accentColorHex = jig.accentColorHex,
-            patternType = jig.patternType
+            patternType = jig.patternType,
+            frontRing = jig.defaultFrontRing,
+            backRing = jig.defaultBackRing,
+            hookTypeJig = jig.defaultHook,
+            threadColor = "None"
         )
     }
 
@@ -166,6 +175,36 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
         )
     }
 
+    fun updateFrontRing(ring: String) {
+        _currentConfig.value = _currentConfig.value.copy(frontRing = ring)
+    }
+
+    fun updateBackRing(ring: String) {
+        _currentConfig.value = _currentConfig.value.copy(backRing = ring)
+    }
+
+    fun updateHook(hook: String) {
+        _currentConfig.value = _currentConfig.value.copy(hookTypeJig = hook)
+    }
+
+    fun updateFinish(finishName: String, baseHex: Long, accentHex: Long, patternType: JigPatternType) {
+        _currentConfig.value = _currentConfig.value.copy(
+            finishType = finishName,
+            colorName = finishName,
+            baseColorHex = baseHex,
+            accentColorHex = accentHex,
+            patternType = patternType
+        )
+    }
+
+    fun updateEyeStyle(eyeStyle: String) {
+        _currentConfig.value = _currentConfig.value.copy(eyeStyle = eyeStyle)
+    }
+
+    fun updateAssistCord(assistCord: String) {
+        _currentConfig.value = _currentConfig.value.copy(assistCord = assistCord)
+    }
+
     fun updateRodParameters(
         power: String? = null,
         action: String? = null,
@@ -239,6 +278,13 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
                 divingDepthMeters = c.divingDepthMeters,
                 hookType = c.hookType,
                 buoyancy = c.buoyancy,
+                frontRing = c.frontRing,
+                backRing = c.backRing,
+                hookTypeJig = c.hookTypeJig,
+                threadColor = c.threadColor,
+                threadWrapping = c.threadWrapping,
+                finishType = c.finishType,
+                imageUrl = c.imageUrl,
                 notes = c.notes,
                 timestamp = System.currentTimeMillis()
             )
@@ -257,6 +303,7 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
             productName = entity.productName,
             modelNumber = entity.modelNumber,
             category = entity.category,
+            imageUrl = entity.imageUrl,
             weightGrams = entity.weightGrams,
             lengthMm = entity.lengthMm,
             widthMm = entity.widthMm,
@@ -264,6 +311,12 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
             colorName = entity.colorName,
             baseColorHex = entity.baseColorHex,
             accentColorHex = entity.accentColorHex,
+            frontRing = entity.frontRing,
+            backRing = entity.backRing,
+            hookTypeJig = entity.hookTypeJig,
+            threadColor = entity.threadColor,
+            threadWrapping = entity.threadWrapping,
+            finishType = entity.finishType,
             rodType = entity.rodType,
             power = entity.power,
             action = entity.action,

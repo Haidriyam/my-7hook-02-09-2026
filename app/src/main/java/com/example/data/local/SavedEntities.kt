@@ -30,6 +30,13 @@ data class SavedConfigEntity(
     val divingDepthMeters: Float = 0f,
     val hookType: String = "",
     val buoyancy: String = "",
+    val frontRing: String = "Standard",
+    val backRing: String = "Standard",
+    val hookTypeJig: String = "Mustad Saltwater Assist 3/0",
+    val threadColor: String = "None",
+    val threadWrapping: String = "Assist Hook Shank",
+    val finishType: String = "High-Gloss Metallic",
+    val imageUrl: String = "",
     val notes: String,
     val timestamp: Long
 )

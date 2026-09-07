@@ -118,6 +118,10 @@ object PdfGenerator {
                 "Overall Length" to "${config.lengthMm.toInt()} mm",
                 "Max Body Width" to "${config.widthMm.toInt()} mm",
                 "Color Theme" to config.colorName,
+                "Surface Finish" to config.finishType,
+                "Front Ring" to config.frontRing,
+                "Back Ring" to config.backRing,
+                "Hook Rigging" to config.hookTypeJig,
                 "Thread Binding" to if (config.threadColor == "None") "None" else "${config.threadColor} (${config.threadWrapping})",
                 "Eyelet Construction" to "Integrated Solid Stainless Steel Through-Wire (1.2mm)",
                 "General Tolerance" to "TBD",
@@ -819,6 +823,38 @@ object PdfGenerator {
         canvas.drawCircle(centerX - halfL - 6f, frontY, 4.5f, ringPaint)
         canvas.drawCircle(centerX + halfL + 6f, frontY, 4.5f, ringFill)
         canvas.drawCircle(centerX + halfL + 6f, frontY, 4.5f, ringPaint)
+
+        // Configured Front Ring & Callout (Requirement 15)
+        if (config.frontRing != "None") {
+            val fRingRadius = if (config.frontRing == "Heavy Duty") 7f else 5.5f
+            val fRingCenterX = centerX - halfL - 12f
+            canvas.drawCircle(fRingCenterX, frontY, fRingRadius, ringPaint)
+            val calloutPaint = Paint().apply {
+                color = Color.rgb(2, 132, 199)
+                textSize = 6.5f
+                typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                isAntiAlias = true
+            }
+            canvas.drawLine(fRingCenterX, frontY - fRingRadius, fRingCenterX - 8f, frontY - fRingRadius - 10f, calloutPaint)
+            canvas.drawLine(fRingCenterX - 8f, frontY - fRingRadius - 10f, fRingCenterX - 35f, frontY - fRingRadius - 10f, calloutPaint)
+            canvas.drawText("FRONT RING: ${config.frontRing.uppercase()}", fRingCenterX - 35f, frontY - fRingRadius - 12f, calloutPaint)
+        }
+
+        // Configured Back Ring & Callout (Requirement 15)
+        if (config.backRing != "None") {
+            val bRingRadius = if (config.backRing == "Heavy Duty") 7f else 5.5f
+            val bRingCenterX = centerX + halfL + 12f
+            canvas.drawCircle(bRingCenterX, frontY, bRingRadius, ringPaint)
+            val calloutPaint = Paint().apply {
+                color = Color.rgb(2, 132, 199)
+                textSize = 6.5f
+                typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                isAntiAlias = true
+            }
+            canvas.drawLine(bRingCenterX, frontY - bRingRadius, bRingCenterX + 8f, frontY - bRingRadius - 10f, calloutPaint)
+            canvas.drawLine(bRingCenterX + 8f, frontY - bRingRadius - 10f, bRingCenterX + 35f, frontY - bRingRadius - 10f, calloutPaint)
+            canvas.drawText("BACK RING: ${config.backRing.uppercase()}", bRingCenterX + 8f, frontY - bRingRadius - 12f, calloutPaint)
+        }
 
         // 3D Lure Eye
         val eyeBase = Paint().apply { color = Color.WHITE; style = Paint.Style.FILL; isAntiAlias = true }

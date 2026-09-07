@@ -166,41 +166,57 @@ fun JigFishingAnimation(
                         else -> null
                     }
 
-                // Split Ring (SUS304 Stainless)
-                drawCircle(
-                    color = Color(0xFFCBD5E1),
-                    radius = 2.5.dp.toPx(),
-                    center = Offset(jigX, currentJigY - jigL / 2 - 2.dp.toPx()),
-                    style = Stroke(width = 1.2.dp.toPx())
-                )
-
-                // Assist Cord (Braided PE)
-                val hookPointX = jigX - 11.dp.toPx()
-                val hookPointY = currentJigY - jigL / 2 + 15.dp.toPx()
-                drawLine(
-                    color = Color(0xFFE2E8F0),
-                    start = Offset(jigX, currentJigY - jigL / 2),
-                    end = Offset(hookPointX, hookPointY),
-                    strokeWidth = 1.8.dp.toPx()
-                )
-
-                // Thread whip wrap around assist hook shank (if thread is configured)
-                if (threadColor != null && config.threadColor != "None") {
-                    drawLine(
-                        color = threadColor,
-                        start = Offset(jigX - 4.dp.toPx(), currentJigY - jigL / 2 + 6.dp.toPx()),
-                        end = Offset(jigX - 9.dp.toPx(), currentJigY - jigL / 2 + 13.dp.toPx()),
-                        strokeWidth = 3.dp.toPx()
+                // Split Ring (SUS304 Stainless) - Front Ring
+                if (config.frontRing != "None") {
+                    val ringRadius = if (config.frontRing == "Heavy Duty") 3.8.dp.toPx() else 2.8.dp.toPx()
+                    drawCircle(
+                        color = Color(0xFFCBD5E1),
+                        radius = ringRadius,
+                        center = Offset(jigX, currentJigY - jigL / 2 - ringRadius),
+                        style = Stroke(width = 1.4.dp.toPx())
                     )
                 }
 
-                // Assist Hook (Forged High-Carbon Steel)
-                drawCircle(
-                    color = Color(0xFF94A3B8),
-                    radius = 3.5.dp.toPx(),
-                    center = Offset(hookPointX, hookPointY),
-                    style = Stroke(width = 1.4f)
-                )
+                // Back Ring (SUS304 Stainless)
+                if (config.backRing != "None") {
+                    val backRingRadius = if (config.backRing == "Heavy Duty") 3.8.dp.toPx() else 2.8.dp.toPx()
+                    drawCircle(
+                        color = Color(0xFFCBD5E1),
+                        radius = backRingRadius,
+                        center = Offset(jigX, currentJigY + jigL / 2 + backRingRadius),
+                        style = Stroke(width = 1.4.dp.toPx())
+                    )
+                }
+
+                // Assist Cord (Braided PE) & Hook
+                if (config.hookTypeJig != "None") {
+                    val hookPointX = jigX - 11.dp.toPx()
+                    val hookPointY = currentJigY - jigL / 2 + 15.dp.toPx()
+                    drawLine(
+                        color = Color(0xFFE2E8F0),
+                        start = Offset(jigX, currentJigY - jigL / 2),
+                        end = Offset(hookPointX, hookPointY),
+                        strokeWidth = 1.8.dp.toPx()
+                    )
+
+                    // Thread whip wrap around assist hook shank (if thread is configured)
+                    if (threadColor != null && config.threadColor != "None") {
+                        drawLine(
+                            color = threadColor,
+                            start = Offset(jigX - 4.dp.toPx(), currentJigY - jigL / 2 + 6.dp.toPx()),
+                            end = Offset(jigX - 9.dp.toPx(), currentJigY - jigL / 2 + 13.dp.toPx()),
+                            strokeWidth = 3.dp.toPx()
+                        )
+                    }
+
+                    // Assist Hook (Forged High-Carbon Steel)
+                    drawCircle(
+                        color = Color(0xFF94A3B8),
+                        radius = 3.5.dp.toPx(),
+                        center = Offset(hookPointX, hookPointY),
+                        style = Stroke(width = 1.4f)
+                    )
+                }
 
                 // Water current & hydrodynamic vortex trails behind flutter
                 for (v in 0..3) {
