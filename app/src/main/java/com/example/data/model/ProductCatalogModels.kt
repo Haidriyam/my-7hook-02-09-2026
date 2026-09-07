@@ -26,7 +26,8 @@ data class JigProduct(
     val defaultFrontRing: String = "Standard",
     val defaultBackRing: String = "Standard",
     val defaultHook: String = "Mustad Saltwater Assist 3/0",
-    val availableHooks: List<String> = listOf("None", "Mustad Saltwater Assist 3/0", "BKK Deep Sea Jig Hook", "Owner Monster Assist 5/0", "Twin Assist Rig 3/0", "Heavy Wire Tuna Hook")
+    val availableHooks: List<String> = listOf("None", "Mustad Saltwater Assist 3/0", "BKK Deep Sea Jig Hook", "Owner Monster Assist 5/0", "Twin Assist Rig 3/0", "Heavy Wire Tuna Hook"),
+    val localDrawableRes: Int? = null
 )
 
 enum class JigPatternType {

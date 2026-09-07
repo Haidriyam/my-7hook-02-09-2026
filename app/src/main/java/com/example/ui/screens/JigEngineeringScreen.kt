@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -246,9 +247,11 @@ fun JigEngineeringScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         AsyncImage(
-                            model = matchedJig.imageUrl,
+                            model = matchedJig.localDrawableRes ?: matchedJig.imageUrl,
                             contentDescription = "Selected Jig: ${matchedJig.name}",
                             contentScale = ContentScale.Fit,
+                            error = painterResource(id = com.example.R.drawable.jig_orange_black_real),
+                            fallback = painterResource(id = com.example.R.drawable.jig_orange_black_real),
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(8.dp)

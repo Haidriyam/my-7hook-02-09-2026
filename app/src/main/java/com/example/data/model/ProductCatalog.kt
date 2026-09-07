@@ -24,7 +24,8 @@ object ProductCatalog {
             modelNumber = "7H-JIG-OB-2026",
             description = "Aerodynamic high-speed flutter jig featuring high-contrast safety orange body with matte black hydro-keel details.",
             isNew = true,
-            patternType = JigPatternType.SOLID_STRIPE
+            patternType = JigPatternType.SOLID_STRIPE,
+            localDrawableRes = com.example.R.drawable.jig_orange_black_real
         ),
         JigProduct(
             id = "jig_yellow_dotted",
@@ -46,7 +47,8 @@ object ProductCatalog {
             modelNumber = "7H-JIG-YD-2026",
             description = "Gold-yellow luminous finish with precision blue dot attraction pattern engineered for deep water strike trigger.",
             isNew = true,
-            patternType = JigPatternType.DOT_PATTERN
+            patternType = JigPatternType.DOT_PATTERN,
+            localDrawableRes = com.example.R.drawable.jig_yellow_dotted_real
         ),
         JigProduct(
             id = "jig_yellow_orange",
@@ -68,7 +70,8 @@ object ProductCatalog {
             modelNumber = "7H-JIG-YO-2026",
             description = "Bright solar yellow base with fiery blaze-orange lateral edges for maximum visibility in turbid and pelagic waters.",
             isNew = true,
-            patternType = JigPatternType.SOLID_STRIPE
+            patternType = JigPatternType.SOLID_STRIPE,
+            localDrawableRes = com.example.R.drawable.jig_yellow_orange_real
         ),
 
         // OFFICIAL 7HOOKS PRODUCTS (from https://7hooks.com/our-products/)
@@ -92,7 +95,8 @@ object ProductCatalog {
             modelNumber = "7H-JIG-CBO-40G",
             description = "Precision-balanced 40g lead alloy body designed for long-distance casting and rapid descent. Multi-layered UV-reactive candy blue with blaze orange belly.",
             isNew = false,
-            patternType = JigPatternType.HOLOGRAPHIC_SLASH
+            patternType = JigPatternType.HOLOGRAPHIC_SLASH,
+            localDrawableRes = com.example.R.drawable.jig_orange_black_real
         ),
         JigProduct(
             id = "jig_candy_pink_green",
@@ -114,7 +118,8 @@ object ProductCatalog {
             modelNumber = "7H-JIG-CPG-40G",
             description = "High-luminescence UV pink body paired with fluorescent emerald green lateral stripe for low-light feeding strikes in rocky structure.",
             isNew = false,
-            patternType = JigPatternType.HOLOGRAPHIC_SLASH
+            patternType = JigPatternType.HOLOGRAPHIC_SLASH,
+            localDrawableRes = com.example.R.drawable.jig_yellow_dotted_real
         ),
         JigProduct(
             id = "jig_candy_yellow_black",
@@ -136,7 +141,8 @@ object ProductCatalog {
             modelNumber = "7H-JIG-CYB-40G",
             description = "High-contrast bumble strike pattern featuring high-gloss yellow dorsal plate with stealth black hydrofoil for erratic flutter action.",
             isNew = false,
-            patternType = JigPatternType.SOLID_STRIPE
+            patternType = JigPatternType.SOLID_STRIPE,
+            localDrawableRes = com.example.R.drawable.jig_yellow_orange_real
         ),
         JigProduct(
             id = "jig_crystal_pink_blue",
@@ -158,7 +164,8 @@ object ProductCatalog {
             modelNumber = "7H-JIG-CPB-40G",
             description = "Prismatic crystal faceted surface reflecting pink and cyan hues simultaneously for maximum light refraction in tropical blue water.",
             isNew = false,
-            patternType = JigPatternType.CRYSTAL_FACET
+            patternType = JigPatternType.CRYSTAL_FACET,
+            localDrawableRes = com.example.R.drawable.jig_yellow_dotted_real
         ),
         JigProduct(
             id = "jig_crystal_yellow_blue",
@@ -180,7 +187,8 @@ object ProductCatalog {
             modelNumber = "7H-JIG-CYB-05",
             description = "Multi-angle reflective crystal surface with solar yellow gold flash and royal horizon deep blue spine.",
             isNew = false,
-            patternType = JigPatternType.CRYSTAL_FACET
+            patternType = JigPatternType.CRYSTAL_FACET,
+            localDrawableRes = com.example.R.drawable.jig_orange_black_real
         )
     )
 

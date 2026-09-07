@@ -1,7 +1,6 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -9,6 +8,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -16,11 +16,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Architecture
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.PhonelinkRing
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
@@ -35,7 +34,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.JigPatternType
-import com.example.data.model.ProductCatalog
+import com.example.data.model.JigProduct
+import com.example.data.model.ProductConfiguration
 import com.example.ui.components.*
 import com.example.viewmodel.ConfiguratorViewModel
 
@@ -50,11 +50,13 @@ fun JigConfigScreen(
     val selectedJig by configViewModel.selectedJigProduct.collectAsState()
 
     var isMoreOptionsExpanded by remember { mutableStateOf(false) }
+    var isInlineTechnicalViewExpanded by remember { mutableStateOf(false) }
+    var isProductInActionExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             AppHeader(
-                title = "Technical Specifications",
+                title = "Configure Jig",
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )
@@ -70,19 +72,19 @@ fun JigConfigScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "${currentConfig.lengthMm.toInt()}mm • ${currentConfig.weightGrams.toInt()}g",
+                            text = "${currentConfig.lengthMm.toInt()} mm • ${currentConfig.weightGrams.toInt()} g",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Model: ${currentConfig.modelNumber} • FR: ${currentConfig.frontRing} • BR: ${currentConfig.backRing}",
+                            text = "${currentConfig.modelNumber} • FR: ${currentConfig.frontRing} • BR: ${currentConfig.backRing}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary,
                             fontFamily = FontFamily.Monospace,
@@ -110,62 +112,54 @@ fun JigConfigScreen(
             val isWideScreen = maxWidth >= 720.dp
 
             if (isWideScreen) {
-                // TABLET / DESKTOP TWO-COLUMN RESPONSIVE LAYOUT (Requirement 3)
+                // TABLET / DESKTOP TWO-COLUMN RESPONSIVE LAYOUT
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // LEFT COLUMN: Product Preview, Technical View, Product in Action
+                    // LEFT COLUMN: Product Header, Product Preview, Live Summary, Technical View Launch Card
+                    Column(
+                        modifier = Modifier
+                            .weight(1.0f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState())
+                            .padding(vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CompactProductHeader(config = currentConfig, selectedJig = selectedJig)
+
+                        JigProductPreview(
+                            config = currentConfig,
+                            selectedJig = selectedJig
+                        )
+
+                        LiveConfigurationSummaryCard(config = currentConfig)
+
+                        TechnicalViewLauncherCard(
+                            config = currentConfig,
+                            onOpenTechnicalView = onNavigateToEngineering
+                        )
+                    }
+
+                    // RIGHT COLUMN: Step Indicator, Configuration Controls, More Options
                     Column(
                         modifier = Modifier
                             .weight(1.1f)
                             .fillMaxHeight()
                             .verticalScroll(rememberScrollState())
                             .padding(vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Product Name Header
-                        ProductHeaderCard(config = currentConfig)
+                        CompactStepPill(currentStep = 2, totalSteps = 3, label = "CONFIGURE SPECS")
 
-                        // HERO PRODUCT PREVIEW
-                        JigProductPreview(
-                            config = currentConfig,
-                            selectedJig = selectedJig
-                        )
-
-                        // TECHNICAL VIEW (Requirement 14 & 15)
-                        TechnicalViewSection(config = currentConfig)
-
-                        // PRODUCT IN ACTION (Requirement 16 & 17)
-                        ProductInActionSection(config = currentConfig)
-                    }
-
-                    // RIGHT COLUMN: Configuration Controls
-                    Column(
-                        modifier = Modifier
-                            .weight(0.9f)
-                            .fillMaxHeight()
-                            .verticalScroll(rememberScrollState())
-                            .padding(vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        // Guided Step Indicator
-                        TactileStepIndicator(
-                            currentStep = 2,
-                            totalSteps = 3,
-                            stepTitles = listOf("Choose Jig", "Configure Specs", "CAD Drawing")
-                        )
-
-                        // Essential Configuration Controls
                         EssentialConfigurationControls(
                             config = currentConfig,
                             selectedJig = selectedJig,
                             configViewModel = configViewModel
                         )
 
-                        // More Options Progressive Disclosure
                         MoreOptionsSection(
                             config = currentConfig,
                             selectedJig = selectedJig,
@@ -174,44 +168,49 @@ fun JigConfigScreen(
                             onToggleExpand = { isMoreOptionsExpanded = !isMoreOptionsExpanded }
                         )
 
+                        ProductInActionSection(
+                            config = currentConfig,
+                            isExpanded = isProductInActionExpanded,
+                            onToggleExpand = { isProductInActionExpanded = !isProductInActionExpanded }
+                        )
+
                         Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
             } else {
-                // MOBILE COMPACT VERTICAL LAYOUT (Requirement 3)
+                // MOBILE COMPACT VERTICAL LAYOUT (Strict Vertical Scroll with Bounded Preview)
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 14.dp)
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Spacer(modifier = Modifier.height(2.dp))
 
-                    // Step Indicator
-                    TactileStepIndicator(
-                        currentStep = 2,
-                        totalSteps = 3,
-                        stepTitles = listOf("Choose Jig", "Configure Specs", "CAD Drawing")
-                    )
+                    // 1. Compact Step Indicator
+                    CompactStepPill(currentStep = 2, totalSteps = 3, label = "CONFIGURE SPECS")
 
-                    // 1. PRODUCT HEADER
-                    ProductHeaderCard(config = currentConfig)
+                    // 2. Product Name & Model Header
+                    CompactProductHeader(config = currentConfig, selectedJig = selectedJig)
 
-                    // 2. PRODUCT PREVIEW (VISUAL HERO)
+                    // 3. PRODUCT PREVIEW (Exact selected jig photo with bounded height)
                     JigProductPreview(
                         config = currentConfig,
                         selectedJig = selectedJig
                     )
 
-                    // 3. ESSENTIAL CONFIGURATION
+                    // 4. LIVE CONFIGURATION SUMMARY
+                    LiveConfigurationSummaryCard(config = currentConfig)
+
+                    // 5. ESSENTIAL CONFIGURATION CONTROLS
                     EssentialConfigurationControls(
                         config = currentConfig,
                         selectedJig = selectedJig,
                         configViewModel = configViewModel
                     )
 
-                    // 4. MORE OPTIONS (Progressive Disclosure Accordion)
+                    // 6. MORE OPTIONS (Progressive Disclosure Accordion)
                     MoreOptionsSection(
                         config = currentConfig,
                         selectedJig = selectedJig,
@@ -220,11 +219,20 @@ fun JigConfigScreen(
                         onToggleExpand = { isMoreOptionsExpanded = !isMoreOptionsExpanded }
                     )
 
-                    // 5. TECHNICAL VIEW (Requirement 14 & 15)
-                    TechnicalViewSection(config = currentConfig)
+                    // 7. TECHNICAL VIEW LAUNCHER CARD
+                    TechnicalViewLauncherCard(
+                        config = currentConfig,
+                        onOpenTechnicalView = onNavigateToEngineering,
+                        isInlineExpanded = isInlineTechnicalViewExpanded,
+                        onToggleInline = { isInlineTechnicalViewExpanded = !isInlineTechnicalViewExpanded }
+                    )
 
-                    // 6. PRODUCT IN ACTION (Requirement 16 & 17)
-                    ProductInActionSection(config = currentConfig)
+                    // 8. PRODUCT IN ACTION (Collapsed presentation)
+                    ProductInActionSection(
+                        config = currentConfig,
+                        isExpanded = isProductInActionExpanded,
+                        onToggleExpand = { isProductInActionExpanded = !isProductInActionExpanded }
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -234,53 +242,171 @@ fun JigConfigScreen(
 }
 
 /**
- * Product Specification Header
+ * Compact Step Indicator Pill (Restrained, doesn't eat vertical space)
  */
 @Composable
-private fun ProductHeaderCard(config: com.example.data.model.ProductConfiguration) {
+private fun CompactStepPill(currentStep: Int, totalSteps: Int, label: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(4.dp)
+            ) {
+                Text(
+                    text = "STEP $currentStep OF $totalSteps",
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Text(
+            text = "7Hooks Factory Specs",
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            fontFamily = FontFamily.Monospace
+        )
+    }
+}
+
+/**
+ * Compact Product Header:
+ * Product Name (clear, moderately strong), Model (smaller secondary text), clean tag
+ * No oversized OEM SPEC badge
+ */
+@Composable
+private fun CompactProductHeader(config: ProductConfiguration, selectedJig: JigProduct) {
     TactileCard(
         modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 2.dp
+        shadowElevation = 1.5.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "COMMERCIAL PRODUCT CONFIGURATOR",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 0.8.sp
-                )
                 Text(
                     text = config.productName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Text(
-                    text = "Model: ${config.modelNumber} • Category: ${config.category}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = FontFamily.Monospace
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Model: ${config.modelNumber}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "•",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Text(
+                        text = selectedJig.category,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(8.dp)
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(4.dp),
+                border = androidx.compose.foundation.BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Text(
-                    text = "OEM SPEC",
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    text = "COMMERCIAL JIG",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold,
+                    fontSize = 9.sp,
+                    letterSpacing = 0.4.sp,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Live Configuration Summary:
+ * Compact summary near the configuration controls
+ * e.g. 40 g · 115 mm · 20 mm | Metallic | Orange / Black | Thread: Red | FR: Standard | BR: Standard
+ */
+@Composable
+private fun LiveConfigurationSummaryCard(config: ProductConfiguration) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        shape = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "CONFIGURED SPECIFICATION",
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 0.5.sp
+                )
+                Text(
+                    text = "${config.weightGrams.toInt()} g • ${config.lengthMm.toInt()} mm • ${config.widthMm.toInt()} mm",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${config.finishType} • ${config.colorName}",
                     fontSize = 10.sp,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "FR: ${config.frontRing}  |  BR: ${config.backRing}  |  Thread: ${config.threadColor}",
+                    fontSize = 9.5.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -289,263 +415,405 @@ private fun ProductHeaderCard(config: com.example.data.model.ProductConfiguratio
 
 /**
  * Essential Configuration Section:
- * Dimensions (Weight, Length, Width), Finish & Colors, Front & Back Rings, Hook, Thread
+ * Weight, Length, Width, Finish & Colors, Front & Back Rings, Hook, Thread
+ * Compact professional controls (segmented selectors, compact steppers, swatches)
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EssentialConfigurationControls(
-    config: com.example.data.model.ProductConfiguration,
-    selectedJig: com.example.data.model.JigProduct,
+    config: ProductConfiguration,
+    selectedJig: JigProduct,
     configViewModel: ConfiguratorViewModel
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        // DIMENSIONAL PARAMETERS
-        Text(
-            text = "DIMENSIONAL PARAMETERS",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 0.8.sp,
-            modifier = Modifier.padding(start = 4.dp)
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // 1. WEIGHT CONFIGURATION (Supported options + Stepper)
+        TactileCard(
+            modifier = Modifier.fillMaxWidth(),
+            shadowElevation = 1.5.dp
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "WEIGHT (FINISHED MASS)",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
+                    )
+                    Text(
+                        text = "${config.weightGrams.toInt()} g",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
 
-        // Weight Input
-        SynchronizedSliderInput(
-            label = "Target Finished Mass",
-            value = config.weightGrams,
-            onValueChange = { configViewModel.updateWeight(it) },
-            min = selectedJig.minWeightGrams,
-            max = selectedJig.maxWeightGrams,
-            unit = "g",
-            step = 5f,
-            testTagPrefix = "jig_weight"
-        )
+                Spacer(modifier = Modifier.height(8.dp))
 
-        // Length Input
-        SynchronizedSliderInput(
-            label = "Total Overall Length",
-            value = config.lengthMm,
-            onValueChange = { configViewModel.updateLength(it) },
-            min = selectedJig.minLengthMm,
-            max = selectedJig.maxLengthMm,
-            unit = "mm",
-            step = 5f,
-            testTagPrefix = "jig_length"
-        )
+                // Supported Weight Chips
+                val supportedWeights = listOf(40f, 50f, 60f, 80f, 100f, 120f, 150f, 200f)
+                    .filter { it in selectedJig.minWeightGrams..selectedJig.maxWeightGrams }
 
-        // Width Input
-        SynchronizedSliderInput(
-            label = "Maximum Hydro Body Width",
-            value = config.widthMm,
-            onValueChange = { configViewModel.updateWidth(it) },
-            min = selectedJig.minWidthMm,
-            max = selectedJig.maxWidthMm,
-            unit = "mm",
-            step = 1f,
-            testTagPrefix = "jig_width"
-        )
-
-        // FINISH & COLOR SELECTION
-        RealisticFinishSelector(
-            selectedColorName = config.colorName,
-            onSelectFinish = { finish ->
-                configViewModel.updateFinish(
-                    finishName = finish.name.substringBefore(" /"),
-                    baseHex = (finish.baseColor.value shr 32).toLong(),
-                    accentHex = (finish.accentColor.value shr 32).toLong(),
-                    patternType = when {
-                        finish.name.contains("Holographic", ignoreCase = true) -> JigPatternType.HOLOGRAPHIC_SLASH
-                        finish.name.contains("Candy", ignoreCase = true) -> JigPatternType.DOT_PATTERN
-                        else -> JigPatternType.SOLID_STRIPE
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    supportedWeights.forEach { weightVal ->
+                        val isSelected = config.weightGrams == weightVal
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { configViewModel.updateWeight(weightVal) },
+                            label = { Text("${weightVal.toInt()}g", fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            modifier = Modifier.height(28.dp)
+                        )
                     }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Fine slider
+                Slider(
+                    value = config.weightGrams,
+                    onValueChange = { configViewModel.updateWeight(it) },
+                    valueRange = selectedJig.minWeightGrams..selectedJig.maxWeightGrams,
+                    steps = ((selectedJig.maxWeightGrams - selectedJig.minWeightGrams) / 5f).toInt() - 1,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(26.dp)
+                        .testTag("jig_weight_slider")
                 )
             }
-        )
+        }
 
-        // RINGS CONFIGURATION (Requirement 8, 9, 10)
-        RingsConfigCard(
-            config = config,
-            selectedJig = selectedJig,
-            onUpdateFrontRing = { configViewModel.updateFrontRing(it) },
-            onUpdateBackRing = { configViewModel.updateBackRing(it) }
-        )
+        // 2. LENGTH & WIDTH (Compact dual-dimension card)
+        TactileCard(
+            modifier = Modifier.fillMaxWidth(),
+            shadowElevation = 1.5.dp
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                // Length Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "TOTAL LENGTH",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
+                    )
+                    Text(
+                        text = "${config.lengthMm.toInt()} mm",
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
 
-        // HOOK RIGGING CONFIGURATION
-        HookRiggingCard(
-            config = config,
-            selectedJig = selectedJig,
-            onSelectHook = { configViewModel.updateHook(it) }
-        )
+                Slider(
+                    value = config.lengthMm,
+                    onValueChange = { configViewModel.updateLength(it) },
+                    valueRange = selectedJig.minLengthMm..selectedJig.maxLengthMm,
+                    steps = ((selectedJig.maxLengthMm - selectedJig.minLengthMm) / 5f).toInt() - 1,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(24.dp)
+                        .testTag("jig_length_slider")
+                )
 
-        // THREAD CONFIGURATION
-        ThreadSelector(
-            selectedThread = config.threadColor,
-            onSelectThread = { threadOption ->
-                configViewModel.updateThread(
-                    threadColor = threadOption.name,
-                    colorHex = threadOption.color?.let { (it.value shr 32).toLong() }
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Width Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "HYDRODYNAMIC WIDTH",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
+                    )
+                    Text(
+                        text = "${config.widthMm.toInt()} mm",
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Slider(
+                    value = config.widthMm,
+                    onValueChange = { configViewModel.updateWidth(it) },
+                    valueRange = selectedJig.minWidthMm..selectedJig.maxWidthMm,
+                    steps = ((selectedJig.maxWidthMm - selectedJig.minWidthMm) / 1f).toInt() - 1,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(24.dp)
+                        .testTag("jig_width_slider")
                 )
             }
-        )
-    }
-}
+        }
 
-/**
- * Rings Configuration Card (Requirement 8, 9, 10)
- * Allows configuring Front Ring and Back Ring (None, Standard, Heavy Duty, Custom)
- */
-@Composable
-private fun RingsConfigCard(
-    config: com.example.data.model.ProductConfiguration,
-    selectedJig: com.example.data.model.JigProduct,
-    onUpdateFrontRing: (String) -> Unit,
-    onUpdateBackRing: (String) -> Unit
-) {
-    TactileCard(
-        modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 2.dp
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        // 3. FINISH & COLORS (Compact Swatches & Finish Chips)
+        TactileCard(
+            modifier = Modifier.fillMaxWidth(),
+            shadowElevation = 1.5.dp
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
                 Text(
-                    text = "ATTACHMENT RINGS (FRONT & BACK)",
+                    text = "FINISH & COLOR PALETTE",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                     letterSpacing = 0.5.sp
                 )
-                Text(
-                    text = "SUS304 STAINLESS",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Finishes (Solid, Metallic, Matte, Glow, Holographic, UV Reactive)
+                val finishes = listOf(
+                    "High-Gloss Metallic",
+                    "Solid Color",
+                    "Matte Stealth",
+                    "Luminous Glow",
+                    "Holographic Flash",
+                    "UV Reactive"
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    finishes.forEach { fin ->
+                        val isSelected = config.finishType == fin
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                configViewModel.updateFinish(
+                                    finishName = fin,
+                                    baseHex = config.baseColorHex,
+                                    accentHex = config.accentColorHex,
+                                    patternType = when {
+                                        fin.contains("Holographic", ignoreCase = true) -> JigPatternType.HOLOGRAPHIC_SLASH
+                                        fin.contains("Glow", ignoreCase = true) -> JigPatternType.DOT_PATTERN
+                                        else -> JigPatternType.SOLID_STRIPE
+                                    }
+                                )
+                            },
+                            label = { Text(fin, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                            modifier = Modifier.height(28.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Realistic Presets Selector
+                RealisticFinishSelector(
+                    selectedColorName = config.colorName,
+                    onSelectFinish = { finish ->
+                        configViewModel.updateFinish(
+                            finishName = finish.name.substringBefore(" /"),
+                            baseHex = (finish.baseColor.value shr 32).toLong(),
+                            accentHex = (finish.accentColor.value shr 32).toLong(),
+                            patternType = finish.patternType
+                        )
+                    }
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // FRONT RING
-            Text(
-                text = "Front Ring (Line Tie / Assist Attachment):",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                listOf("None", "Standard", "Heavy Duty", "Custom").forEach { ringOption ->
-                    val isSelected = config.frontRing == ringOption
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onUpdateFrontRing(ringOption) },
-                        label = { Text(ringOption, fontSize = 11.5.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                        leadingIcon = if (isSelected) {
-                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                        } else null,
-                        modifier = Modifier.weight(1f)
+        // 4. ATTACHMENT RINGS (FRONT RING & BACK RING) - Requirement 16, 17, 18
+        TactileCard(
+            modifier = Modifier.fillMaxWidth(),
+            shadowElevation = 1.5.dp
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "ATTACHMENT RINGS (FRONT & BACK)",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
                     )
+                    Text(
+                        text = "SUS304 STAINLESS",
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Front Ring Selector
+                Text(
+                    text = "Front Ring (Line Tie):",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf("None", "Standard", "Heavy Duty", "Custom").forEach { ringOption ->
+                        val isSelected = config.frontRing == ringOption
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { configViewModel.updateFrontRing(ringOption) },
+                            label = { Text(ringOption, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                            leadingIcon = if (isSelected) {
+                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
+                            } else null,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(30.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Back Ring Selector
+                Text(
+                    text = "Back Ring (Rear Stinger):",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf("None", "Standard", "Heavy Duty", "Custom").forEach { ringOption ->
+                        val isSelected = config.backRing == ringOption
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { configViewModel.updateBackRing(ringOption) },
+                            label = { Text(ringOption, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                            leadingIcon = if (isSelected) {
+                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
+                            } else null,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(30.dp)
+                        )
+                    }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(14.dp))
+        // 5. HOOK RIGGING
+        TactileCard(
+            modifier = Modifier.fillMaxWidth(),
+            shadowElevation = 1.5.dp
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = "HOOK RIGGING SPECIFICATION",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 0.5.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
 
-            // BACK RING
-            Text(
-                text = "Back Ring (Rear Stinger / Tail Attachment):",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                listOf("None", "Standard", "Heavy Duty", "Custom").forEach { ringOption ->
-                    val isSelected = config.backRing == ringOption
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onUpdateBackRing(ringOption) },
-                        label = { Text(ringOption, fontSize = 11.5.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                        leadingIcon = if (isSelected) {
-                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                        } else null,
-                        modifier = Modifier.weight(1f)
-                    )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    selectedJig.availableHooks.forEach { hook ->
+                        val isSelected = config.hookTypeJig == hook
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { configViewModel.updateHook(hook) },
+                            label = { Text(hook, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                            leadingIcon = if (isSelected) {
+                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
+                            } else null,
+                            modifier = Modifier.height(30.dp)
+                        )
+                    }
                 }
+            }
+        }
+
+        // 6. THREAD WRAPPING CONFIGURATION (Requirement 15)
+        TactileCard(
+            modifier = Modifier.fillMaxWidth(),
+            shadowElevation = 1.5.dp
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = "ASSIST THREAD BINDING COLOR",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 0.5.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                ThreadSelector(
+                    selectedThread = config.threadColor,
+                    onSelectThread = { threadOption ->
+                        configViewModel.updateThread(
+                            threadColor = threadOption.name,
+                            colorHex = threadOption.color?.let { (it.value shr 32).toLong() }
+                        )
+                    }
+                )
             }
         }
     }
 }
 
 /**
- * Hook Rigging Configuration Card
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun HookRiggingCard(
-    config: com.example.data.model.ProductConfiguration,
-    selectedJig: com.example.data.model.JigProduct,
-    onSelectHook: (String) -> Unit
-) {
-    TactileCard(
-        modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 2.dp
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(
-                text = "HOOK RIGGING CONFIGURATION",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                selectedJig.availableHooks.forEach { hook ->
-                    val isSelected = config.hookTypeJig == hook
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onSelectHook(hook) },
-                        label = { Text(hook, fontSize = 11.5.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                        leadingIcon = if (isSelected) {
-                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                        } else null
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * More Options Section (Accordion Progressive Disclosure)
- * Core Alloy, 3D Eye Style, Assist Cord Type, Tolerance & Quality Notes
+ * More Options Progressive Disclosure Accordion:
+ * Secondary manufacturing parameters (Core Alloy, 3D Strike Eye, Assist Cord, ISO Tolerance)
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MoreOptionsSection(
-    config: com.example.data.model.ProductConfiguration,
-    selectedJig: com.example.data.model.JigProduct,
+    config: ProductConfiguration,
+    selectedJig: JigProduct,
     configViewModel: ConfiguratorViewModel,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit
 ) {
     TactileCard(
         modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 2.dp
+        shadowElevation = 1.5.dp
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -561,7 +829,7 @@ private fun MoreOptionsSection(
                         Icons.Default.Tune,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                     Text(
                         text = "MORE OPTIONS (ALLOY, EYE & CORD)",
@@ -585,8 +853,8 @@ private fun MoreOptionsSection(
                 exit = shrinkVertically() + fadeOut()
             ) {
                 Column(
-                    modifier = Modifier.padding(top = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    modifier = Modifier.padding(top = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // 1. ALLOY & CORE CONSTRUCTION
                     Text(
@@ -595,18 +863,19 @@ private fun MoreOptionsSection(
                         fontWeight = FontWeight.SemiBold
                     )
                     FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         selectedJig.materials.forEach { mat ->
                             val isSelected = config.material == mat
                             FilterChip(
                                 selected = isSelected,
                                 onClick = { configViewModel.updateMaterial(mat) },
-                                label = { Text(mat, fontSize = 11.5.sp) },
+                                label = { Text(mat, fontSize = 11.sp) },
                                 leadingIcon = if (isSelected) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                                } else null
+                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
+                                } else null,
+                                modifier = Modifier.height(28.dp)
                             )
                         }
                     }
@@ -618,8 +887,8 @@ private fun MoreOptionsSection(
                         fontWeight = FontWeight.SemiBold
                     )
                     FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         listOf(
                             "3D Luminous Strike Eye",
@@ -631,10 +900,11 @@ private fun MoreOptionsSection(
                             FilterChip(
                                 selected = isSelected,
                                 onClick = { configViewModel.updateEyeStyle(eye) },
-                                label = { Text(eye, fontSize = 11.5.sp) },
+                                label = { Text(eye, fontSize = 11.sp) },
                                 leadingIcon = if (isSelected) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                                } else null
+                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
+                                } else null,
+                                modifier = Modifier.height(28.dp)
                             )
                         }
                     }
@@ -646,8 +916,8 @@ private fun MoreOptionsSection(
                         fontWeight = FontWeight.SemiBold
                     )
                     FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         listOf(
                             "Braided PE (200 lb)",
@@ -658,10 +928,11 @@ private fun MoreOptionsSection(
                             FilterChip(
                                 selected = isSelected,
                                 onClick = { configViewModel.updateAssistCord(cord) },
-                                label = { Text(cord, fontSize = 11.5.sp) },
+                                label = { Text(cord, fontSize = 11.sp) },
                                 leadingIcon = if (isSelected) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                                } else null
+                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
+                                } else null,
+                                modifier = Modifier.height(28.dp)
                             )
                         }
                     }
@@ -675,19 +946,19 @@ private fun MoreOptionsSection(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(10.dp),
+                                .padding(8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "MANUFACTURING TOLERANCE",
-                                fontSize = 10.sp,
+                                fontSize = 9.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Text(
                                 text = "TBD / ISO 2768-m",
-                                fontSize = 10.sp,
+                                fontSize = 9.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -701,80 +972,158 @@ private fun MoreOptionsSection(
 }
 
 /**
- * Technical View Section (Requirement 14 & 15)
- * Dedicated engineering 5-view orthographic canvas with rings and dimension lines
+ * Technical View Launcher Card (Requirement 22):
+ * Opens the separate technical drawing / specification view using the exact SAME configuration
  */
 @Composable
-private fun TechnicalViewSection(config: com.example.data.model.ProductConfiguration) {
+private fun TechnicalViewLauncherCard(
+    config: ProductConfiguration,
+    onOpenTechnicalView: () -> Unit,
+    isInlineExpanded: Boolean = false,
+    onToggleInline: (() -> Unit)? = null
+) {
     TactileCard(
         modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 3.dp
+        shadowElevation = 1.5.dp
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "TECHNICAL VIEW",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 0.5.sp
-                )
-                Text(
-                    text = "ORTHOGRAPHIC PROJECTION (1:1)",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Architecture,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Column {
+                        Text(
+                            text = "TECHNICAL SPECIFICATION VIEW",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            text = "1:1 Orthographic CAD Projection & Tolerances",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                TactileButton(
+                    onClick = onOpenTechnicalView,
+                    variant = TactileButtonVariant.OUTLINE,
+                    text = "Open Technical View",
+                    modifier = Modifier.height(34.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(10.dp))
-            JigEngineeringCanvas(config = config)
+
+            if (onToggleInline != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onToggleInline() },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isInlineExpanded) "Hide Inline CAD Blueprint" else "Show Inline CAD Blueprint Preview",
+                        fontSize = 10.5.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Icon(
+                        imageVector = if (isInlineExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = isInlineExpanded,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column(modifier = Modifier.padding(top = 8.dp)) {
+                        JigEngineeringCanvas(config = config)
+                    }
+                }
+            }
         }
     }
 }
 
 /**
- * Product in Action Section (Requirement 16 & 17)
- * High-quality rendered/composited presentation, clearly labeled as visual presentation (non-simulation)
+ * Product in Action Section (Clean Collapsible Presentation)
  */
 @Composable
-private fun ProductInActionSection(config: com.example.data.model.ProductConfiguration) {
+private fun ProductInActionSection(
+    config: ProductConfiguration,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit
+) {
     TactileCard(
         modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 3.dp
+        shadowElevation = 1.5.dp
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggleExpand() },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "PRODUCT IN ACTION",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 0.5.sp
-                )
-                Surface(
-                    color = Color(0xFF0F2942),
-                    shape = RoundedCornerShape(4.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    Surface(
+                        color = Color(0xFF0F2942),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = "VISUAL PRESENTATION",
+                            color = Color(0xFF38BDF8),
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                        )
+                    }
                     Text(
-                        text = "VISUAL PRESENTATION",
-                        color = Color(0xFF38BDF8),
-                        fontSize = 9.sp,
+                        text = "Product in Action",
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
+
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            JigFishingAnimation(config = config)
+
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(modifier = Modifier.padding(top = 10.dp)) {
+                    JigFishingAnimation(config = config)
+                }
+            }
         }
     }
 }
