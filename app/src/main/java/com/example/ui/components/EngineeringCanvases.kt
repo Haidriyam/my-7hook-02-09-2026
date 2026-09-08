@@ -13,6 +13,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -35,18 +37,67 @@ import java.util.Locale
  * - Standard technical title blocks
  */
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 fun JigEngineeringCanvas(
     config: ProductConfiguration,
-    modifier: Modifier = Modifier.height(320.dp)
+    perspective: com.example.data.geometry.JigGeometryEngine.EngineeringPerspective = com.example.data.geometry.JigGeometryEngine.EngineeringPerspective.ORTHOGRAPHIC,
+    theme: com.example.data.geometry.JigGeometryEngine.EngineeringTheme = com.example.data.geometry.JigGeometryEngine.EngineeringTheme.TECHNICAL_PAPER,
+    showDimensions: Boolean = true,
+    showGrid: Boolean = true,
+    modifier: Modifier = Modifier.height(360.dp)
 ) {
-    JigOrthographicCanvas(config = config, modifier = modifier)
+    JigOrthographicCanvas(
+        config = config,
+        perspective = perspective,
+        theme = theme,
+        showDimensions = showDimensions,
+        showGrid = showGrid,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun JigOrthographicCanvas(
+    config: ProductConfiguration,
+    perspective: com.example.data.geometry.JigGeometryEngine.EngineeringPerspective = com.example.data.geometry.JigGeometryEngine.EngineeringPerspective.ORTHOGRAPHIC,
+    theme: com.example.data.geometry.JigGeometryEngine.EngineeringTheme = com.example.data.geometry.JigGeometryEngine.EngineeringTheme.TECHNICAL_PAPER,
+    showDimensions: Boolean = true,
+    showGrid: Boolean = true,
+    modifier: Modifier = Modifier.height(360.dp)
+) {
+    val isDark = theme == com.example.data.geometry.JigGeometryEngine.EngineeringTheme.BLUEPRINT_NAVY
+    val bgColor = if (isDark) Color(0xFF0A192F) else Color(0xFFFCFDFE)
+    val borderColor = if (isDark) Color(0xFF1E3A8A) else Color(0xFFCBD5E1)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(modifier)
+            .background(bgColor, RoundedCornerShape(8.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize().padding(4.dp)) {
+            drawIntoCanvas { composeCanvas ->
+                com.example.data.geometry.JigGeometryEngine.drawJigOrthographicPdf(
+                    canvas = composeCanvas.nativeCanvas,
+                    boxX = 0f,
+                    boxY = 0f,
+                    boxWidth = size.width,
+                    boxHeight = size.height,
+                    config = config,
+                    perspective = perspective,
+                    theme = theme,
+                    showDimensions = showDimensions,
+                    showGrid = showGrid
+                )
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalTextApi::class)
 @Composable
-fun JigOrthographicCanvas(
+private fun JigOrthographicCanvasLegacy(
     config: ProductConfiguration,
     modifier: Modifier = Modifier.height(380.dp)
 ) {
@@ -400,18 +451,47 @@ fun JigOrthographicCanvas(
     }
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Composable
 fun LureEngineeringCanvas(
     config: ProductConfiguration,
-    modifier: Modifier = Modifier.height(320.dp)
+    perspective: com.example.data.geometry.JigGeometryEngine.EngineeringPerspective = com.example.data.geometry.JigGeometryEngine.EngineeringPerspective.ORTHOGRAPHIC,
+    theme: com.example.data.geometry.JigGeometryEngine.EngineeringTheme = com.example.data.geometry.JigGeometryEngine.EngineeringTheme.TECHNICAL_PAPER,
+    showDimensions: Boolean = true,
+    showGrid: Boolean = true,
+    modifier: Modifier = Modifier.height(360.dp)
 ) {
-    LureOrthographicCanvas(config = config, modifier = modifier)
+    LureOrthographicCanvas(
+        config = config,
+        perspective = perspective,
+        theme = theme,
+        showDimensions = showDimensions,
+        showGrid = showGrid,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun LureOrthographicCanvas(
+    config: ProductConfiguration,
+    perspective: com.example.data.geometry.JigGeometryEngine.EngineeringPerspective = com.example.data.geometry.JigGeometryEngine.EngineeringPerspective.ORTHOGRAPHIC,
+    theme: com.example.data.geometry.JigGeometryEngine.EngineeringTheme = com.example.data.geometry.JigGeometryEngine.EngineeringTheme.TECHNICAL_PAPER,
+    showDimensions: Boolean = true,
+    showGrid: Boolean = true,
+    modifier: Modifier = Modifier.height(360.dp)
+) {
+    JigOrthographicCanvas(
+        config = config,
+        perspective = perspective,
+        theme = theme,
+        showDimensions = showDimensions,
+        showGrid = showGrid,
+        modifier = modifier
+    )
 }
 
 @OptIn(ExperimentalTextApi::class)
 @Composable
-fun LureOrthographicCanvas(
+private fun LureOrthographicCanvasLegacy(
     config: ProductConfiguration,
     modifier: Modifier = Modifier.height(320.dp)
 ) {

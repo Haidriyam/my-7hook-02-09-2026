@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.data.geometry.JigGeometryEngine
 import com.example.data.model.ProductCatalog
 import com.example.ui.components.*
 import com.example.viewmodel.ConfiguratorViewModel
@@ -41,6 +42,11 @@ fun JigEngineeringScreen(
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var selectedPerspective by remember { mutableStateOf(JigGeometryEngine.EngineeringPerspective.ORTHOGRAPHIC) }
+    var selectedTheme by remember { mutableStateOf(JigGeometryEngine.EngineeringTheme.TECHNICAL_PAPER) }
+    var showDimensions by remember { mutableStateOf(true) }
+    var showGrid by remember { mutableStateOf(true) }
 
     // Retrieve exact catalog jig product matching selection for true product image
     val matchedJig = remember(currentConfig.productId) {
@@ -327,21 +333,140 @@ fun JigEngineeringScreen(
                 }
             }
 
-            // PRIMARY ORTHOGRAPHIC TECHNICAL DRAWING SCHEMATIC
+            // PRIMARY ORTHOGRAPHIC TECHNICAL DRAWING SCHEMATIC & DYNAMIC STUDIO
             TactileCard(
                 modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 3.dp
+                shadowElevation = 4.dp
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = "ORTHOGRAPHIC PROJECTION & DIMENSIONS",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Title Bar with Dimension and Grid Toggles
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "DYNAMIC CAD & TECHNICAL DRAWING",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.primary,
+                                letterSpacing = 0.5.sp
+                            )
+                            Text(
+                                text = "First-angle orthographic projection & parametric geometry",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FilterChip(
+                                selected = showDimensions,
+                                onClick = { showDimensions = !showDimensions },
+                                label = { Text("Dims", fontSize = 10.5.sp, fontWeight = FontWeight.Bold) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = if (showDimensions) Icons.Default.Straighten else Icons.Default.VisibilityOff,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                            FilterChip(
+                                selected = showGrid,
+                                onClick = { showGrid = !showGrid },
+                                label = { Text("Grid", fontSize = 10.5.sp, fontWeight = FontWeight.Bold) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = if (showGrid) Icons.Default.GridOn else Icons.Default.GridOff,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    }
+
+                    // Main CAD Canvas
+                    JigEngineeringCanvas(
+                        config = currentConfig,
+                        perspective = selectedPerspective,
+                        theme = selectedTheme,
+                        showDimensions = showDimensions,
+                        showGrid = showGrid,
+                        modifier = Modifier.height(360.dp)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    JigEngineeringCanvas(config = currentConfig)
+
+                    // 1. Perspective View Options
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "VISUAL PERSPECTIVE VIEW",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.4.sp
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            JigGeometryEngine.EngineeringPerspective.values().forEach { persp ->
+                                val isSelected = selectedPerspective == persp
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { selectedPerspective = persp },
+                                    label = { Text(persp.displayName, fontSize = 10.5.sp) },
+                                    modifier = Modifier.weight(1f),
+                                    leadingIcon = if (isSelected) {
+                                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
+                                    } else null
+                                )
+                            }
+                        }
+                    }
+
+                    // 2. CAD Drafting Theme Options
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "DRAFTING & CAD THEME",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.4.sp
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            JigGeometryEngine.EngineeringTheme.values().forEach { th ->
+                                val isSelected = selectedTheme == th
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { selectedTheme = th },
+                                    label = { Text(th.displayName, fontSize = 10.5.sp) },
+                                    modifier = Modifier.weight(1f),
+                                    leadingIcon = if (isSelected) {
+                                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
+                                    } else null
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

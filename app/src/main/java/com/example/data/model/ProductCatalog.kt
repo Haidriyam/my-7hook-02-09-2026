@@ -76,7 +76,7 @@ object ProductCatalog {
             description = "Bright solar yellow base with fiery blaze-orange lateral edges for maximum visibility in turbid and pelagic waters.",
             isNew = true,
             patternType = JigPatternType.SOLID_STRIPE,
-            localDrawableRes = null
+            localDrawableRes = com.example.R.drawable.jig_yellow_orange_real
         ),
 
         // OFFICIAL 7HOOKS PRODUCTS (from https://7hooks.com/our-products/)

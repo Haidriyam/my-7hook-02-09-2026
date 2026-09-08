@@ -94,11 +94,11 @@ object PdfGenerator {
             canvas1.drawLine(40f, 130f, (PAGE_WIDTH - 40).toFloat(), 130f, dividerPaint)
 
             // 3. ENGINEERING CAD DRAWING SECTION (Generous height for clear unclipped schematics)
-            val drawingBoxTop = 140f
-            val drawingBoxHeight = 350f
-            drawEngineeringDrawingFrame(canvas1, 40f, drawingBoxTop, (PAGE_WIDTH - 80).toFloat(), drawingBoxHeight, "ORTHOGRAPHIC CAD PROJECTIONS (1:1 SCALE @ A4)")
+            val drawingBoxTop = 138f
+            val drawingBoxHeight = 525f
+            drawEngineeringDrawingFrame(canvas1, 40f, drawingBoxTop, (PAGE_WIDTH - 80).toFloat(), drawingBoxHeight, "ORTHOGRAPHIC CAD PROJECTIONS (FIRST-ANGLE PROJECTION • 1:1 SCALE)")
 
-            // Draw Full Orthographic CAD Drawing of the Jig
+            // Draw Full Orthographic CAD Drawing of the Jig using Unified Geometry Engine
             drawJigCadDrawing(
                 canvas = canvas1,
                 boxX = 40f,
@@ -108,33 +108,10 @@ object PdfGenerator {
                 config = config
             )
 
-            // 4. PRIMARY ASSEMBLY SPECIFICATION (Below CAD Drawing)
-            val quickTableTop = drawingBoxTop + drawingBoxHeight + 12f
-            drawSectionHeader(canvas1, 40f, quickTableTop, "PRIMARY ASSEMBLY SPECIFICATION")
+            // 4. OFFICIAL ENGINEERING TITLE BLOCK
+            drawEngineeringTitleBlock(canvas1, 40f, 672f, (PAGE_WIDTH - 80).toFloat(), 95f, config, sheet = 1, totalSheets = 2)
 
-            val weightDisplay = if (config.customWeight.isNotEmpty()) "${config.weightGrams.toInt()} g (${config.customWeight})" else "${config.weightGrams.toInt()} g"
-            val lengthDisplay = if (config.customLength.isNotEmpty()) "${config.lengthMm.toInt()} mm (${config.customLength})" else "${config.lengthMm.toInt()} mm"
-            val widthDisplay = if (config.customWidth.isNotEmpty()) "${config.widthMm.toInt()} mm (${config.customWidth})" else "${config.widthMm.toInt()} mm"
-            val frontRingDisplay = if (config.frontRing == "Custom" && config.customFrontRing.isNotEmpty()) "Custom (${config.customFrontRing})" else config.frontRing
-            val backRingDisplay = if (config.backRing == "Custom" && config.customBackRing.isNotEmpty()) "Custom (${config.customBackRing})" else config.backRing
-            val hookDisplay = if (config.hookTypeJig == "Custom" && config.customHook.isNotEmpty()) "Custom (${config.customHook})" else config.hookTypeJig
-            val threadDisplay = if (config.threadColor == "Custom" && config.customAssistCordColor.isNotEmpty()) "Custom (${config.customAssistCordColor})" else config.threadColor
-
-            val primarySpecs = listOf(
-                "Target Finished Mass" to weightDisplay,
-                "Overall Length" to lengthDisplay,
-                "Max Hydro Body Width" to widthDisplay,
-                "Front Line-Tie Ring" to frontRingDisplay,
-                "Rear Stinger Ring" to backRingDisplay,
-                "Rigged Assist Hook" to hookDisplay,
-                "Assist Cord / Thread" to threadDisplay
-            )
-            drawFlowingTable(canvas1, 40f, quickTableTop + 14f, (PAGE_WIDTH - 80).toFloat(), primarySpecs)
-
-            // 5. OFFICIAL ENGINEERING TITLE BLOCK
-            drawEngineeringTitleBlock(canvas1, 40f, 680f, (PAGE_WIDTH - 80).toFloat(), 95f, config, sheet = 1, totalSheets = 2)
-
-            // 6. FOOTER (SHEET 1 OF 2)
+            // 5. FOOTER (SHEET 1 OF 2)
             drawDocumentFooter(canvas1, config.referenceNumber, pageNum = 1, totalPages = 2)
 
             document.finishPage(page1)
@@ -172,6 +149,9 @@ object PdfGenerator {
             drawSectionHeader(canvas2, 40f, specsTableTop, "DETAILED BILL OF MATERIALS & TOLERANCES")
 
             val finishDisplay = if (config.finishType == "Custom" && config.customFinish.isNotEmpty()) "Custom Finish: ${config.customFinish}" else config.finishType
+            val weightDisplay = "${String.format(Locale.US, "%.1f", config.weightGrams)} g"
+            val lengthDisplay = "${config.lengthMm.toInt()} mm"
+            val widthDisplay = "${config.widthMm.toInt()} mm"
 
             val fullSpecs = listOf(
                 "Product Line" to config.productName,
@@ -189,8 +169,8 @@ object PdfGenerator {
                 "Assist Cord" to if (config.threadColor == "Custom" && config.customAssistCordColor.isNotEmpty()) "Custom Cord: ${config.customAssistCordColor}" else if (config.threadColor == "None") "None" else "${config.threadColor} Assist Cord",
                 "Internal Construction" to "1.2mm SUS304 Stainless Steel Continuous Through-Wire Harness",
                 "Eyelet Configuration" to "Dual Solid Welded Seamless Eyelets (Line Tie & Stinger)",
-                "Dimensional Tolerance" to "ISO 2768-m (±0.2 mm body profile)",
-                "Mass Tolerance" to "±1.5% Nominal Finished Weight"
+                "Dimensional Tolerance" to "TBD",
+                "Mass Tolerance" to "TBD"
             )
 
             val tableBottomY = drawFlowingTable(canvas2, 40f, specsTableTop + 14f, (PAGE_WIDTH - 80).toFloat(), fullSpecs)
@@ -806,6 +786,17 @@ object PdfGenerator {
     }
 
     private fun drawJigCadDrawing(canvas: Canvas, boxX: Float, boxY: Float, boxWidth: Float, boxHeight: Float, config: ProductConfiguration) {
+        com.example.data.geometry.JigGeometryEngine.drawJigOrthographicPdf(
+            canvas = canvas,
+            boxX = boxX,
+            boxY = boxY,
+            boxWidth = boxWidth,
+            boxHeight = boxHeight,
+            config = config
+        )
+    }
+
+    private fun drawJigCadDrawingLegacy(canvas: Canvas, boxX: Float, boxY: Float, boxWidth: Float, boxHeight: Float, config: ProductConfiguration) {
         val centerX = boxX + boxWidth * 0.44f
         val frontY = boxY + boxHeight * 0.32f
 
@@ -1065,6 +1056,17 @@ object PdfGenerator {
     }
 
     private fun drawLureCadDrawing(canvas: Canvas, boxX: Float, boxY: Float, boxWidth: Float, boxHeight: Float, config: ProductConfiguration) {
+        com.example.data.geometry.JigGeometryEngine.drawJigOrthographicPdf(
+            canvas = canvas,
+            boxX = boxX,
+            boxY = boxY,
+            boxWidth = boxWidth,
+            boxHeight = boxHeight,
+            config = config
+        )
+    }
+
+    private fun drawLureCadDrawingLegacy(canvas: Canvas, boxX: Float, boxY: Float, boxWidth: Float, boxHeight: Float, config: ProductConfiguration) {
         val centerX = boxX + boxWidth * 0.45f
         val centerY = boxY + boxHeight * 0.52f
 
@@ -1762,7 +1764,7 @@ object PdfGenerator {
         val dateStr = SimpleDateFormat("dd-MMM-yyyy", Locale.US).format(Date())
         canvas.drawText(dateStr, col2 + 55f, curY, valuePaint)
         canvas.drawText("TOLERANCE:", col3, curY, labelPaint)
-        canvas.drawText("ISO 2768-m", col3 + 55f, curY, valuePaint)
+        canvas.drawText("TBD", col3 + 55f, curY, valuePaint)
     }
 
     private fun drawProductPhotoReference(
