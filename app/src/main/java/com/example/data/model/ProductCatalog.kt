@@ -2,6 +2,11 @@ package com.example.data.model
 
 object ProductCatalog {
 
+    const val CATEGORY_IMAGE_JIG = "http://7hooks.com/wp-content/uploads/2026/07/106fe702-dfa2-4d00-8df1-66078de66d23-removebg-preview.png"
+    const val CATEGORY_IMAGE_ROD = "https://www.clipartmax.com/png/middle/82-820877_fishing-pole-png-images-free-download-fishing-rod-fishing-rod-transparent-background.png"
+    const val CATEGORY_IMAGE_LURE = "https://images.rawpixel.com/image_png_800/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIzLTA4L3Jhd3BpeGVsX29mZmljZV8xMF8zZF93YXRlcmNvbG9yX3ZpbnRhZ2VfcGFpbnRpbmdfb2ZfZmlzaGluZ19sdV9hNmY3NjBhYy0xOTliLTRmOGItYWZhMC03MjcwNDNlYzEwZTEucG5n.png"
+    const val CATEGORY_IMAGE_PACKAGING = "https://p7.hiclipart.com/preview/820/850/461/ipkg-packaging-and-labeling-box-parcel-box.jpg"
+
     val jigs: List<JigProduct> = listOf(
         // NEW JIGS FIRST (Maintained as requested)
         JigProduct(
@@ -79,7 +84,7 @@ object ProductCatalog {
             id = "jig_candy_blue_orange",
             name = "Candy Blue – Orange 40 g Jigs",
             category = "Prism Flare Pelagic Jig",
-            imageUrl = "https://7hooks.com/wp-content/uploads/2025/12/WhatsApp-Image-2025-12-11-at-11.37.54-PM.jpeg",
+            imageUrl = "http://7hooks.com/wp-content/uploads/2026/07/Gemini_Generated_Image_2ibq142ibq142ibq.png",
             baseColorHex = 0xFF0284C7,
             accentColorHex = 0xFFF97316,
             defaultWeightGrams = 40f,
@@ -96,13 +101,13 @@ object ProductCatalog {
             description = "Precision-balanced 40g lead alloy body designed for long-distance casting and rapid descent. Multi-layered UV-reactive candy blue with blaze orange belly.",
             isNew = false,
             patternType = JigPatternType.HOLOGRAPHIC_SLASH,
-            localDrawableRes = com.example.R.drawable.jig_orange_black_real
+            localDrawableRes = null
         ),
         JigProduct(
             id = "jig_candy_pink_green",
             name = "Candy Pink – Green 40 g Jigs",
             category = "Pulse Pink Shore Jig",
-            imageUrl = "https://7hooks.com/wp-content/uploads/2025/12/WhatsApp-Image-2025-12-11-at-11.37.53-PM.jpeg",
+            imageUrl = "http://7hooks.com/wp-content/uploads/2026/07/Gemini_Generated_Image_gg4if6gg4if6gg4i.png",
             baseColorHex = 0xFFEC4899,
             accentColorHex = 0xFF10B981,
             defaultWeightGrams = 40f,
@@ -119,13 +124,13 @@ object ProductCatalog {
             description = "High-luminescence UV pink body paired with fluorescent emerald green lateral stripe for low-light feeding strikes in rocky structure.",
             isNew = false,
             patternType = JigPatternType.HOLOGRAPHIC_SLASH,
-            localDrawableRes = com.example.R.drawable.jig_yellow_dotted_real
+            localDrawableRes = null
         ),
         JigProduct(
             id = "jig_candy_yellow_black",
             name = "Candy Yellow – Black 40 g Jigs",
             category = "The Bumble Striker",
-            imageUrl = "https://7hooks.com/wp-content/uploads/2025/12/WhatsApp-Image-2025-12-11-at-11.37.52-PM.jpeg",
+            imageUrl = "http://7hooks.com/wp-content/uploads/2026/07/Gemini_Generated_Image_f3jib7f3jib7f3ji.png",
             baseColorHex = 0xFFEAB308,
             accentColorHex = 0xFF0F172A,
             defaultWeightGrams = 40f,
@@ -142,13 +147,13 @@ object ProductCatalog {
             description = "High-contrast bumble strike pattern featuring high-gloss yellow dorsal plate with stealth black hydrofoil for erratic flutter action.",
             isNew = false,
             patternType = JigPatternType.SOLID_STRIPE,
-            localDrawableRes = com.example.R.drawable.jig_yellow_orange_real
+            localDrawableRes = null
         ),
         JigProduct(
             id = "jig_crystal_pink_blue",
             name = "Crystal Pink-Blue 40 g Jigs",
             category = "Neon Candy Pop",
-            imageUrl = "https://7hooks.com/wp-content/uploads/2025/12/WhatsApp-Image-2025-12-11-at-11.37.53-PM-1.jpeg",
+            imageUrl = "http://7hooks.com/wp-content/uploads/2026/07/Gemini_Generated_Image_dc0248dc0248dc02.png",
             baseColorHex = 0xFFF472B6,
             accentColorHex = 0xFF38BDF8,
             defaultWeightGrams = 40f,
@@ -165,13 +170,13 @@ object ProductCatalog {
             description = "Prismatic crystal faceted surface reflecting pink and cyan hues simultaneously for maximum light refraction in tropical blue water.",
             isNew = false,
             patternType = JigPatternType.CRYSTAL_FACET,
-            localDrawableRes = com.example.R.drawable.jig_yellow_dotted_real
+            localDrawableRes = null
         ),
         JigProduct(
             id = "jig_crystal_yellow_blue",
             name = "Crystal Yellow-Blue Jigs",
             category = "Blue Horizon Long Cast",
-            imageUrl = "https://7hooks.com/wp-content/uploads/2025/12/WhatsApp-Image-2025-12-11-at-11.37.54-PM-1.jpeg",
+            imageUrl = "http://7hooks.com/wp-content/uploads/2026/07/Gemini_Generated_Image_6gfg406gfg406gfg.png",
             baseColorHex = 0xFFFDE047,
             accentColorHex = 0xFF1D4ED8,
             defaultWeightGrams = 40f,
@@ -188,7 +193,7 @@ object ProductCatalog {
             description = "Multi-angle reflective crystal surface with solar yellow gold flash and royal horizon deep blue spine.",
             isNew = false,
             patternType = JigPatternType.CRYSTAL_FACET,
-            localDrawableRes = com.example.R.drawable.jig_orange_black_real
+            localDrawableRes = null
         )
     )
 

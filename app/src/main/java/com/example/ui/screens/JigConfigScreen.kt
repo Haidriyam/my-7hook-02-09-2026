@@ -41,7 +41,7 @@ import com.example.data.model.ProductConfiguration
 import com.example.ui.components.*
 import com.example.viewmodel.ConfiguratorViewModel
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun JigConfigScreen(
     configViewModel: ConfiguratorViewModel,
@@ -54,6 +54,19 @@ fun JigConfigScreen(
     var isMoreOptionsExpanded by remember { mutableStateOf(false) }
     var isInlineTechnicalViewExpanded by remember { mutableStateOf(false) }
     var isProductInActionExpanded by remember { mutableStateOf(false) }
+
+    var selectedConfigTab by remember { mutableIntStateOf(0) } // 0 = Custom Specs, 1 = Best Combination
+    var activeTermInfo by remember { mutableStateOf<TechnicalTermInfo?>(null) }
+    var selectedEyeColorName by remember { mutableStateOf("Luminous Lime") }
+
+    val validation = remember(currentConfig.weightGrams, currentConfig.lengthMm, currentConfig.widthMm, selectedJig) {
+        validateJigParameters(
+            weight = currentConfig.weightGrams,
+            length = currentConfig.lengthMm,
+            width = currentConfig.widthMm,
+            selectedJig = selectedJig
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -137,20 +150,16 @@ fun JigConfigScreen(
                             selectedJig = selectedJig
                         )
 
-                        AvailableShadesSelector(
-                            config = currentConfig,
-                            configViewModel = configViewModel
-                        )
-
                         LiveConfigurationSummaryCard(config = currentConfig)
 
                         TechnicalViewLauncherCard(
                             config = currentConfig,
-                            onOpenTechnicalView = onNavigateToEngineering
+                            onOpenTechnicalView = onNavigateToEngineering,
+                            onShowTermInfo = { activeTermInfo = it }
                         )
                     }
 
-                    // RIGHT COLUMN: Step Indicator, Configuration Controls, More Options
+                    // RIGHT COLUMN: Step Indicator, Mode Tabs, Configuration Controls / Best Combination
                     Column(
                         modifier = Modifier
                             .weight(1.1f)
@@ -161,19 +170,93 @@ fun JigConfigScreen(
                     ) {
                         CompactStepPill(currentStep = 2, totalSteps = 3, label = "CONFIGURE SPECS")
 
-                        EssentialConfigurationControls(
-                            config = currentConfig,
-                            selectedJig = selectedJig,
-                            configViewModel = configViewModel
-                        )
+                        // TAB ROW: CUSTOM SPECS VS BEST COMBINATION
+                        TabRow(
+                            selectedTabIndex = selectedConfigTab,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                        ) {
+                            Tab(
+                                selected = selectedConfigTab == 0,
+                                onClick = { selectedConfigTab = 0 },
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    ) {
+                                        Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Text("Custom Specs", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    }
+                                }
+                            )
+                            Tab(
+                                selected = selectedConfigTab == 1,
+                                onClick = { selectedConfigTab = 1 },
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    ) {
+                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Text("Best Combination", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    }
+                                }
+                            )
+                        }
 
-                        MoreOptionsSection(
-                            config = currentConfig,
-                            selectedJig = selectedJig,
-                            configViewModel = configViewModel,
-                            isExpanded = isMoreOptionsExpanded,
-                            onToggleExpand = { isMoreOptionsExpanded = !isMoreOptionsExpanded }
-                        )
+                        if (selectedConfigTab == 0) {
+                            // Validation warning / balanced indicator
+                            JigValidationCard(
+                                validation = validation,
+                                onAutoCalibrate = {
+                                    configViewModel.updateWeight(validation.goldenWeight)
+                                    configViewModel.updateLength(validation.goldenLength)
+                                    configViewModel.updateWidth(validation.goldenWidth)
+                                    configViewModel.updateCustomWeight("")
+                                    configViewModel.updateCustomLength("")
+                                    configViewModel.updateCustomWidth("")
+                                }
+                            )
+
+                            EssentialConfigurationControls(
+                                config = currentConfig,
+                                selectedJig = selectedJig,
+                                configViewModel = configViewModel,
+                                onShowTermInfo = { activeTermInfo = it }
+                            )
+
+                            MoreOptionsSection(
+                                config = currentConfig,
+                                selectedJig = selectedJig,
+                                configViewModel = configViewModel,
+                                isExpanded = isMoreOptionsExpanded,
+                                onToggleExpand = { isMoreOptionsExpanded = !isMoreOptionsExpanded },
+                                selectedEyeColorName = selectedEyeColorName,
+                                onSelectEyeColor = { name, _ -> selectedEyeColorName = name },
+                                onShowTermInfo = { activeTermInfo = it }
+                            )
+                        } else {
+                            // Best combinations curated presets
+                            BestCombinationsSection(
+                                config = currentConfig,
+                                selectedJig = selectedJig,
+                                onApplyPreset = { preset ->
+                                    configViewModel.updateWeight(preset.weightGrams)
+                                    configViewModel.updateLength(preset.lengthMm)
+                                    configViewModel.updateWidth(preset.widthMm)
+                                    configViewModel.updateCustomWeight("")
+                                    configViewModel.updateCustomLength("")
+                                    configViewModel.updateCustomWidth("")
+                                    configViewModel.updateFinishType(preset.finishType)
+                                    configViewModel.updateFrontRing(preset.frontRing)
+                                    configViewModel.updateBackRing(preset.backRing)
+                                    configViewModel.updateHookTypeJig(preset.hookType)
+                                    configViewModel.updateEyeStyle(preset.eyeStyle)
+                                    configViewModel.updateAssistCord(preset.assistCord)
+                                }
+                            )
+                        }
 
                         ProductInActionSection(
                             config = currentConfig,
@@ -207,40 +290,109 @@ fun JigConfigScreen(
                         selectedJig = selectedJig
                     )
 
-                    // 4. AVAILABLE SHADES / COLOR VARIANTS SELECTOR
-                    AvailableShadesSelector(
-                        config = currentConfig,
-                        configViewModel = configViewModel
-                    )
-
-                    // 5. LIVE CONFIGURATION SUMMARY
+                    // 4. LIVE CONFIGURATION SUMMARY
                     LiveConfigurationSummaryCard(config = currentConfig)
 
-                    // 5. ESSENTIAL CONFIGURATION CONTROLS
-                    EssentialConfigurationControls(
-                        config = currentConfig,
-                        selectedJig = selectedJig,
-                        configViewModel = configViewModel
-                    )
+                    // 5. CONFIGURATION MODE TABS (Custom Specs vs Best Combination)
+                    TabRow(
+                        selectedTabIndex = selectedConfigTab,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                    ) {
+                        Tab(
+                            selected = selectedConfigTab == 0,
+                            onClick = { selectedConfigTab = 0 },
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Text("Custom Specs", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+                            }
+                        )
+                        Tab(
+                            selected = selectedConfigTab == 1,
+                            onClick = { selectedConfigTab = 1 },
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Text("Best Combination", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+                            }
+                        )
+                    }
 
-                    // 6. MORE OPTIONS (Progressive Disclosure Accordion)
-                    MoreOptionsSection(
-                        config = currentConfig,
-                        selectedJig = selectedJig,
-                        configViewModel = configViewModel,
-                        isExpanded = isMoreOptionsExpanded,
-                        onToggleExpand = { isMoreOptionsExpanded = !isMoreOptionsExpanded }
-                    )
+                    if (selectedConfigTab == 0) {
+                        // 6. HYDRODYNAMIC & BREAKAGE VALIDATION CARD
+                        JigValidationCard(
+                            validation = validation,
+                            onAutoCalibrate = {
+                                configViewModel.updateWeight(validation.goldenWeight)
+                                configViewModel.updateLength(validation.goldenLength)
+                                configViewModel.updateWidth(validation.goldenWidth)
+                                configViewModel.updateCustomWeight("")
+                                configViewModel.updateCustomLength("")
+                                configViewModel.updateCustomWidth("")
+                            }
+                        )
 
-                    // 7. TECHNICAL VIEW LAUNCHER CARD
+                        // 7. ESSENTIAL CONFIGURATION CONTROLS
+                        EssentialConfigurationControls(
+                            config = currentConfig,
+                            selectedJig = selectedJig,
+                            configViewModel = configViewModel,
+                            onShowTermInfo = { activeTermInfo = it }
+                        )
+
+                        // 8. MORE OPTIONS (Progressive Disclosure Accordion)
+                        MoreOptionsSection(
+                            config = currentConfig,
+                            selectedJig = selectedJig,
+                            configViewModel = configViewModel,
+                            isExpanded = isMoreOptionsExpanded,
+                            onToggleExpand = { isMoreOptionsExpanded = !isMoreOptionsExpanded },
+                            selectedEyeColorName = selectedEyeColorName,
+                            onSelectEyeColor = { name, _ -> selectedEyeColorName = name },
+                            onShowTermInfo = { activeTermInfo = it }
+                        )
+                    } else {
+                        // BEST COMBINATION PRESETS
+                        BestCombinationsSection(
+                            config = currentConfig,
+                            selectedJig = selectedJig,
+                            onApplyPreset = { preset ->
+                                configViewModel.updateWeight(preset.weightGrams)
+                                configViewModel.updateLength(preset.lengthMm)
+                                configViewModel.updateWidth(preset.widthMm)
+                                configViewModel.updateCustomWeight("")
+                                configViewModel.updateCustomLength("")
+                                configViewModel.updateCustomWidth("")
+                                configViewModel.updateFinishType(preset.finishType)
+                                configViewModel.updateFrontRing(preset.frontRing)
+                                configViewModel.updateBackRing(preset.backRing)
+                                configViewModel.updateHookTypeJig(preset.hookType)
+                                configViewModel.updateEyeStyle(preset.eyeStyle)
+                                configViewModel.updateAssistCord(preset.assistCord)
+                            }
+                        )
+                    }
+
+                    // 9. TECHNICAL VIEW LAUNCHER CARD
                     TechnicalViewLauncherCard(
                         config = currentConfig,
                         onOpenTechnicalView = onNavigateToEngineering,
                         isInlineExpanded = isInlineTechnicalViewExpanded,
-                        onToggleInline = { isInlineTechnicalViewExpanded = !isInlineTechnicalViewExpanded }
+                        onToggleInline = { isInlineTechnicalViewExpanded = !isInlineTechnicalViewExpanded },
+                        onShowTermInfo = { activeTermInfo = it }
                     )
 
-                    // 8. PRODUCT IN ACTION (Collapsed presentation)
+                    // 10. PRODUCT IN ACTION (Collapsed presentation)
                     ProductInActionSection(
                         config = currentConfig,
                         isExpanded = isProductInActionExpanded,
@@ -251,6 +403,12 @@ fun JigConfigScreen(
                 }
             }
         }
+
+        // Technical Term Information Modal Dialog
+        TechnicalTermDialog(
+            termInfo = activeTermInfo,
+            onDismiss = { activeTermInfo = null }
+        )
     }
 }
 
@@ -367,151 +525,6 @@ private fun CompactProductHeader(config: ProductConfiguration, selectedJig: JigP
 }
 
 /**
- * Available Shades & Color Variants Selector (Requirement 6):
- * Prominently located directly below product preview.
- * Allows instant photo switching between shades while keeping custom specs intact.
- */
-@Composable
-private fun AvailableShadesSelector(
-    config: ProductConfiguration,
-    configViewModel: ConfiguratorViewModel
-) {
-    val jigs = com.example.data.model.ProductCatalog.jigs
-
-    TactileCard(
-        modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 1.5.dp
-    ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "AVAILABLE SHADES & COLOR VARIANTS",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
-                    )
-                }
-                Text(
-                    text = "TAP TO SWITCH ASSET",
-                    fontSize = 8.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                jigs.forEach { jig ->
-                    val isSelected = config.productId == jig.id || config.productName == jig.name
-                    Surface(
-                        onClick = {
-                            configViewModel.selectProductShade(
-                                finishName = jig.name,
-                                baseHex = jig.baseColorHex,
-                                accentHex = jig.accentColorHex,
-                                patternType = jig.patternType
-                            )
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        border = androidx.compose.foundation.BorderStroke(
-                            width = if (isSelected) 1.5.dp else 0.8.dp,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-                        ),
-                        modifier = Modifier
-                            .width(135.dp)
-                            .testTag("shade_selector_${jig.id}")
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Dual-Color Swatch Circle
-                                Box(
-                                    modifier = Modifier
-                                        .size(20.dp)
-                                        .clip(CircleShape)
-                                        .border(1.dp, Color.White.copy(alpha = 0.8f), CircleShape)
-                                ) {
-                                    Row(modifier = Modifier.fillMaxSize()) {
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .fillMaxHeight()
-                                                .background(Color(jig.baseColorHex))
-                                        )
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .fillMaxHeight()
-                                                .background(Color(jig.accentColorHex))
-                                        )
-                                    }
-                                }
-
-                                if (isSelected) {
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        shape = CircleShape,
-                                        modifier = Modifier.size(16.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                Icons.Default.Check,
-                                                contentDescription = "Selected",
-                                                tint = MaterialTheme.colorScheme.onPrimary,
-                                                modifier = Modifier.size(10.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            Text(
-                                text = jig.name,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1
-                            )
-
-                            Text(
-                                text = jig.patternType.displayName,
-                                fontSize = 9.sp,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
  * Live Configuration Summary:
  * Compact summary near the configuration controls with live custom spec indicators
  */
@@ -589,7 +602,8 @@ private fun LiveConfigurationSummaryCard(config: ProductConfiguration) {
 private fun EssentialConfigurationControls(
     config: ProductConfiguration,
     selectedJig: JigProduct,
-    configViewModel: ConfiguratorViewModel
+    configViewModel: ConfiguratorViewModel,
+    onShowTermInfo: (TechnicalTermInfo) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // 1. WEIGHT CONFIGURATION (Supported options + Custom Stepper/Input)
@@ -607,13 +621,24 @@ private fun EssentialConfigurationControls(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "WEIGHT (FINISHED MASS)",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "WEIGHT (FINISHED MASS)",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.5.sp
+                        )
+                        TechnicalInfoIcon(
+                            term = "Finished Mass (Weight in Grams)",
+                            definition = "The solid mass of the jig alloy core after surface plating and clear coat. In saltwater vertical jigging, heavier jigs sink faster to punch through thermoclines and drift currents, while lighter jigs stay in the strike zone longer.",
+                            recommendation = "Select 1 to 1.5 grams per meter of water depth as a factory standard rule of thumb.",
+                            onShowInfo = onShowTermInfo
+                        )
+                    }
                     Text(
                         text = if (isCustomWeightActive && config.customWeight.isNotEmpty()) "${config.customWeight} g (Custom)" else "${config.weightGrams.toInt()} g",
                         fontSize = 13.sp,
@@ -713,13 +738,24 @@ private fun EssentialConfigurationControls(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "TOTAL LENGTH",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "TOTAL LENGTH",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.5.sp
+                        )
+                        TechnicalInfoIcon(
+                            term = "Total Body Length (mm)",
+                            definition = "The axial length from the tip of the front tow eye to the base of the rear split ring eyelet.",
+                            recommendation = "Longer bodies produce erratic wide darting (knife action), while shorter bodies flutter rapidly on the drop.",
+                            onShowInfo = onShowTermInfo
+                        )
+                    }
                     Text(
                         text = if (config.customLength.isNotEmpty()) "${config.customLength} mm (Custom)" else "${config.lengthMm.toInt()} mm",
                         fontSize = 12.5.sp,
@@ -751,13 +787,24 @@ private fun EssentialConfigurationControls(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "HYDRODYNAMIC WIDTH",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "HYDRODYNAMIC WIDTH",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.5.sp
+                        )
+                        TechnicalInfoIcon(
+                            term = "Hydrodynamic Keel Width (mm)",
+                            definition = "The maximum transverse width across the jig belly keel.",
+                            recommendation = "A wider belly slows the descent and generates erratic side-to-side flutter on slack line.",
+                            onShowInfo = onShowTermInfo
+                        )
+                    }
                     Text(
                         text = if (config.customWidth.isNotEmpty()) "${config.customWidth} mm (Custom)" else "${config.widthMm.toInt()} mm",
                         fontSize = 12.5.sp,
@@ -840,13 +887,24 @@ private fun EssentialConfigurationControls(
             shadowElevation = 1.5.dp
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = "FINISH & COLOR PALETTE",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 0.5.sp
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "FINISH & COLOR PALETTE",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
+                    )
+                    TechnicalInfoIcon(
+                        term = "Surface Finish & Holographic Coating",
+                        definition = "Multi-layered vacuum metalized plating with UV reactive topcoat.",
+                        recommendation = "Matches prey forage light transmission at varying sea depths.",
+                        onShowInfo = onShowTermInfo
+                    )
+                }
                 Text(
                     text = "Protective coating and light reflection treatment.",
                     style = MaterialTheme.typography.bodySmall,
@@ -935,13 +993,24 @@ private fun EssentialConfigurationControls(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "ATTACHMENT RINGS (FRONT & BACK)",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "ATTACHMENT RINGS (FRONT & BACK)",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.5.sp
+                        )
+                        TechnicalInfoIcon(
+                            term = "Solid & Split Rigging Rings",
+                            definition = "SUS304 forged stainless steel seamless solid front ring and heavy-duty rear split ring.",
+                            recommendation = "Heavy-duty rings prevent deformation under extreme drag loads and violent predatory headshakes.",
+                            onShowInfo = onShowTermInfo
+                        )
+                    }
                     Text(
                         text = "SUS304 STAINLESS",
                         fontSize = 9.5.sp,
@@ -1053,13 +1122,24 @@ private fun EssentialConfigurationControls(
             shadowElevation = 1.5.dp
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = "HOOK RIGGING SPECIFICATION",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 0.5.sp
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "HOOK RIGGING SPECIFICATION",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
+                    )
+                    TechnicalInfoIcon(
+                        term = "Assist Hook Rigging",
+                        definition = "Saltwater forged chemically sharpened assist hooks attached via braided cord.",
+                        recommendation = "Top assist hooks target predatory fish attacking the head during the jig pause.",
+                        onShowInfo = onShowTermInfo
+                    )
+                }
                 Text(
                     text = "Hook attached to the Jig for strikes.",
                     style = MaterialTheme.typography.bodySmall,
@@ -1108,13 +1188,24 @@ private fun EssentialConfigurationControls(
             shadowElevation = 1.5.dp
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = "ASSIST CORD / THREAD BINDING COLOR",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 0.5.sp
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "ASSIST CORD / THREAD BINDING COLOR",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
+                    )
+                    TechnicalInfoIcon(
+                        term = "Assist Cord Filament & Thread Binding",
+                        definition = "High-tensile Ultra-High Molecular Weight Polyethylene (PE) or Kevlar line securing the hook eye to the solid ring.",
+                        recommendation = "Bright color binding acts as a hot-spot strike trigger in low light conditions.",
+                        onShowInfo = onShowTermInfo
+                    )
+                }
                 Text(
                     text = "Color of the cord attached to the Assist Hook.",
                     style = MaterialTheme.typography.bodySmall,
@@ -1160,7 +1251,10 @@ private fun MoreOptionsSection(
     selectedJig: JigProduct,
     configViewModel: ConfiguratorViewModel,
     isExpanded: Boolean,
-    onToggleExpand: () -> Unit
+    onToggleExpand: () -> Unit,
+    selectedEyeColorName: String,
+    onSelectEyeColor: (String, Color) -> Unit,
+    onShowTermInfo: (TechnicalTermInfo) -> Unit
 ) {
     TactileCard(
         modifier = Modifier.fillMaxWidth(),
@@ -1210,11 +1304,22 @@ private fun MoreOptionsSection(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // 1. ALLOY & CORE CONSTRUCTION
-                    Text(
-                        text = "Core Alloy Construction:",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Core Alloy Construction:",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        TechnicalInfoIcon(
+                            term = "Core Alloy Composition",
+                            definition = "High-purity antimony-hardened lead alloy or lead-free tungsten matrix providing density and flexural rigidity.",
+                            recommendation = "Hardened alloy prevents bending under violent fish headshakes and reef strikes.",
+                            onShowInfo = onShowTermInfo
+                        )
+                    }
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -1234,11 +1339,22 @@ private fun MoreOptionsSection(
                     }
 
                     // 2. 3D EYE STYLE
-                    Text(
-                        text = "3D Strike Eye Specification:",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "3D Strike Eye Specification:",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        TechnicalInfoIcon(
+                            term = "3D Luminous Strike Eye",
+                            definition = "Optically clear domed resin lens with UV luminous or holographic iris reflection.",
+                            recommendation = "Predators target the eye as the vulnerability trigger point when attacking from below.",
+                            onShowInfo = onShowTermInfo
+                        )
+                    }
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -1262,20 +1378,40 @@ private fun MoreOptionsSection(
                         }
                     }
 
-                    // 3. ASSIST CORD MATERIAL
-                    Text(
-                        text = "Assist Cord Tensile Rigging:",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold
+                    // Live 3D Eye Preview Box
+                    StrikeEyePreviewBox(
+                        eyeStyle = config.eyeStyle,
+                        selectedEyeColorName = selectedEyeColorName,
+                        onSelectEyeColor = onSelectEyeColor
                     )
+
+                    // 3. ASSIST CORD MATERIAL (OPTIONAL)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Assist Cord Tensile Rigging (Optional):",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        TechnicalInfoIcon(
+                            term = "Assist Cord Tensile Rating",
+                            definition = "Breaking strain rating and core material of the assist cord rigging.",
+                            recommendation = "Optional parameter. Choose 'None' for unrigged jigs or 150lb to 250lb depending on target pelagic species.",
+                            onShowInfo = onShowTermInfo
+                        )
+                    }
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         listOf(
+                            "None (Optional / Unrigged)",
                             "Braided PE (200 lb)",
                             "Kevlar Core (250 lb)",
-                            "Wire Assist (150 lb)"
+                            "Wire Assist (150 lb)",
+                            "Fluorocarbon Core (180 lb)"
                         ).forEach { cord ->
                             val isSelected = config.assistCord == cord
                             FilterChip(
@@ -1303,14 +1439,25 @@ private fun MoreOptionsSection(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "MANUFACTURING TOLERANCE",
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                TechnicalInfoIcon(
+                                    term = "ISO 2768-m Machining Tolerance",
+                                    definition = "General dimensional and geometric tolerances for metal die casting and CNC mold tooling.",
+                                    recommendation = "Ensures weight consistency within ±1.5% and axial symmetry across batch production runs.",
+                                    onShowInfo = onShowTermInfo
+                                )
+                            }
                             Text(
-                                text = "MANUFACTURING TOLERANCE",
-                                fontSize = 9.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = "TBD / ISO 2768-m",
+                                text = "ISO 2768-m (±0.2mm)",
                                 fontSize = 9.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace,
@@ -1325,21 +1472,26 @@ private fun MoreOptionsSection(
 }
 
 /**
- * Technical View Launcher Card (Requirement 22):
- * Opens the separate technical drawing / specification view using the exact SAME configuration
+ * Technical View Launcher Card:
+ * Opens the separate technical drawing / specification view using the exact SAME configuration.
+ * Redesigned to eliminate truncation and provide clear call-to-action button.
  */
 @Composable
 private fun TechnicalViewLauncherCard(
     config: ProductConfiguration,
     onOpenTechnicalView: () -> Unit,
     isInlineExpanded: Boolean = false,
-    onToggleInline: (() -> Unit)? = null
+    onToggleInline: (() -> Unit)? = null,
+    onShowTermInfo: ((TechnicalTermInfo) -> Unit)? = null
 ) {
     TactileCard(
         modifier = Modifier.fillMaxWidth(),
         shadowElevation = 1.5.dp
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1347,22 +1499,36 @@ private fun TechnicalViewLauncherCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Icon(
                         Icons.Default.Architecture,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                     Column {
-                        Text(
-                            text = "TECHNICAL SPECIFICATION VIEW",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 0.5.sp
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "TECHNICAL SPECIFICATION VIEW",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                letterSpacing = 0.5.sp
+                            )
+                            if (onShowTermInfo != null) {
+                                TechnicalInfoIcon(
+                                    term = "1:1 Orthographic CAD Projection",
+                                    definition = "Precision engineering drawing displaying frontal, lateral, and cross-sectional views with dimensional tolerances.",
+                                    recommendation = "Used by CNC toolmakers to cut high-pressure steel injection dies.",
+                                    onShowInfo = onShowTermInfo
+                                )
+                            }
+                        }
                         Text(
                             text = "1:1 Orthographic CAD Projection & Tolerances",
                             style = MaterialTheme.typography.bodySmall,
@@ -1370,27 +1536,32 @@ private fun TechnicalViewLauncherCard(
                         )
                     }
                 }
-
-                TactileButton(
-                    onClick = onOpenTechnicalView,
-                    variant = TactileButtonVariant.OUTLINE,
-                    text = "Open Technical View",
-                    modifier = Modifier.height(34.dp)
-                )
             }
 
+            // High-contrast, full-width action button - NEVER truncated to "Op"
+            TactileButton(
+                onClick = onOpenTechnicalView,
+                variant = TactileButtonVariant.PRIMARY,
+                icon = Icons.Default.Architecture,
+                text = "View Engineering Blueprint",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(38.dp)
+            )
+
             if (onToggleInline != null) {
-                Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onToggleInline() },
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { onToggleInline() }
+                        .padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = if (isInlineExpanded) "Hide Inline CAD Blueprint" else "Show Inline CAD Blueprint Preview",
-                        fontSize = 10.5.sp,
+                        fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
                     )

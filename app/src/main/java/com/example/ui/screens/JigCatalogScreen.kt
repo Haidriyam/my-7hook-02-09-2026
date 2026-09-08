@@ -14,7 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,8 +39,9 @@ fun JigCatalogScreen(
     onSelectJig: (JigProduct) -> Unit,
     onNavigateBack: () -> Unit
 ) {
-    val newJigs = ProductCatalog.newJigs
-    val existingJigs = ProductCatalog.existingJigs
+    val currentYear = remember { java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) }
+    val featuredJigs = remember { ProductCatalog.newJigs.take(2) }
+    val otherJigs = remember { ProductCatalog.jigs.filter { it !in featuredJigs } }
 
     Scaffold(
         topBar = {
@@ -95,7 +96,7 @@ fun JigCatalogScreen(
                 }
             }
 
-            // SECTION 1: NEW JIGS AT TOP
+            // SECTION 1: FEATURED RECOMMENDED JIGS (Only 2 displayed, dynamic year)
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Row(
                     modifier = Modifier
@@ -109,7 +110,7 @@ fun JigCatalogScreen(
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(
-                            text = "NEW JIGS",
+                            text = "Our Recommended",
                             color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -117,7 +118,7 @@ fun JigCatalogScreen(
                         )
                     }
                     Text(
-                        text = "2026 Innovation Series (Featured First)",
+                        text = "$currentYear Innovation Series (Featured First)",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -125,7 +126,7 @@ fun JigCatalogScreen(
                 }
             }
 
-            items(newJigs, key = { it.id }) { jig ->
+            items(featuredJigs, key = { it.id }) { jig ->
                 JigProductCard(
                     jig = jig,
                     isNew = true,
@@ -133,7 +134,7 @@ fun JigCatalogScreen(
                 )
             }
 
-            // SECTION 2: EXISTING JIGS
+            // SECTION 2: OTHER & TOURNAMENT JIGS
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Row(
                     modifier = Modifier
@@ -147,7 +148,7 @@ fun JigCatalogScreen(
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(
-                            text = "EXISTING JIGS",
+                            text = "PRODUCT CATALOG",
                             color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -163,7 +164,7 @@ fun JigCatalogScreen(
                 }
             }
 
-            items(existingJigs, key = { it.id }) { jig ->
+            items(otherJigs, key = { it.id }) { jig ->
                 JigProductCard(
                     jig = jig,
                     isNew = false,

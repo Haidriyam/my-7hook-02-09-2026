@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -459,149 +460,37 @@ private fun ModuleCardsSection(
     onNavigateToLures: () -> Unit,
     onNavigateToPackaging: () -> Unit
 ) {
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val isMobile = maxWidth < 480.dp
-        if (isMobile) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                CompactModuleRow(
-                    title = "Jigs",
-                    subtitle = "Metal, tungsten & vertical jigging specifications",
-                    iconRes = R.drawable.ic_jig_icon,
-                    gradient = listOf(Color(0xFF0284C7), Color(0xFF0369A1)),
-                    buttonVariant = TactileButtonVariant.PRIMARY,
-                    onClick = onNavigateToJigs,
-                    testTag = "dashboard_jig_configurator_card"
-                )
-                CompactModuleRow(
-                    title = "Rods",
-                    subtitle = "Carbon blanks, guide train & action parameters",
-                    iconRes = R.drawable.ic_rod_icon,
-                    gradient = listOf(Color(0xFFEA580C), Color(0xFFC2410C)),
-                    buttonVariant = TactileButtonVariant.SECONDARY,
-                    onClick = onNavigateToRods,
-                    testTag = "dashboard_rod_configurator_card"
-                )
-                CompactModuleRow(
-                    title = "Lures",
-                    subtitle = "Hardbody lures, swimming lip & ballast design",
-                    iconRes = R.drawable.ic_lure_icon,
-                    gradient = listOf(Color(0xFF0D9488), Color(0xFF0F766E)),
-                    buttonVariant = TactileButtonVariant.PRIMARY,
-                    onClick = onNavigateToLures,
-                    testTag = "dashboard_lure_configurator_card"
-                )
-                CompactModuleRow(
-                    title = "Packaging",
-                    subtitle = "Retail blister cards, rigid boxes & custom branding",
-                    iconRes = R.drawable.ic_package_box,
-                    gradient = listOf(Color(0xFF475569), Color(0xFF1E293B)),
-                    buttonVariant = TactileButtonVariant.OUTLINE,
-                    onClick = onNavigateToPackaging,
-                    testTag = "dashboard_packaging_card"
-                )
-            }
-        } else {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    JigConfigDashboardCard(
-                        modifier = Modifier.weight(1f),
-                        onNavigateToJigs = onNavigateToJigs
-                    )
-                    RodConfigDashboardCard(
-                        modifier = Modifier.weight(1f),
-                        onNavigateToRods = onNavigateToRods
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    LureConfigDashboardCard(
-                        modifier = Modifier.weight(1f),
-                        onNavigateToLures = onNavigateToLures
-                    )
-                    PackagingConfigDashboardCard(
-                        modifier = Modifier.weight(1f),
-                        onNavigateToPackaging = onNavigateToPackaging
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CompactModuleRow(
-    title: String,
-    subtitle: String,
-    @androidx.annotation.DrawableRes iconRes: Int,
-    gradient: List<Color>,
-    buttonVariant: TactileButtonVariant,
-    onClick: () -> Unit,
-    testTag: String
-) {
-    TactileCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(testTag)
-            .clickable { onClick() },
-        shadowElevation = 1.dp
+    // 2x2 Grid Layout: Two rows and two columns with bigger fitted product images
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        // Row 1: Jigs & Rods
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Brush.linearGradient(gradient)),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = iconRes),
-                    contentDescription = title,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.5.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            TactileButton(
-                onClick = onClick,
-                variant = buttonVariant,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                text = "Configure"
+            JigConfigDashboardCard(
+                modifier = Modifier.weight(1f),
+                onNavigateToJigs = onNavigateToJigs
+            )
+            RodConfigDashboardCard(
+                modifier = Modifier.weight(1f),
+                onNavigateToRods = onNavigateToRods
+            )
+        }
+        // Row 2: Lures & Packaging
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            LureConfigDashboardCard(
+                modifier = Modifier.weight(1f),
+                onNavigateToLures = onNavigateToLures
+            )
+            PackagingConfigDashboardCard(
+                modifier = Modifier.weight(1f),
+                onNavigateToPackaging = onNavigateToPackaging
             )
         }
     }
@@ -616,42 +505,33 @@ private fun JigConfigDashboardCard(
         modifier = modifier
             .testTag("dashboard_jig_configurator_card")
             .clickable { onNavigateToJigs() },
-        shadowElevation = 1.dp
+        shadowElevation = 1.5.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Bigger Fitted Product Image Container (No overlapping)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(105.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    .border(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
+                AsyncImage(
+                    model = com.example.data.model.ProductCatalog.CATEGORY_IMAGE_JIG,
+                    contentDescription = "Fishing Jig",
+                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    error = painterResource(id = R.drawable.ic_jig_icon),
+                    fallback = painterResource(id = R.drawable.ic_jig_icon),
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(Color(0xFF0284C7), Color(0xFF0369A1))
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_jig_icon),
-                        contentDescription = "Fishing Jig Icon",
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
+                        .fillMaxSize()
+                        .padding(6.dp)
                 )
             }
 
@@ -667,8 +547,9 @@ private fun JigConfigDashboardCard(
                     text = "Jigheads, spoons & pelagics",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.5.sp,
-                    maxLines = 1
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -676,7 +557,7 @@ private fun JigConfigDashboardCard(
                 onClick = onNavigateToJigs,
                 modifier = Modifier.fillMaxWidth(),
                 variant = TactileButtonVariant.PRIMARY,
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 5.dp),
                 text = "Configure",
                 testTag = "configure_jig_button"
             )
@@ -693,42 +574,33 @@ private fun RodConfigDashboardCard(
         modifier = modifier
             .testTag("dashboard_rod_configurator_card")
             .clickable { onNavigateToRods() },
-        shadowElevation = 1.dp
+        shadowElevation = 1.5.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Bigger Fitted Product Image Container (No overlapping)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(105.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    .border(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
+                AsyncImage(
+                    model = com.example.data.model.ProductCatalog.CATEGORY_IMAGE_ROD,
+                    contentDescription = "Fishing Rod",
+                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    error = painterResource(id = R.drawable.ic_rod_icon),
+                    fallback = painterResource(id = R.drawable.ic_rod_icon),
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(Color(0xFFEA580C), Color(0xFFC2410C))
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_rod_icon),
-                        contentDescription = "Fishing Rod Icon",
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = Color(0xFFEA580C),
-                    modifier = Modifier.size(16.dp)
+                        .fillMaxSize()
+                        .padding(6.dp)
                 )
             }
 
@@ -744,8 +616,9 @@ private fun RodConfigDashboardCard(
                     text = "Toray blanks & Fuji guides",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.5.sp,
-                    maxLines = 1
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -753,7 +626,7 @@ private fun RodConfigDashboardCard(
                 onClick = onNavigateToRods,
                 modifier = Modifier.fillMaxWidth(),
                 variant = TactileButtonVariant.SECONDARY,
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 5.dp),
                 text = "Configure",
                 testTag = "configure_rod_button"
             )
@@ -770,42 +643,33 @@ private fun LureConfigDashboardCard(
         modifier = modifier
             .testTag("dashboard_lure_configurator_card")
             .clickable { onNavigateToLures() },
-        shadowElevation = 1.dp
+        shadowElevation = 1.5.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Bigger Fitted Product Image Container (No overlapping)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(105.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    .border(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
+                AsyncImage(
+                    model = com.example.data.model.ProductCatalog.CATEGORY_IMAGE_LURE,
+                    contentDescription = "Hard Lure",
+                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    error = painterResource(id = R.drawable.ic_lure_icon),
+                    fallback = painterResource(id = R.drawable.ic_lure_icon),
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(Color(0xFF0D9488), Color(0xFF0F766E))
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_lure_icon),
-                        contentDescription = "Hard Lure Icon",
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = Color(0xFF0D9488),
-                    modifier = Modifier.size(16.dp)
+                        .fillMaxSize()
+                        .padding(6.dp)
                 )
             }
 
@@ -821,8 +685,9 @@ private fun LureConfigDashboardCard(
                     text = "Minnows, cranks & poppers",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.5.sp,
-                    maxLines = 1
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -830,7 +695,7 @@ private fun LureConfigDashboardCard(
                 onClick = onNavigateToLures,
                 modifier = Modifier.fillMaxWidth(),
                 variant = TactileButtonVariant.PRIMARY,
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 5.dp),
                 text = "Configure",
                 testTag = "configure_lure_button"
             )
@@ -847,42 +712,33 @@ private fun PackagingConfigDashboardCard(
         modifier = modifier
             .testTag("dashboard_packaging_card")
             .clickable { onNavigateToPackaging() },
-        shadowElevation = 1.dp
+        shadowElevation = 1.5.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Bigger Fitted Product Image Container (No overlapping)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(105.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    .border(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
+                AsyncImage(
+                    model = com.example.data.model.ProductCatalog.CATEGORY_IMAGE_PACKAGING,
+                    contentDescription = "Packaging Box",
+                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    error = painterResource(id = R.drawable.ic_package_box),
+                    fallback = painterResource(id = R.drawable.ic_package_box),
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(Color(0xFF475569), Color(0xFF1E293B))
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_package_box),
-                        contentDescription = "Packaging Box Icon",
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = Color(0xFF64748B),
-                    modifier = Modifier.size(16.dp)
+                        .fillMaxSize()
+                        .padding(6.dp)
                 )
             }
 
@@ -898,8 +754,9 @@ private fun PackagingConfigDashboardCard(
                     text = "Retail boxes & blister packs",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.5.sp,
-                    maxLines = 1
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -907,7 +764,7 @@ private fun PackagingConfigDashboardCard(
                 onClick = onNavigateToPackaging,
                 modifier = Modifier.fillMaxWidth(),
                 variant = TactileButtonVariant.OUTLINE,
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 5.dp),
                 text = "Configure",
                 testTag = "configure_packaging_button"
             )

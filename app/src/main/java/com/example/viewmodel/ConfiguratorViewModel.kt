@@ -305,6 +305,14 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
         _currentConfig.value = _currentConfig.value.copy(assistCord = assistCord)
     }
 
+    fun updateFinishType(finishType: String) {
+        _currentConfig.value = _currentConfig.value.copy(finishType = finishType)
+    }
+
+    fun updateHookTypeJig(hook: String) {
+        _currentConfig.value = _currentConfig.value.copy(hookTypeJig = hook)
+    }
+
     fun updateRodParameters(
         power: String? = null,
         action: String? = null,

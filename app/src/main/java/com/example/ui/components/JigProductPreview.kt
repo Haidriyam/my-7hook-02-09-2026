@@ -39,23 +39,21 @@ import com.example.R
 import com.example.data.model.JigProduct
 import com.example.data.model.ProductConfiguration
 
-enum class JigAngle(val label: String, val rotationZ: Float, val scaleX: Float) {
-    SIDE_PROFILE("Side Profile", 0f, 1f),
-    HERO_THREE_QUARTER("3/4 Hero", -4f, 1f),
-    TOP_DORSAL("Top Dorsal", 0f, 0.92f),
-    KEEL_VENTRAL("Keel Bottom", 4f, 0.95f)
+enum class JigAngle(val label: String, val subtitle: String, val rotationZ: Float, val scaleX: Float, val scaleY: Float) {
+    SIDE_PROFILE("Side Profile", "Lateral Keel 0°", 0f, 1f, 1f),
+    HERO_THREE_QUARTER("3/4 Hero", "Isometric -4°", -4f, 1f, 0.96f),
+    TOP_DORSAL("Top Dorsal", "Dorsal Spine 90°", 0f, 0.88f, 0.90f),
+    KEEL_VENTRAL("Keel Bottom", "Ventral Belly 180°", 4f, 0.92f, 0.94f)
 }
 
 /**
  * 7Hooks Product Preview
- * Clean, bounded product presentation showing the exact selected Jig photo.
  * Features:
- * - Immediate display of the real selected Jig product image (Orange-Black, Yellow-Dotted, etc.)
- * - Bounded height (approx 200dp) with generous breathing room
- * - Neutral studio background (Light: off-white, Dark: dark neutral)
+ * - Real selected Jig product image on a light sky blue water background
+ * - High-contrast dark badge chips with crisp light text in the four corners
  * - Interactive zoom controls (+ / - / reset) & gesture pinch
  * - Dynamic visual overlays for Front Ring, Back Ring, and Thread binding
- * - Multi-angle view selector
+ * - Polished multi-angle perspective selector with view indicators
  */
 @Composable
 fun JigProductPreview(
@@ -63,8 +61,6 @@ fun JigProductPreview(
     selectedJig: JigProduct,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
-
     var selectedAngleIndex by remember { mutableIntStateOf(0) }
     val angles = JigAngle.values()
     val currentAngle = angles[selectedAngleIndex]
@@ -77,10 +73,21 @@ fun JigProductPreview(
         label = "rotation_anim"
     )
 
-    // Neutral Studio Backgrounds (No decorative gradients or large blue voids)
-    val studioBgColor = if (isDark) Color(0xFF131A26) else Color(0xFFF8FAFC)
-    val studioBorderColor = if (isDark) Color(0xFF2A3649) else Color(0xFFE2E8F0)
-    val floorShadowColor = if (isDark) Color(0x66000000) else Color(0x1F0F172A)
+    // Light Blue / Sky Blue Oceanic Water Background
+    val waterGradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFFE0F2FE), // Sky blue 100
+            Color(0xFFBAE6FD), // Sky blue 200
+            Color(0xFF7DD3FC)  // Sky blue 300
+        )
+    )
+    val waterBorderColor = Color(0xFF38BDF8)
+    val floorShadowColor = Color(0x330284C7)
+
+    // High-Contrast Corner Badges (Dark background with light text)
+    val cornerBadgeBg = Color(0xEE0F172A) // Dark slate navy
+    val cornerBadgeBorder = Color(0xFF334155) // Slate 700 border
+    val cornerBadgeText = Color(0xFFF8FAFC) // Crisp light white text
 
     val imageModel: Any = selectedJig.localDrawableRes ?: selectedJig.imageUrl
 
@@ -89,27 +96,42 @@ fun JigProductPreview(
             .fillMaxWidth()
             .testTag("jig_product_preview_container")
     ) {
-        // MAIN BOUNDED PRODUCT PREVIEW BOX
+        // MAIN BOUNDED PRODUCT PREVIEW BOX (Light blue / sky blue ocean water background)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(205.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(studioBgColor)
-                .border(1.dp, studioBorderColor, RoundedCornerShape(10.dp))
+                .height(210.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(waterGradient)
+                .border(1.dp, waterBorderColor, RoundedCornerShape(12.dp))
                 .pointerInput(Unit) {
                     detectTransformGestures { _, _, zoom, _ ->
                         zoomScale = (zoomScale * zoom).coerceIn(0.85f, 2.2f)
                     }
                 }
         ) {
-            // 1. Subtle Floor Contact Shadow
+            // 1. Water Surface Shimmer & Floor Depth Shadow
             Canvas(
-                modifier = Modifier
-                    .fillMaxSize()
+                modifier = Modifier.fillMaxSize()
             ) {
                 val w = size.width
                 val h = size.height
+
+                // Subtle water caustics / wave lines
+                drawLine(
+                    color = Color.White.copy(alpha = 0.35f),
+                    start = Offset(w * 0.1f, h * 0.25f),
+                    end = Offset(w * 0.9f, h * 0.22f),
+                    strokeWidth = 1.2.dp.toPx()
+                )
+                drawLine(
+                    color = Color.White.copy(alpha = 0.25f),
+                    start = Offset(w * 0.15f, h * 0.38f),
+                    end = Offset(w * 0.85f, h * 0.40f),
+                    strokeWidth = 0.8.dp.toPx()
+                )
+
+                // Depth Contact Shadow under the jig
                 val shadowWidth = (w * 0.55f) * zoomScale.coerceIn(0.9f, 1.3f)
                 val shadowHeight = 14.dp.toPx()
                 val floorY = h * 0.82f
@@ -132,7 +154,7 @@ fun JigProductPreview(
                     .padding(horizontal = 24.dp, vertical = 22.dp)
                     .graphicsLayer {
                         scaleX = zoomScale * currentAngle.scaleX
-                        scaleY = zoomScale
+                        scaleY = zoomScale * currentAngle.scaleY
                         rotationZ = animatedRotation
                     },
                 contentAlignment = Alignment.Center
@@ -149,7 +171,7 @@ fun JigProductPreview(
                 )
             }
 
-            // 3. TOP BAR: Title Pill & Zoom Controls
+            // 3. TOP BAR: Corner Badges with DARK BACKGROUND and LIGHT TEXT
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -158,69 +180,76 @@ fun JigProductPreview(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Product Preview Status Pill
+                // TOP-LEFT CORNER: Product Preview Status Pill
                 Surface(
-                    color = if (isDark) Color(0xEE1E293B) else Color(0xEEFFFFFF),
-                    shape = RoundedCornerShape(4.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        0.8.dp,
-                        if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
-                    )
+                    color = cornerBadgeBg,
+                    shape = RoundedCornerShape(6.dp),
+                    border = androidx.compose.foundation.BorderStroke(0.8.dp, cornerBadgeBorder),
+                    shadowElevation = 2.dp
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(6.dp)
+                                .size(7.dp)
                                 .background(Color(0xFF10B981), CircleShape)
                         )
                         Text(
                             text = "PRODUCT PREVIEW",
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = cornerBadgeText,
                             letterSpacing = 0.5.sp
                         )
                     }
                 }
 
-                // Compact Zoom / Reset Controls
+                // TOP-RIGHT CORNER: Compact Zoom / Reset Controls
                 Surface(
-                    color = if (isDark) Color(0xEE1E293B) else Color(0xEEFFFFFF),
-                    shape = RoundedCornerShape(4.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        0.8.dp,
-                        if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
-                    )
+                    color = cornerBadgeBg,
+                    shape = RoundedCornerShape(6.dp),
+                    border = androidx.compose.foundation.BorderStroke(0.8.dp, cornerBadgeBorder),
+                    shadowElevation = 2.dp
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 2.dp, vertical = 1.dp),
+                        modifier = Modifier.padding(horizontal = 3.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(1.dp)
                     ) {
                         IconButton(
                             onClick = { zoomScale = (zoomScale - 0.2f).coerceAtLeast(0.85f) },
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(24.dp)
                         ) {
-                            Icon(Icons.Default.Remove, contentDescription = "Zoom Out", modifier = Modifier.size(12.dp))
+                            Icon(
+                                Icons.Default.Remove,
+                                contentDescription = "Zoom Out",
+                                tint = Color.White,
+                                modifier = Modifier.size(13.dp)
+                            )
                         }
 
                         Text(
                             text = "${(zoomScale * 100).toInt()}%",
                             fontSize = 9.5.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
+                            color = cornerBadgeText,
                             modifier = Modifier.padding(horizontal = 2.dp)
                         )
 
                         IconButton(
                             onClick = { zoomScale = (zoomScale + 0.2f).coerceAtMost(2.2f) },
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(24.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = "Zoom In", modifier = Modifier.size(12.dp))
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Zoom In",
+                                tint = Color.White,
+                                modifier = Modifier.size(13.dp)
+                            )
                         }
 
                         if (zoomScale != 1.0f || selectedAngleIndex != 0) {
@@ -229,45 +258,50 @@ fun JigProductPreview(
                                     zoomScale = 1.0f
                                     selectedAngleIndex = 0
                                 },
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(24.dp)
                             ) {
-                                Icon(Icons.Default.RestartAlt, contentDescription = "Reset Zoom", modifier = Modifier.size(12.dp))
+                                Icon(
+                                    Icons.Default.RestartAlt,
+                                    contentDescription = "Reset Zoom",
+                                    tint = Color(0xFF38BDF8),
+                                    modifier = Modifier.size(13.dp)
+                                )
                             }
                         }
                     }
                 }
             }
 
-            // 4. VISUAL HARDWARE OVERLAYS: FRONT RING & BACK RING (Requirement 16, 17, 18)
-            // Front Ring Indicator Callout (Left / Line Tie)
+            // 4. BOTTOM CORNERS: HARDWARE OVERLAYS (Dark background with light text)
+            // BOTTOM-LEFT CORNER: Front Ring Indicator Callout (Line Tie)
             val frontRingLabel = if (config.frontRing == "Custom" && config.customFrontRing.isNotEmpty()) {
                 "FRONT: ${config.customFrontRing.uppercase()}"
             } else {
                 "FRONT RING: ${config.frontRing.uppercase()}"
             }
             Surface(
-                color = if (isDark) Color(0xDD0F172A) else Color(0xEEFFFFFF),
-                shape = RoundedCornerShape(4.dp),
+                color = cornerBadgeBg,
+                shape = RoundedCornerShape(6.dp),
                 border = androidx.compose.foundation.BorderStroke(
-                    0.7.dp,
-                    if (config.frontRing == "None") Color.Gray.copy(alpha = 0.5f) else Color(0xFF0284C7)
+                    0.8.dp,
+                    if (config.frontRing == "None") Color.Gray.copy(alpha = 0.6f) else Color(0xFF38BDF8)
                 ),
+                shadowElevation = 2.dp,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(start = 8.dp, bottom = 8.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    // Split Ring Visual Dot
                     Box(
                         modifier = Modifier
                             .size(7.dp)
                             .border(
                                 1.5.dp,
-                                if (config.frontRing == "None") Color.Gray else Color(0xFF0284C7),
+                                if (config.frontRing == "None") Color.Gray else Color(0xFF38BDF8),
                                 CircleShape
                             )
                     )
@@ -275,55 +309,55 @@ fun JigProductPreview(
                         text = frontRingLabel.take(20),
                         fontSize = 8.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = cornerBadgeText,
                         letterSpacing = 0.3.sp
                     )
                 }
             }
 
-            // Back Ring Indicator Callout (Right / Stinger)
+            // BOTTOM-RIGHT CORNER: Back Ring Indicator Callout (Rear Stinger)
             val backRingLabel = if (config.backRing == "Custom" && config.customBackRing.isNotEmpty()) {
                 "BACK: ${config.customBackRing.uppercase()}"
             } else {
                 "BACK RING: ${config.backRing.uppercase()}"
             }
             Surface(
-                color = if (isDark) Color(0xDD0F172A) else Color(0xEEFFFFFF),
-                shape = RoundedCornerShape(4.dp),
+                color = cornerBadgeBg,
+                shape = RoundedCornerShape(6.dp),
                 border = androidx.compose.foundation.BorderStroke(
-                    0.7.dp,
-                    if (config.backRing == "None") Color.Gray.copy(alpha = 0.5f) else Color(0xFF0284C7)
+                    0.8.dp,
+                    if (config.backRing == "None") Color.Gray.copy(alpha = 0.6f) else Color(0xFF38BDF8)
                 ),
+                shadowElevation = 2.dp,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 8.dp, bottom = 8.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Text(
                         text = backRingLabel.take(20),
                         fontSize = 8.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = cornerBadgeText,
                         letterSpacing = 0.3.sp
                     )
-                    // Split Ring Visual Dot
                     Box(
                         modifier = Modifier
                             .size(7.dp)
                             .border(
                                 1.5.dp,
-                                if (config.backRing == "None") Color.Gray else Color(0xFF0284C7),
+                                if (config.backRing == "None") Color.Gray else Color(0xFF38BDF8),
                                 CircleShape
                             )
                     )
                 }
             }
 
-            // Assist Cord / Thread Binding Indicator (Center Bottom if active)
+            // BOTTOM-CENTER: Assist Cord Indicator (if active)
             if (config.threadColor != "None") {
                 val threadColorVal = getThreadColorValue(config.threadColor)
                 val cordLabel = if (config.threadColor == "Custom" && config.customAssistCordColor.isNotEmpty()) {
@@ -332,15 +366,16 @@ fun JigProductPreview(
                     "CORD: ${config.threadColor.uppercase()}"
                 }
                 Surface(
-                    color = if (isDark) Color(0xDD0F172A) else Color(0xEEFFFFFF),
-                    shape = RoundedCornerShape(4.dp),
-                    border = androidx.compose.foundation.BorderStroke(0.7.dp, threadColorVal),
+                    color = cornerBadgeBg,
+                    shape = RoundedCornerShape(6.dp),
+                    border = androidx.compose.foundation.BorderStroke(0.8.dp, threadColorVal),
+                    shadowElevation = 2.dp,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 8.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -353,7 +388,7 @@ fun JigProductPreview(
                             text = cordLabel.take(18),
                             fontSize = 8.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = cornerBadgeText,
                             letterSpacing = 0.3.sp
                         )
                     }
@@ -361,42 +396,87 @@ fun JigProductPreview(
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // MULTI-ANGLE SELECTOR CHIPS (Horizontally scrollable to avoid wrapping/clipping)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
-            verticalAlignment = Alignment.CenterVertically
+        // IMPROVED CAMERA PERSPECTIVE SELECTOR SECTION (Side profile, 3/4 hero, Top Dorsal, Keel Bottom)
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            shape = RoundedCornerShape(8.dp),
+            border = androidx.compose.foundation.BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            angles.forEachIndexed { index, angle ->
-                val isSelected = selectedAngleIndex == index
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { selectedAngleIndex = index },
-                    label = {
+            Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
                         Text(
-                            text = angle.label,
-                            fontSize = 10.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            text = "PERSPECTIVE VIEW",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.5.sp
                         )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = isSelected,
-                        borderColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        borderWidth = 0.8.dp
-                    ),
-                    modifier = Modifier.height(28.dp)
-                )
+                    }
+                    Text(
+                        text = currentAngle.subtitle,
+                        fontSize = 9.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(5.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    angles.forEachIndexed { index, angle ->
+                        val isSelected = selectedAngleIndex == index
+                        Surface(
+                            onClick = { selectedAngleIndex = index },
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                            border = androidx.compose.foundation.BorderStroke(
+                                width = if (isSelected) 1.5.dp else 0.8.dp,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                            ),
+                            shadowElevation = if (isSelected) 1.5.dp else 0.dp,
+                            modifier = Modifier.height(30.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(5.dp)
+                                        .background(
+                                            if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                            CircleShape
+                                        )
+                                )
+                                Text(
+                                    text = angle.label,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
