@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -31,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.JigPatternType
@@ -135,6 +137,11 @@ fun JigConfigScreen(
                             selectedJig = selectedJig
                         )
 
+                        AvailableShadesSelector(
+                            config = currentConfig,
+                            configViewModel = configViewModel
+                        )
+
                         LiveConfigurationSummaryCard(config = currentConfig)
 
                         TechnicalViewLauncherCard(
@@ -200,7 +207,13 @@ fun JigConfigScreen(
                         selectedJig = selectedJig
                     )
 
-                    // 4. LIVE CONFIGURATION SUMMARY
+                    // 4. AVAILABLE SHADES / COLOR VARIANTS SELECTOR
+                    AvailableShadesSelector(
+                        config = currentConfig,
+                        configViewModel = configViewModel
+                    )
+
+                    // 5. LIVE CONFIGURATION SUMMARY
                     LiveConfigurationSummaryCard(config = currentConfig)
 
                     // 5. ESSENTIAL CONFIGURATION CONTROLS
@@ -354,12 +367,161 @@ private fun CompactProductHeader(config: ProductConfiguration, selectedJig: JigP
 }
 
 /**
+ * Available Shades & Color Variants Selector (Requirement 6):
+ * Prominently located directly below product preview.
+ * Allows instant photo switching between shades while keeping custom specs intact.
+ */
+@Composable
+private fun AvailableShadesSelector(
+    config: ProductConfiguration,
+    configViewModel: ConfiguratorViewModel
+) {
+    val jigs = com.example.data.model.ProductCatalog.jigs
+
+    TactileCard(
+        modifier = Modifier.fillMaxWidth(),
+        shadowElevation = 1.5.dp
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "AVAILABLE SHADES & COLOR VARIANTS",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+                Text(
+                    text = "TAP TO SWITCH ASSET",
+                    fontSize = 8.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                jigs.forEach { jig ->
+                    val isSelected = config.productId == jig.id || config.productName == jig.name
+                    Surface(
+                        onClick = {
+                            configViewModel.selectProductShade(
+                                finishName = jig.name,
+                                baseHex = jig.baseColorHex,
+                                accentHex = jig.accentColorHex,
+                                patternType = jig.patternType
+                            )
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = if (isSelected) 1.5.dp else 0.8.dp,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        modifier = Modifier
+                            .width(135.dp)
+                            .testTag("shade_selector_${jig.id}")
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Dual-Color Swatch Circle
+                                Box(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clip(CircleShape)
+                                        .border(1.dp, Color.White.copy(alpha = 0.8f), CircleShape)
+                                ) {
+                                    Row(modifier = Modifier.fillMaxSize()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .fillMaxHeight()
+                                                .background(Color(jig.baseColorHex))
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .fillMaxHeight()
+                                                .background(Color(jig.accentColorHex))
+                                        )
+                                    }
+                                }
+
+                                if (isSelected) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = CircleShape,
+                                        modifier = Modifier.size(16.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = "Selected",
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                modifier = Modifier.size(10.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            Text(
+                                text = jig.name,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1
+                            )
+
+                            Text(
+                                text = jig.patternType.displayName,
+                                fontSize = 9.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
  * Live Configuration Summary:
- * Compact summary near the configuration controls
- * e.g. 40 g · 115 mm · 20 mm | Metallic | Orange / Black | Thread: Red | FR: Standard | BR: Standard
+ * Compact summary near the configuration controls with live custom spec indicators
  */
 @Composable
 private fun LiveConfigurationSummaryCard(config: ProductConfiguration) {
+    val frDisplay = if (config.frontRing == "Custom" && config.customFrontRing.isNotEmpty()) "FR: ${config.customFrontRing}" else "FR: ${config.frontRing}"
+    val brDisplay = if (config.backRing == "Custom" && config.customBackRing.isNotEmpty()) "BR: ${config.customBackRing}" else "BR: ${config.backRing}"
+    val cordDisplay = if (config.threadColor == "Custom" && config.customAssistCordColor.isNotEmpty()) "Cord: ${config.customAssistCordColor}" else "Cord: ${config.threadColor}"
+    val finishDisplay = if (config.finishType == "Custom" && config.customFinish.isNotEmpty()) config.customFinish else config.finishType
+
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
         shape = RoundedCornerShape(8.dp),
@@ -396,17 +558,21 @@ private fun LiveConfigurationSummaryCard(config: ProductConfiguration) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${config.finishType} • ${config.colorName}",
+                    text = "$finishDisplay • ${config.colorName}",
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "FR: ${config.frontRing}  |  BR: ${config.backRing}  |  Thread: ${config.threadColor}",
+                    text = "$frDisplay  |  $brDisplay  |  $cordDisplay",
                     fontSize = 9.5.sp,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1
                 )
             }
         }
@@ -415,8 +581,8 @@ private fun LiveConfigurationSummaryCard(config: ProductConfiguration) {
 
 /**
  * Essential Configuration Section:
- * Weight, Length, Width, Finish & Colors, Front & Back Rings, Hook, Thread
- * Compact professional controls (segmented selectors, compact steppers, swatches)
+ * Weight, Length, Width, Finish & Colors, Front & Back Rings, Hook, Thread/Cord
+ * Compact professional controls (segmented selectors, compact steppers, swatches, custom fields)
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -426,7 +592,11 @@ private fun EssentialConfigurationControls(
     configViewModel: ConfiguratorViewModel
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // 1. WEIGHT CONFIGURATION (Supported options + Stepper)
+        // 1. WEIGHT CONFIGURATION (Supported options + Custom Stepper/Input)
+        var isCustomWeightActive by remember(config.customWeight) {
+            mutableStateOf(config.customWeight.isNotEmpty())
+        }
+
         TactileCard(
             modifier = Modifier.fillMaxWidth(),
             shadowElevation = 1.5.dp
@@ -445,7 +615,7 @@ private fun EssentialConfigurationControls(
                         letterSpacing = 0.5.sp
                     )
                     Text(
-                        text = "${config.weightGrams.toInt()} g",
+                        text = if (isCustomWeightActive && config.customWeight.isNotEmpty()) "${config.customWeight} g (Custom)" else "${config.weightGrams.toInt()} g",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace,
@@ -455,7 +625,7 @@ private fun EssentialConfigurationControls(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Supported Weight Chips
+                // Supported Weight Chips + Custom Chip
                 val supportedWeights = listOf(40f, 50f, 60f, 80f, 100f, 120f, 150f, 200f)
                     .filter { it in selectedJig.minWeightGrams..selectedJig.maxWeightGrams }
 
@@ -466,10 +636,14 @@ private fun EssentialConfigurationControls(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     supportedWeights.forEach { weightVal ->
-                        val isSelected = config.weightGrams == weightVal
+                        val isSelected = !isCustomWeightActive && config.weightGrams == weightVal
                         FilterChip(
                             selected = isSelected,
-                            onClick = { configViewModel.updateWeight(weightVal) },
+                            onClick = {
+                                isCustomWeightActive = false
+                                configViewModel.updateCustomWeight("")
+                                configViewModel.updateWeight(weightVal)
+                            },
                             label = { Text("${weightVal.toInt()}g", fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -478,25 +652,56 @@ private fun EssentialConfigurationControls(
                             modifier = Modifier.height(28.dp)
                         )
                     }
+
+                    // Custom Weight Chip
+                    FilterChip(
+                        selected = isCustomWeightActive,
+                        onClick = { isCustomWeightActive = true },
+                        label = { Text("Custom", fontSize = 11.sp, fontWeight = if (isCustomWeightActive) FontWeight.Bold else FontWeight.Normal) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        ),
+                        modifier = Modifier.height(28.dp)
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Fine slider
-                Slider(
-                    value = config.weightGrams,
-                    onValueChange = { configViewModel.updateWeight(it) },
-                    valueRange = selectedJig.minWeightGrams..selectedJig.maxWeightGrams,
-                    steps = ((selectedJig.maxWeightGrams - selectedJig.minWeightGrams) / 5f).toInt() - 1,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(26.dp)
-                        .testTag("jig_weight_slider")
-                )
+                if (isCustomWeightActive) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = config.customWeight,
+                        onValueChange = { input ->
+                            val filtered = input.filter { it.isDigit() || it == '.' }
+                            configViewModel.updateCustomWeight(filtered)
+                            filtered.toFloatOrNull()?.let { configViewModel.updateWeight(it) }
+                        },
+                        label = { Text("Custom Weight in Grams (e.g. 118)", fontSize = 12.sp) },
+                        placeholder = { Text("Enter exact grams") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Slider(
+                        value = config.weightGrams,
+                        onValueChange = { configViewModel.updateWeight(it) },
+                        valueRange = selectedJig.minWeightGrams..selectedJig.maxWeightGrams,
+                        steps = ((selectedJig.maxWeightGrams - selectedJig.minWeightGrams) / 5f).toInt() - 1,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(26.dp)
+                            .testTag("jig_weight_slider")
+                    )
+                }
             }
         }
 
-        // 2. LENGTH & WIDTH (Compact dual-dimension card)
+        // 2. LENGTH & WIDTH (Compact dual-dimension card + Custom Millimeters entry)
+        var showCustomDimensions by remember {
+            mutableStateOf(config.customLength.isNotEmpty() || config.customWidth.isNotEmpty())
+        }
+
         TactileCard(
             modifier = Modifier.fillMaxWidth(),
             shadowElevation = 1.5.dp
@@ -516,7 +721,7 @@ private fun EssentialConfigurationControls(
                         letterSpacing = 0.5.sp
                     )
                     Text(
-                        text = "${config.lengthMm.toInt()} mm",
+                        text = if (config.customLength.isNotEmpty()) "${config.customLength} mm (Custom)" else "${config.lengthMm.toInt()} mm",
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace,
@@ -526,7 +731,10 @@ private fun EssentialConfigurationControls(
 
                 Slider(
                     value = config.lengthMm,
-                    onValueChange = { configViewModel.updateLength(it) },
+                    onValueChange = {
+                        configViewModel.updateLength(it)
+                        configViewModel.updateCustomLength("")
+                    },
                     valueRange = selectedJig.minLengthMm..selectedJig.maxLengthMm,
                     steps = ((selectedJig.maxLengthMm - selectedJig.minLengthMm) / 5f).toInt() - 1,
                     modifier = Modifier
@@ -551,7 +759,7 @@ private fun EssentialConfigurationControls(
                         letterSpacing = 0.5.sp
                     )
                     Text(
-                        text = "${config.widthMm.toInt()} mm",
+                        text = if (config.customWidth.isNotEmpty()) "${config.customWidth} mm (Custom)" else "${config.widthMm.toInt()} mm",
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace,
@@ -561,7 +769,10 @@ private fun EssentialConfigurationControls(
 
                 Slider(
                     value = config.widthMm,
-                    onValueChange = { configViewModel.updateWidth(it) },
+                    onValueChange = {
+                        configViewModel.updateWidth(it)
+                        configViewModel.updateCustomWidth("")
+                    },
                     valueRange = selectedJig.minWidthMm..selectedJig.maxWidthMm,
                     steps = ((selectedJig.maxWidthMm - selectedJig.minWidthMm) / 1f).toInt() - 1,
                     modifier = Modifier
@@ -569,10 +780,61 @@ private fun EssentialConfigurationControls(
                         .height(24.dp)
                         .testTag("jig_width_slider")
                 )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Custom Dimensions Toggle & Fields
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = { showCustomDimensions = !showCustomDimensions },
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = if (showCustomDimensions) "Hide Custom Dimensions" else "Enter Custom mm Overrides",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+
+                if (showCustomDimensions) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = config.customLength,
+                            onValueChange = { input ->
+                                val filtered = input.filter { it.isDigit() || it == '.' }
+                                configViewModel.updateCustomLength(filtered)
+                                filtered.toFloatOrNull()?.let { configViewModel.updateLength(it) }
+                            },
+                            label = { Text("Custom Length (mm)", fontSize = 11.sp) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = config.customWidth,
+                            onValueChange = { input ->
+                                val filtered = input.filter { it.isDigit() || it == '.' }
+                                configViewModel.updateCustomWidth(filtered)
+                                filtered.toFloatOrNull()?.let { configViewModel.updateWidth(it) }
+                            },
+                            label = { Text("Custom Width (mm)", fontSize = 11.sp) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
             }
         }
 
-        // 3. FINISH & COLORS (Compact Swatches & Finish Chips)
+        // 3. FINISH & COLORS (Compact Swatches & Finish Chips + Custom Finish)
         TactileCard(
             modifier = Modifier.fillMaxWidth(),
             shadowElevation = 1.5.dp
@@ -585,17 +847,24 @@ private fun EssentialConfigurationControls(
                     color = MaterialTheme.colorScheme.primary,
                     letterSpacing = 0.5.sp
                 )
+                Text(
+                    text = "Protective coating and light reflection treatment.",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Finishes (Solid, Metallic, Matte, Glow, Holographic, UV Reactive)
+                // Finishes (Solid, Metallic, Matte, Glow, Holographic, UV Reactive, Custom)
                 val finishes = listOf(
                     "High-Gloss Metallic",
                     "Solid Color",
                     "Matte Stealth",
                     "Luminous Glow",
                     "Holographic Flash",
-                    "UV Reactive"
+                    "UV Reactive",
+                    "Custom"
                 )
 
                 Row(
@@ -626,6 +895,18 @@ private fun EssentialConfigurationControls(
                     }
                 }
 
+                if (config.finishType == "Custom") {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = config.customFinish,
+                        onValueChange = { configViewModel.updateCustomFinish(it) },
+                        label = { Text("Custom Finish (e.g. Chameleon Flip-Flop Pearl)", fontSize = 11.5.sp) },
+                        placeholder = { Text("Enter custom finish specification") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Realistic Presets Selector
@@ -643,7 +924,7 @@ private fun EssentialConfigurationControls(
             }
         }
 
-        // 4. ATTACHMENT RINGS (FRONT RING & BACK RING) - Requirement 16, 17, 18
+        // 4. ATTACHMENT RINGS (FRONT RING & BACK RING) - FlowRow prevents any clipping
         TactileCard(
             modifier = Modifier.fillMaxWidth(),
             shadowElevation = 1.5.dp
@@ -674,15 +955,22 @@ private fun EssentialConfigurationControls(
 
                 // Front Ring Selector
                 Text(
-                    text = "Front Ring (Line Tie):",
+                    text = "Front Ring (Line Tie)",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                Text(
+                    text = "Front attachment point of the Jig for leader line tie.",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     listOf("None", "Standard", "Heavy Duty", "Custom").forEach { ringOption ->
                         val isSelected = config.frontRing == ringOption
@@ -693,26 +981,43 @@ private fun EssentialConfigurationControls(
                             leadingIcon = if (isSelected) {
                                 { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
                             } else null,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(30.dp)
+                            modifier = Modifier.height(30.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                if (config.frontRing == "Custom") {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = config.customFrontRing,
+                        onValueChange = { configViewModel.updateCustomFrontRing(it) },
+                        label = { Text("Custom Front Ring (e.g. #7 Heavy Forged Titanium)", fontSize = 11.5.sp) },
+                        placeholder = { Text("Enter custom front ring specification") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Back Ring Selector
                 Text(
-                    text = "Back Ring (Rear Stinger):",
+                    text = "Back Ring (Rear Stinger)",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                Text(
+                    text = "Rear attachment ring for tail stinger hook or teaser blade.",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     listOf("None", "Standard", "Heavy Duty", "Custom").forEach { ringOption ->
                         val isSelected = config.backRing == ringOption
@@ -723,11 +1028,21 @@ private fun EssentialConfigurationControls(
                             leadingIcon = if (isSelected) {
                                 { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
                             } else null,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(30.dp)
+                            modifier = Modifier.height(30.dp)
                         )
                     }
+                }
+
+                if (config.backRing == "Custom") {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = config.customBackRing,
+                        onValueChange = { configViewModel.updateCustomBackRing(it) },
+                        label = { Text("Custom Back Ring (e.g. #5 Solid Stinger Ring)", fontSize = 11.5.sp) },
+                        placeholder = { Text("Enter custom back ring specification") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
@@ -745,13 +1060,21 @@ private fun EssentialConfigurationControls(
                     color = MaterialTheme.colorScheme.primary,
                     letterSpacing = 0.5.sp
                 )
+                Text(
+                    text = "Hook attached to the Jig for strikes.",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Spacer(modifier = Modifier.height(8.dp))
+
+                val availableHooks = (selectedJig.availableHooks + listOf("Custom")).distinct()
 
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    selectedJig.availableHooks.forEach { hook ->
+                    availableHooks.forEach { hook ->
                         val isSelected = config.hookTypeJig == hook
                         FilterChip(
                             selected = isSelected,
@@ -764,21 +1087,39 @@ private fun EssentialConfigurationControls(
                         )
                     }
                 }
+
+                if (config.hookTypeJig == "Custom") {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = config.customHook,
+                        onValueChange = { configViewModel.updateCustomHook(it) },
+                        label = { Text("Custom Hook (e.g. Gamakatsu Heavy Jig 4/0)", fontSize = 11.5.sp) },
+                        placeholder = { Text("Enter custom hook specification") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
 
-        // 6. THREAD WRAPPING CONFIGURATION (Requirement 15)
+        // 6. ASSIST CORD / THREAD BINDING COLOR (Requirement: clear terminology & explanation)
         TactileCard(
             modifier = Modifier.fillMaxWidth(),
             shadowElevation = 1.5.dp
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
-                    text = "ASSIST THREAD BINDING COLOR",
+                    text = "ASSIST CORD / THREAD BINDING COLOR",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                     letterSpacing = 0.5.sp
+                )
+                Text(
+                    text = "Color of the cord attached to the Assist Hook.",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -791,6 +1132,18 @@ private fun EssentialConfigurationControls(
                         )
                     }
                 )
+
+                if (config.threadColor == "Custom") {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = config.customAssistCordColor,
+                        onValueChange = { configViewModel.updateCustomAssistCordColor(it) },
+                        label = { Text("Custom Assist Cord Specification (e.g. UV Fluorescent Chartreuse PE)", fontSize = 11.5.sp) },
+                        placeholder = { Text("Enter custom assist cord details") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
     }

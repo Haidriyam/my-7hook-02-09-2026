@@ -6,8 +6,10 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -238,6 +240,11 @@ fun JigProductPreview(
 
             // 4. VISUAL HARDWARE OVERLAYS: FRONT RING & BACK RING (Requirement 16, 17, 18)
             // Front Ring Indicator Callout (Left / Line Tie)
+            val frontRingLabel = if (config.frontRing == "Custom" && config.customFrontRing.isNotEmpty()) {
+                "FRONT: ${config.customFrontRing.uppercase()}"
+            } else {
+                "FRONT RING: ${config.frontRing.uppercase()}"
+            }
             Surface(
                 color = if (isDark) Color(0xDD0F172A) else Color(0xEEFFFFFF),
                 shape = RoundedCornerShape(4.dp),
@@ -265,7 +272,7 @@ fun JigProductPreview(
                             )
                     )
                     Text(
-                        text = "FRONT RING: ${config.frontRing.uppercase()}",
+                        text = frontRingLabel.take(20),
                         fontSize = 8.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -275,6 +282,11 @@ fun JigProductPreview(
             }
 
             // Back Ring Indicator Callout (Right / Stinger)
+            val backRingLabel = if (config.backRing == "Custom" && config.customBackRing.isNotEmpty()) {
+                "BACK: ${config.customBackRing.uppercase()}"
+            } else {
+                "BACK RING: ${config.backRing.uppercase()}"
+            }
             Surface(
                 color = if (isDark) Color(0xDD0F172A) else Color(0xEEFFFFFF),
                 shape = RoundedCornerShape(4.dp),
@@ -292,7 +304,7 @@ fun JigProductPreview(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "BACK RING: ${config.backRing.uppercase()}",
+                        text = backRingLabel.take(20),
                         fontSize = 8.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -311,9 +323,14 @@ fun JigProductPreview(
                 }
             }
 
-            // Thread Binding Indicator (Center Bottom if active)
+            // Assist Cord / Thread Binding Indicator (Center Bottom if active)
             if (config.threadColor != "None") {
                 val threadColorVal = getThreadColorValue(config.threadColor)
+                val cordLabel = if (config.threadColor == "Custom" && config.customAssistCordColor.isNotEmpty()) {
+                    "CORD: ${config.customAssistCordColor.uppercase()}"
+                } else {
+                    "CORD: ${config.threadColor.uppercase()}"
+                }
                 Surface(
                     color = if (isDark) Color(0xDD0F172A) else Color(0xEEFFFFFF),
                     shape = RoundedCornerShape(4.dp),
@@ -333,7 +350,7 @@ fun JigProductPreview(
                                 .background(threadColorVal, CircleShape)
                         )
                         Text(
-                            text = "THREAD: ${config.threadColor.uppercase()}",
+                            text = cordLabel.take(18),
                             fontSize = 8.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -346,9 +363,11 @@ fun JigProductPreview(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // MULTI-ANGLE SELECTOR CHIPS (Compact & Professional)
+        // MULTI-ANGLE SELECTOR CHIPS (Horizontally scrollable to avoid wrapping/clipping)
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

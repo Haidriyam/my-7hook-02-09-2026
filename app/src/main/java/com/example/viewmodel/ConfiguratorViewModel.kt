@@ -197,6 +197,106 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
         )
     }
 
+    fun updateCustomFrontRing(value: String) {
+        _currentConfig.value = _currentConfig.value.copy(frontRing = "Custom", customFrontRing = value)
+    }
+
+    fun updateCustomBackRing(value: String) {
+        _currentConfig.value = _currentConfig.value.copy(backRing = "Custom", customBackRing = value)
+    }
+
+    fun updateCustomHook(value: String) {
+        _currentConfig.value = _currentConfig.value.copy(hookTypeJig = "Custom", customHook = value)
+    }
+
+    fun updateCustomAssistCord(value: String) {
+        _currentConfig.value = _currentConfig.value.copy(threadColor = "Custom", customAssistCordColor = value)
+    }
+
+    fun updateCustomAssistCordColor(value: String) {
+        _currentConfig.value = _currentConfig.value.copy(threadColor = "Custom", customAssistCordColor = value)
+    }
+
+    fun updateCustomFinish(value: String) {
+        _currentConfig.value = _currentConfig.value.copy(finishType = "Custom", customFinish = value)
+    }
+
+    fun updateCustomWeight(value: String) {
+        val floatVal = value.toFloatOrNull()
+        _currentConfig.value = _currentConfig.value.copy(
+            customWeight = value,
+            weightGrams = floatVal ?: _currentConfig.value.weightGrams
+        )
+    }
+
+    fun updateCustomWeight(weight: Float, customNote: String = "") {
+        _currentConfig.value = _currentConfig.value.copy(weightGrams = weight, customWeight = customNote)
+    }
+
+    fun updateCustomLength(value: String) {
+        val floatVal = value.toFloatOrNull()
+        _currentConfig.value = _currentConfig.value.copy(
+            customLength = value,
+            lengthMm = floatVal ?: _currentConfig.value.lengthMm
+        )
+    }
+
+    fun updateCustomLength(length: Float, customNote: String = "") {
+        _currentConfig.value = _currentConfig.value.copy(lengthMm = length, customLength = customNote)
+    }
+
+    fun updateCustomWidth(value: String) {
+        val floatVal = value.toFloatOrNull()
+        _currentConfig.value = _currentConfig.value.copy(
+            customWidth = value,
+            widthMm = floatVal ?: _currentConfig.value.widthMm
+        )
+    }
+
+    fun updateCustomWidth(width: Float, customNote: String = "") {
+        _currentConfig.value = _currentConfig.value.copy(widthMm = width, customWidth = customNote)
+    }
+
+    /**
+     * Updates shade / variant across finish, color, and selected product asset if a catalog product matches
+     */
+    fun selectProductShade(finishName: String, baseHex: Long, accentHex: Long, patternType: JigPatternType) {
+        val matchingJig = ProductCatalog.jigs.firstOrNull { jig ->
+            jig.name.contains(finishName, ignoreCase = true) ||
+            (finishName.contains("Orange", ignoreCase = true) && finishName.contains("Black", ignoreCase = true) && jig.id == "jig_orange_black") ||
+            (finishName.contains("Yellow", ignoreCase = true) && finishName.contains("Dot", ignoreCase = true) && jig.id == "jig_yellow_dotted") ||
+            (finishName.contains("Yellow", ignoreCase = true) && finishName.contains("Orange", ignoreCase = true) && jig.id == "jig_yellow_orange") ||
+            (finishName.contains("Blue", ignoreCase = true) && finishName.contains("Orange", ignoreCase = true) && jig.id == "jig_candy_blue_orange") ||
+            (finishName.contains("Pink", ignoreCase = true) && finishName.contains("Green", ignoreCase = true) && jig.id == "jig_candy_pink_green") ||
+            (finishName.contains("Yellow", ignoreCase = true) && finishName.contains("Black", ignoreCase = true) && jig.id == "jig_candy_yellow_black") ||
+            (finishName.contains("Pink", ignoreCase = true) && finishName.contains("Blue", ignoreCase = true) && jig.id == "jig_crystal_pink_blue") ||
+            (finishName.contains("Yellow", ignoreCase = true) && finishName.contains("Blue", ignoreCase = true) && jig.id == "jig_crystal_yellow_blue")
+        }
+
+        if (matchingJig != null) {
+            _selectedJigProduct.value = matchingJig
+            _currentConfig.value = _currentConfig.value.copy(
+                productId = matchingJig.id,
+                productName = matchingJig.name,
+                modelNumber = matchingJig.modelNumber,
+                imageUrl = matchingJig.imageUrl,
+                colorName = finishName,
+                baseColorHex = baseHex,
+                accentColorHex = accentHex,
+                patternType = patternType,
+                finishType = finishName
+            )
+        } else {
+            _currentConfig.value = _currentConfig.value.copy(
+                colorName = finishName,
+                baseColorHex = baseHex,
+                accentColorHex = accentHex,
+                patternType = patternType,
+                finishType = finishName
+            )
+        }
+    }
+
     fun updateEyeStyle(eyeStyle: String) {
         _currentConfig.value = _currentConfig.value.copy(eyeStyle = eyeStyle)
     }

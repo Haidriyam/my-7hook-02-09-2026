@@ -30,11 +30,11 @@ data class JigProduct(
     val localDrawableRes: Int? = null
 )
 
-enum class JigPatternType {
-    SOLID_STRIPE,
-    DOT_PATTERN,
-    HOLOGRAPHIC_SLASH,
-    CRYSTAL_FACET
+enum class JigPatternType(val displayName: String) {
+    SOLID_STRIPE("Solid Stripe"),
+    DOT_PATTERN("Dot Pattern"),
+    HOLOGRAPHIC_SLASH("Holo Slash"),
+    CRYSTAL_FACET("Crystal Facet")
 }
 
 data class LureProduct(

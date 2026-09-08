@@ -40,6 +40,15 @@ data class ProductConfiguration(
     val threadStyle: String = "High-Tensile Braided Filament",
     val finishType: String = "High-Gloss Metallic",
     val eyeStyle: String = "3D Luminous Strike Eye",
+    // Custom Configuration Inputs (Persisted)
+    val customFrontRing: String = "",
+    val customBackRing: String = "",
+    val customHook: String = "",
+    val customAssistCordColor: String = "",
+    val customFinish: String = "",
+    val customWeight: String = "",
+    val customLength: String = "",
+    val customWidth: String = "",
     // Rod Specifics
     val rodType: String = "Spinning Rod",
     val power: String = "Medium",
