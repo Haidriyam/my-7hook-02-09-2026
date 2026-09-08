@@ -42,8 +42,8 @@ import com.example.data.model.ProductConfiguration
 enum class JigAngle(val label: String, val subtitle: String, val rotationZ: Float, val scaleX: Float, val scaleY: Float) {
     SIDE_PROFILE("Side Profile", "Lateral Keel 0°", 0f, 1f, 1f),
     HERO_THREE_QUARTER("3/4 Hero", "Isometric -4°", -4f, 1f, 0.96f),
-    TOP_DORSAL("Top Dorsal", "Dorsal Spine 90°", 0f, 0.88f, 0.90f),
-    KEEL_VENTRAL("Keel Bottom", "Ventral Belly 180°", 4f, 0.92f, 0.94f)
+    TOP_DORSAL("Top Dorsal", "Dorsal Spine 90° Tilt", 90f, 0.65f, 0.65f),
+    KEEL_VENTRAL("Keel Bottom", "Ventral Belly 180° Tilt", 180f, 0.95f, 0.95f)
 }
 
 /**
@@ -89,7 +89,7 @@ fun JigProductPreview(
     val cornerBadgeBorder = Color(0xFF334155) // Slate 700 border
     val cornerBadgeText = Color(0xFFF8FAFC) // Crisp light white text
 
-    val imageModel: Any = selectedJig.localDrawableRes ?: selectedJig.imageUrl
+    val imageModel: Any = if (selectedJig.imageUrl.isNotBlank()) selectedJig.imageUrl else (selectedJig.localDrawableRes ?: R.drawable.ic_jig_icon)
 
     Column(
         modifier = modifier

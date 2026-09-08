@@ -42,7 +42,7 @@ fun LureCatalogScreen(
     Scaffold(
         topBar = {
             AppHeader(
-                title = "Hard Lures",
+                title = "Types of Lures",
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )
@@ -59,17 +59,7 @@ fun LureCatalogScreen(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // STEP 1 OF 3 Guided Progress Indicator
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                TactileStepIndicator(
-                    currentStep = 1,
-                    totalSteps = 3,
-                    stepTitles = listOf("Choose Lure", "Hydrodynamics", "Technical Drawing"),
-                    modifier = Modifier.padding(horizontal = 0.dp)
-                )
-            }
-
-            // Subtitle Header Card
+            // Subtitle Header Card - Pure Lure Types focus
             item(span = { GridItemSpan(maxLineSpan) }) {
                 TactileCard(
                     modifier = Modifier.fillMaxWidth(),
@@ -77,14 +67,14 @@ fun LureCatalogScreen(
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Text(
-                            text = "7Hooks Commercial Lure Series",
+                            text = "7Hooks Commercial Lure Platforms",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            text = "Industrial hydrodynamic hard bait series. Configure diving bib depth, buoyancy characteristics, internal tungsten transfer systems, and technical drawing blueprints.",
+                            text = "Choose from our precision hydrodynamic hard bait platforms below to view platform specifications.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -95,11 +85,11 @@ fun LureCatalogScreen(
             // Section Header
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Row(
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                    modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "AVAILABLE HARD LURE PLATFORMS",
+                        text = "AVAILABLE LURE TYPES",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -111,7 +101,7 @@ fun LureCatalogScreen(
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(
-                            text = "${lures.size} MODELS",
+                            text = "${lures.size} TYPES",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -269,8 +259,8 @@ private fun LureCatalogCard(
                     onClick = onConfigureClick,
                     modifier = Modifier.fillMaxWidth(),
                     variant = TactileButtonVariant.PRIMARY,
-                    icon = Icons.Default.Tune,
-                    text = "Configure",
+                    icon = Icons.Default.ArrowForward,
+                    text = "Select Type",
                     testTag = "configure_lure_${lure.id}"
                 )
             }

@@ -3,9 +3,9 @@ package com.example.data.model
 object ProductCatalog {
 
     const val CATEGORY_IMAGE_JIG = "http://7hooks.com/wp-content/uploads/2026/07/106fe702-dfa2-4d00-8df1-66078de66d23-removebg-preview.png"
-    const val CATEGORY_IMAGE_ROD = "https://www.clipartmax.com/png/middle/82-820877_fishing-pole-png-images-free-download-fishing-rod-fishing-rod-transparent-background.png"
-    const val CATEGORY_IMAGE_LURE = "https://images.rawpixel.com/image_png_800/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIzLTA4L3Jhd3BpeGVsX29mZmljZV8xMF8zZF93YXRlcmNvbG9yX3ZpbnRhZ2VfcGFpbnRpbmdfb2ZfZmlzaGluZ19sdV9hNmY3NjBhYy0xOTliLTRmOGItYWZhMC03MjcwNDNlYzEwZTEucG5n.png"
-    const val CATEGORY_IMAGE_PACKAGING = "https://p7.hiclipart.com/preview/820/850/461/ipkg-packaging-and-labeling-box-parcel-box.jpg"
+    const val CATEGORY_IMAGE_ROD = "https://static.vecteezy.com/system/resources/thumbnails/044/245/631/small/high-quality-fishing-rod-and-reel-on-a-seamless-background-png.png"
+    const val CATEGORY_IMAGE_LURE = "https://png.pngtree.com/png-vector/20241227/ourmid/pngtree-fishing-lure-with-hook-essential-gear-for-anglers-png-image_14921980.png"
+    const val CATEGORY_IMAGE_PACKAGING = "https://static.vecteezy.com/system/resources/thumbnails/074/532/494/small/empty-open-cardboard-shipping-box-for-packaging-and-delivery-isolated-on-transparent-background-free-png.png"
 
     val jigs: List<JigProduct> = listOf(
         // NEW JIGS FIRST (Maintained as requested)
@@ -59,7 +59,7 @@ object ProductCatalog {
             id = "jig_yellow_orange",
             name = "Yellow-Orange Jigs",
             category = "Vertical Deep Sea Jig",
-            imageUrl = "https://7hooks.com/wp-content/uploads/2025/12/WhatsApp-Image-2025-12-11-at-11.37.52-PM.jpeg",
+            imageUrl = "http://7hooks.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-08-at-3.13.03-PM-2.jpeg",
             baseColorHex = 0xFFFACC15,
             accentColorHex = 0xFFEA580C,
             defaultWeightGrams = 60f,
@@ -76,7 +76,7 @@ object ProductCatalog {
             description = "Bright solar yellow base with fiery blaze-orange lateral edges for maximum visibility in turbid and pelagic waters.",
             isNew = true,
             patternType = JigPatternType.SOLID_STRIPE,
-            localDrawableRes = com.example.R.drawable.jig_yellow_orange_real
+            localDrawableRes = null
         ),
 
         // OFFICIAL 7HOOKS PRODUCTS (from https://7hooks.com/our-products/)
