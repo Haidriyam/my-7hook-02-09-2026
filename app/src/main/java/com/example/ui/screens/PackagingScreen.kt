@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.model.PackagingType
+import com.example.data.model.ProductCatalog
 import com.example.ui.components.*
 import com.example.viewmodel.PackagingViewModel
 
@@ -46,6 +47,15 @@ fun PackagingScreen(
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Dynamic Mockup Display States
+    var selectedPerspective by remember { mutableStateOf(PackagingPerspective.THREE_D) }
+    var selectedTheme by remember { mutableStateOf(MockupFinishTheme.MIDNIGHT_CYAN) }
+    var showDimensions by remember { mutableStateOf(true) }
+    var selectedProductInsertIndex by remember { mutableIntStateOf(0) }
+
+    val availableProducts = remember { ProductCatalog.jigs.take(5) }
+    val currentProduct = availableProducts.getOrNull(selectedProductInsertIndex) ?: availableProducts.first()
 
     // Zero-permission Photo Picker for distributor logo (Google Play compliant)
     val logoPickerLauncher = rememberLauncherForActivityResult(
@@ -74,7 +84,7 @@ fun PackagingScreen(
     Scaffold(
         topBar = {
             AppHeader(
-                title = "Packaging Configuration",
+                title = "Packaging Studio",
                 showBackButton = true,
                 onBackClick = onNavigateBack
             )
@@ -150,7 +160,174 @@ fun PackagingScreen(
         ) {
             Spacer(modifier = Modifier.height(2.dp))
 
+            // =========================================================================
+            // HERO INTERACTIVE PACKAGING MOCKUP WITH REAL-TIME CONTROLS
+            // =========================================================================
+            TactileCard(
+                modifier = Modifier.fillMaxWidth(),
+                shadowElevation = 4.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Title Bar with Dimension Toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "DYNAMIC PACKAGING STUDIO",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.primary,
+                                letterSpacing = 0.5.sp
+                            )
+                            Text(
+                                text = "Real-time photorealistic retail mockup & typography",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        // Dimension Details Toggle
+                        FilterChip(
+                            selected = showDimensions,
+                            onClick = { showDimensions = !showDimensions },
+                            label = { Text("Dimensions", fontSize = 10.5.sp, fontWeight = FontWeight.Bold) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = if (showDimensions) Icons.Default.Straighten else Icons.Default.VisibilityOff,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
+                    }
+
+                    // The Realistic Mockup Canvas
+                    PackagingPreviewMockup(
+                        config = packagingConfig,
+                        perspective = selectedPerspective,
+                        theme = selectedTheme,
+                        productInsertImageUrl = currentProduct.imageUrl,
+                        productInsertName = currentProduct.name,
+                        showDimensions = showDimensions
+                    )
+
+                    // 1. Perspective View Options
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "VISUAL DISPLAY ANGLE",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.4.sp
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            PackagingPerspective.values().forEach { persp ->
+                                val isSelected = selectedPerspective == persp
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { selectedPerspective = persp },
+                                    label = { Text(persp.label, fontSize = 10.5.sp) },
+                                    modifier = Modifier.weight(1f),
+                                    leadingIcon = if (isSelected) {
+                                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
+                                    } else null
+                                )
+                            }
+                        }
+                    }
+
+                    // 2. Material & Finish Theme Options
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "FINISH & MATERIAL THEME",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.4.sp
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            MockupFinishTheme.values().forEach { th ->
+                                val isSelected = selectedTheme == th
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { selectedTheme = th },
+                                    label = { Text(th.displayName, fontSize = 10.5.sp) },
+                                    modifier = Modifier.weight(1f),
+                                    leadingIcon = if (isSelected) {
+                                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
+                                    } else null
+                                )
+                            }
+                        }
+                    }
+
+                    // 3. Product Insert Inside Packaging (Choose lure/jig)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "SHOWCASED TACKLE INSIDE PACKAGING",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.4.sp
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            availableProducts.forEachIndexed { index, jig ->
+                                val isSelected = selectedProductInsertIndex == index
+                                Surface(
+                                    onClick = { selectedProductInsertIndex = index },
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.5.dp,
+                                        if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+                                    ),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize().padding(4.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        AsyncImage(
+                                            model = jig.imageUrl,
+                                            contentDescription = jig.name,
+                                            contentScale = ContentScale.Fit,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // =========================================================================
             // STEP 1: PACKAGING TYPE SELECTION (Section 18)
+            // =========================================================================
             TactileCard(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 2.dp
@@ -167,7 +344,7 @@ fun PackagingScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "STEP 1: PACKAGING TYPE",
+                            text = "STEP 1: PACKAGING FORMAT",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -196,7 +373,52 @@ fun PackagingScreen(
                             val isSelected = packagingConfig.packagingType.equals(type.displayName, ignoreCase = true)
                             FilterChip(
                                 selected = isSelected,
-                                onClick = { packagingViewModel.updatePackagingType(type.displayName) },
+                                onClick = {
+                                    packagingViewModel.updatePackagingType(type.displayName)
+                                    // Automatically calibrate realistic default dimensions and material specs
+                                    when (type) {
+                                        PackagingType.CLAMSHELL_BLISTER -> {
+                                            packagingViewModel.updateDetails(
+                                                dimensions = "200 x 70 x 25 mm",
+                                                cardStock = "350gsm SBS Card + Clear PET",
+                                                windowStyle = "Thermoformed PET Bubble",
+                                                hangingSlot = "Standard Euro Slot"
+                                            )
+                                        }
+                                        PackagingType.HEADER_CARD_POLYBAG -> {
+                                            packagingViewModel.updateDetails(
+                                                dimensions = "230 x 80 x 12 mm",
+                                                cardStock = "300gsm Folded Header Card",
+                                                windowStyle = "Full-View Polybag (100 micron)",
+                                                hangingSlot = "Punched Euro Slot"
+                                            )
+                                        }
+                                        PackagingType.RETAIL_HANGING_BOX -> {
+                                            packagingViewModel.updateDetails(
+                                                dimensions = "180 x 60 x 30 mm",
+                                                cardStock = "350gsm Coated SBS Board",
+                                                windowStyle = "Die-Cut High-Clarity PET Window",
+                                                hangingSlot = "Extended Rear Euro Slot"
+                                            )
+                                        }
+                                        PackagingType.RIGID_GIFT_BOX -> {
+                                            packagingViewModel.updateDetails(
+                                                dimensions = "240 x 110 x 40 mm",
+                                                cardStock = "1200gsm Rigid Paperboard + EVA Foam",
+                                                windowStyle = "Laser-Cut Foam Silhouette (No Window)",
+                                                hangingSlot = "None (Tabletop Presentation)"
+                                            )
+                                        }
+                                        PackagingType.BULK_OEM_PACK -> {
+                                            packagingViewModel.updateDetails(
+                                                dimensions = "400 x 300 x 250 mm",
+                                                cardStock = "5-Ply Double-Wall Kraft Corrugated",
+                                                windowStyle = "Internal Partition Dividers",
+                                                hangingSlot = "None (Master Carton)"
+                                            )
+                                        }
+                                    }
+                                },
                                 label = { Text(type.displayName, fontSize = 11.5.sp) },
                                 leadingIcon = if (isSelected) {
                                     { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
@@ -277,7 +499,7 @@ fun PackagingScreen(
                 }
             }
 
-            // STEP 3: PACKAGING DETAILS (Mobile Responsive Compact Form)
+            // STEP 3: PACKAGING DETAILS
             TactileCard(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 2.dp
@@ -342,7 +564,7 @@ fun PackagingScreen(
                 }
             }
 
-            // STEP 4: COLOR & APPEARANCE (Cardstock, Hanging Slot, Window, Finish)
+            // STEP 4: COLOR & DIMENSIONS
             TactileCard(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 2.dp
@@ -354,7 +576,7 @@ fun PackagingScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "STEP 4: COLOR & APPEARANCE",
+                        text = "STEP 4: DIMENSIONS & MATERIAL SPECIFICATION",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -368,7 +590,7 @@ fun PackagingScreen(
                         OutlinedTextField(
                             value = packagingConfig.packagingDimensions,
                             onValueChange = { packagingViewModel.updateDetails(dimensions = it) },
-                            label = { Text("Dimensions (H x W x D)", fontSize = 11.sp) },
+                            label = { Text("Dimensions (H x W x D mm) *", fontSize = 11.sp) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                             shape = RoundedCornerShape(6.dp)
@@ -376,11 +598,33 @@ fun PackagingScreen(
                         OutlinedTextField(
                             value = packagingConfig.cardStock,
                             onValueChange = { packagingViewModel.updateDetails(cardStock = it) },
-                            label = { Text("Cardstock / Material", fontSize = 11.sp) },
+                            label = { Text("Cardstock / Board Stock", fontSize = 11.sp) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                             shape = RoundedCornerShape(6.dp)
                         )
+                    }
+
+                    // Quick Dimension Presets
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "PRESETS:",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        val presets = listOf("180 x 60 x 30 mm", "200 x 70 x 25 mm", "230 x 80 x 12 mm", "240 x 110 x 40 mm")
+                        presets.forEach { preset ->
+                            SuggestionChip(
+                                onClick = { packagingViewModel.updateDetails(dimensions = preset) },
+                                label = { Text(preset, fontSize = 9.5.sp) },
+                                modifier = Modifier.height(28.dp)
+                            )
+                        }
                     }
 
                     Row(
@@ -390,7 +634,7 @@ fun PackagingScreen(
                         OutlinedTextField(
                             value = packagingConfig.windowStyle,
                             onValueChange = { packagingViewModel.updateDetails(windowStyle = it) },
-                            label = { Text("Window Cutout Style", fontSize = 11.sp) },
+                            label = { Text("Window Style", fontSize = 11.sp) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                             shape = RoundedCornerShape(6.dp)
@@ -398,7 +642,7 @@ fun PackagingScreen(
                         OutlinedTextField(
                             value = packagingConfig.hangingSlot,
                             onValueChange = { packagingViewModel.updateDetails(hangingSlot = it) },
-                            label = { Text("Hanger Hole Format", fontSize = 11.sp) },
+                            label = { Text("Hanger Hole", fontSize = 11.sp) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                             shape = RoundedCornerShape(6.dp)
@@ -416,25 +660,7 @@ fun PackagingScreen(
                 }
             }
 
-            // STEP 5: PREVIEW (Controlled Perspective Retail Presentation)
-            TactileCard(
-                modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 3.dp
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        text = "STEP 5: RETAIL MOCKUP PREVIEW",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    PackagingPreviewMockup(config = packagingConfig)
-                }
-            }
-
-            // STEP 6: PACKAGING SPECIFICATION SUMMARY TABLE
+            // STEP 5: PACKAGING SPECIFICATION SUMMARY TABLE
             TactileCard(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 2.dp
@@ -446,7 +672,7 @@ fun PackagingScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = "STEP 6: PACKAGING SPECIFICATION",
+                        text = "STEP 5: COMMERCIAL SPECIFICATION SUMMARY",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
