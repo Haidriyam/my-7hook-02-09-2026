@@ -544,7 +544,7 @@ private fun JigConfigDashboardCard(
                     fontSize = 15.sp
                 )
                 Text(
-                    text = "Jigheads, spoons & pelagics",
+                    text = "Precision Weighted JigHeads",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp,
@@ -613,7 +613,7 @@ private fun RodConfigDashboardCard(
                     fontSize = 15.sp
                 )
                 Text(
-                    text = "Toray blanks & Fuji guides",
+                    text = "Feel Every Tap",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp,
@@ -682,7 +682,7 @@ private fun LureConfigDashboardCard(
                     fontSize = 15.sp
                 )
                 Text(
-                    text = "Minnows, cranks & poppers",
+                    text = "Trigger the Bite",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp,
