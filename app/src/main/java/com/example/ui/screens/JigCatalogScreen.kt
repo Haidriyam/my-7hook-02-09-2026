@@ -4,13 +4,17 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Architecture
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,13 +25,16 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.geometry.JigGeometryEngine
 import com.example.data.geometry.JigGeometryEngine.JigSilhouetteType
+import com.example.data.model.JigShapeCategory
 import com.example.data.model.JigShapeRepository
 import com.example.data.model.JigShapeTemplate
 import com.example.ui.components.AppHeader
@@ -43,7 +50,20 @@ fun JigCatalogScreen(
     onNavigateBack: () -> Unit,
     onSelectJig: ((com.example.data.model.JigProduct) -> Unit)? = null
 ) {
-    val shapes = remember { JigShapeRepository.shapes }
+    val allShapes = remember { JigShapeRepository.shapes }
+    var selectedCategory by remember { mutableStateOf<JigShapeCategory?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredShapes = remember(selectedCategory, searchQuery) {
+        allShapes.filter { shape ->
+            val matchesCategory = selectedCategory == null || shape.category == selectedCategory
+            val matchesSearch = searchQuery.isBlank() ||
+                    shape.shapeName.contains(searchQuery, ignoreCase = true) ||
+                    shape.shortDescription.contains(searchQuery, ignoreCase = true) ||
+                    shape.bodyProfile.contains(searchQuery, ignoreCase = true)
+            matchesCategory && matchesSearch
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -111,8 +131,71 @@ fun JigCatalogScreen(
                 }
             }
 
+            // Search Bar & Filter Chips
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("shape_search_input"),
+                        placeholder = { Text("Search 50+ shapes (e.g. Round, Arkie, Shad, Blade)...", fontSize = 13.sp) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, contentDescription = "Search", tint = Color(0xFF64748B))
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Clear", tint = Color(0xFF64748B))
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = Color(0xFF0F172A),
+                            unfocusedBorderColor = Color(0xFFCBD5E1)
+                        )
+                    )
+
+                    // Horizontal Category Chips
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        FilterChip(
+                            selected = selectedCategory == null,
+                            onClick = { selectedCategory = null },
+                            label = { Text("All (${allShapes.size})", fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF0F172A),
+                                selectedLabelColor = Color.White
+                            )
+                        )
+
+                        JigShapeCategory.values().forEach { cat ->
+                            val count = allShapes.count { it.category == cat }
+                            FilterChip(
+                                selected = selectedCategory == cat,
+                                onClick = { selectedCategory = if (selectedCategory == cat) null else cat },
+                                label = { Text("${cat.displayName} ($count)", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFF0F172A),
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
             // Shape Template Cards
-            items(shapes) { shape ->
+            items(filteredShapes) { shape ->
                 JigShapeCard(
                     shape = shape,
                     onClick = { onSelectShape(shape) }
@@ -180,7 +263,7 @@ private fun JigShapeCard(
 
                     // Draw the pure technical silhouette
                     val bodyL = size.width * 0.75f
-                    val bodyW = bodyL / shape.aspectRatio
+                    val bodyW = (bodyL / shape.aspectRatio).coerceIn(24f, size.height * 0.75f)
                     val halfL = bodyL / 2f
                     val halfW = bodyW / 2f
 
@@ -210,22 +293,40 @@ private fun JigShapeCard(
                     )
                 }
 
-                // Aspect Ratio Pill
-                Surface(
+                // Category & Aspect Ratio Pills
+                Row(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(4.dp),
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color(0xDD0F172A)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = "1:${String.format("%.1f", shape.aspectRatio)} RATIO",
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                        color = Color(0xFF38BDF8),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xEE0284C7)
+                    ) {
+                        Text(
+                            text = shape.category.displayName.uppercase(),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            color = Color.White,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xDD0F172A)
+                    ) {
+                        Text(
+                            text = "1:${String.format("%.1f", shape.aspectRatio)}",
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            color = Color(0xFF38BDF8),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
                 }
             }
 
@@ -323,40 +424,5 @@ private fun buildSimpleSilhouettePath(
     halfL: Float,
     halfW: Float
 ): Path {
-    return Path().apply {
-        when (type) {
-            JigSilhouetteType.PELAGIC_S_CURVE -> {
-                moveTo(cx - halfL, cy)
-                cubicTo(cx - halfL * 0.65f, cy - halfW * 0.95f, cx - halfL * 0.15f, cy - halfW * 1.0f, cx + halfL * 0.25f, cy - halfW * 0.65f)
-                cubicTo(cx + halfL * 0.65f, cy - halfW * 0.40f, cx + halfL * 0.90f, cy - halfW * 0.15f, cx + halfL, cy)
-                cubicTo(cx + halfL * 0.85f, cy + halfW * 0.40f, cx + halfL * 0.35f, cy + halfW * 0.85f, cx - halfL * 0.15f, cy + halfW * 1.0f)
-                cubicTo(cx - halfL * 0.65f, cy + halfW * 0.80f, cx - halfL * 0.90f, cy + halfW * 0.35f, cx - halfL, cy)
-                close()
-            }
-            JigSilhouetteType.VERTICAL_NEEDLE_NOSE -> {
-                moveTo(cx - halfL, cy)
-                cubicTo(cx - halfL * 0.40f, cy - halfW * 0.35f, cx + halfL * 0.10f, cy - halfW * 0.50f, cx + halfL * 0.60f, cy - halfW * 0.95f)
-                cubicTo(cx + halfL * 0.80f, cy - halfW * 1.00f, cx + halfL * 0.95f, cy - halfW * 0.45f, cx + halfL, cy)
-                cubicTo(cx + halfL * 0.95f, cy + halfW * 0.45f, cx + halfL * 0.80f, cy + halfW * 1.00f, cx + halfL * 0.60f, cy + halfW * 0.95f)
-                cubicTo(cx + halfL * 0.10f, cy + halfW * 0.50f, cx - halfL * 0.40f, cy + halfW * 0.35f, cx - halfL, cy)
-                close()
-            }
-            JigSilhouetteType.SLOW_PITCH_DIAMOND -> {
-                moveTo(cx - halfL, cy)
-                cubicTo(cx - halfL * 0.60f, cy - halfW * 0.75f, cx - halfL * 0.15f, cy - halfW * 1.00f, cx, cy - halfW)
-                cubicTo(cx + halfL * 0.15f, cy - halfW * 1.00f, cx + halfL * 0.60f, cy - halfW * 0.75f, cx + halfL, cy)
-                cubicTo(cx + halfL * 0.60f, cy + halfW * 0.75f, cx + halfL * 0.15f, cy + halfW * 1.00f, cx, cy + halfW)
-                cubicTo(cx - halfL * 0.15f, cy + halfW * 1.00f, cx - halfL * 0.60f, cy + halfW * 0.75f, cx - halfL, cy)
-                close()
-            }
-            else -> {
-                moveTo(cx - halfL, cy)
-                cubicTo(cx - halfL * 0.55f, cy - halfW * 0.90f, cx - halfL * 0.10f, cy - halfW * 1.00f, cx + halfL * 0.40f, cy - halfW * 0.70f)
-                cubicTo(cx + halfL * 0.70f, cy - halfW * 0.45f, cx + halfL * 0.90f, cy - halfW * 0.20f, cx + halfL, cy)
-                cubicTo(cx + halfL * 0.85f, cy + halfW * 0.35f, cx + halfL * 0.30f, cy + halfW * 0.85f, cx - halfL * 0.20f, cy + halfW * 0.95f)
-                cubicTo(cx - halfL * 0.60f, cy + halfW * 0.75f, cx - halfL * 0.85f, cy + halfW * 0.35f, cx - halfL, cy)
-                close()
-            }
-        }
-    }
+    return JigGeometryEngine.buildFrontSilhouettePath(type, cx, cy, halfL, halfW).asComposePath()
 }

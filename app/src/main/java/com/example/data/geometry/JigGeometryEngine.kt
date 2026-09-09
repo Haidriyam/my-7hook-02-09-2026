@@ -38,6 +38,63 @@ import kotlin.math.min
 object JigGeometryEngine {
 
     enum class JigSilhouetteType {
+        // Basic Geometric
+        ROUND,
+        CIRCULAR,
+        OVAL,
+        DISC,
+        FLAT_DISC,
+        TEARDROP,
+        PEAR,
+        EGG,
+        BULLET,
+        CONE,
+        CYLINDER,
+        TAPERED_CYLINDER,
+
+        // Head / Jig Styles
+        BALL_HEAD,
+        FOOTBALL_HEAD,
+        ARKIE_HEAD,
+        ROUND_HEAD,
+        FINESSE_HEAD,
+        MUSHROOM_HEAD,
+        DART_HEAD,
+        STAND_UP_HEAD,
+        SWIMBAIT_HEAD,
+        SHAKY_HEAD,
+        NED_HEAD,
+        TUBE_HEAD,
+
+        // Fishing-Oriented Body Shapes
+        LONG_SHAD,
+        SHORT_SHAD,
+        MINNOW,
+        BAITFISH,
+        HERRING,
+        SARDINE,
+        NEEDLE,
+        SLIM,
+        WIDE_BODY,
+        DEEP_BODY,
+        PADDLE,
+        BLADE,
+        SPOON,
+        LEAF,
+
+        // Special / Distinctive Silhouettes
+        DIAMOND,
+        HEXAGON,
+        TRIANGLE,
+        TEAR_BLADE,
+        HAMMER,
+        DART_BLADE,
+        CRESCENT,
+        SPLIT_BODY,
+        TWIN_PROFILE,
+        ASYMMETRIC,
+
+        // 7Hooks Signature Series
         ASYMMETRIC_HYDRO_KEEL, // Orange-Black Jigs (7H-JIG-OB-2026)
         SLOW_PITCH_DIAMOND,     // Yellow-Dotted Jigs (7H-JIG-YD-2026)
         VERTICAL_NEEDLE_NOSE,   // Yellow-Orange Jigs (7H-JIG-YO-2026)
@@ -68,29 +125,90 @@ object JigGeometryEngine {
      * Resolves the authentic physical silhouette type for a given product ID / model number.
      */
     fun resolveSilhouetteType(config: ProductConfiguration): JigSilhouetteType {
-        val id = config.productId.lowercase()
-        val name = config.productName.lowercase()
-        val model = config.modelNumber.lowercase()
+        val id = config.productId.lowercase().removePrefix("jig_").trim()
+        val name = config.productName.lowercase().trim()
+        val model = config.modelNumber.lowercase().trim()
 
+        // 1. Direct template match from repository
+        val template = com.example.data.model.JigShapeRepository.shapes.find {
+            it.shapeId.equals(id, ignoreCase = true) ||
+            it.shapeName.equals(name, ignoreCase = true) ||
+            id.contains(it.shapeId, ignoreCase = true)
+        }
+        if (template != null) {
+            return template.silhouetteType
+        }
+
+        // 2. Keyword-based matching for specific silhouette families
         return when {
+            // Basic Geometric
+            id.contains("round_head") || name.contains("round head") -> JigSilhouetteType.ROUND_HEAD
+            id.contains("flat_disc") || name.contains("flat disc") -> JigSilhouetteType.FLAT_DISC
+            id.contains("round") || name.contains("round") -> JigSilhouetteType.ROUND
+            id.contains("circular") || name.contains("circular") -> JigSilhouetteType.CIRCULAR
+            id.contains("oval") || name.contains("oval") -> JigSilhouetteType.OVAL
+            id.contains("disc") || name.contains("disc") -> JigSilhouetteType.DISC
+            id.contains("teardrop") || name.contains("teardrop") -> JigSilhouetteType.TEARDROP
+            id.contains("pear") || name.contains("pear") -> JigSilhouetteType.PEAR
+            id.contains("egg") || name.contains("egg") -> JigSilhouetteType.EGG
+            id.contains("bullet") || name.contains("bullet") -> JigSilhouetteType.BULLET
+            id.contains("cone") || name.contains("cone") -> JigSilhouetteType.CONE
+            id.contains("tapered") || name.contains("tapered cylinder") -> JigSilhouetteType.TAPERED_CYLINDER
+            id.contains("cylinder") || name.contains("cylinder") -> JigSilhouetteType.CYLINDER
+
+            // Head / Jig Styles
+            id.contains("football") || name.contains("football") -> JigSilhouetteType.FOOTBALL_HEAD
+            id.contains("arkie") || name.contains("arkie") -> JigSilhouetteType.ARKIE_HEAD
+            id.contains("finesse") || name.contains("finesse") -> JigSilhouetteType.FINESSE_HEAD
+            id.contains("mushroom") || name.contains("mushroom") -> JigSilhouetteType.MUSHROOM_HEAD
+            id.contains("dart_blade") || name.contains("dart blade") -> JigSilhouetteType.DART_BLADE
+            id.contains("dart") || name.contains("dart") -> JigSilhouetteType.DART_HEAD
+            id.contains("stand_up") || name.contains("stand-up") || name.contains("stand up") -> JigSilhouetteType.STAND_UP_HEAD
+            id.contains("swimbait") || name.contains("swimbait") -> JigSilhouetteType.SWIMBAIT_HEAD
+            id.contains("shaky") || name.contains("shaky") -> JigSilhouetteType.SHAKY_HEAD
+            id.contains("ned") || name.contains("ned") -> JigSilhouetteType.NED_HEAD
+            id.contains("tube") || name.contains("tube") -> JigSilhouetteType.TUBE_HEAD
+            id.contains("ball") || name.contains("ball") -> JigSilhouetteType.BALL_HEAD
+
+            // Fishing-Oriented Body Shapes
+            id.contains("long_shad") || name.contains("long shad") -> JigSilhouetteType.LONG_SHAD
+            id.contains("short_shad") || name.contains("short shad") -> JigSilhouetteType.SHORT_SHAD
+            id.contains("minnow") || name.contains("minnow") -> JigSilhouetteType.MINNOW
+            id.contains("baitfish") || name.contains("baitfish") -> JigSilhouetteType.BAITFISH
+            id.contains("herring") || name.contains("herring") -> JigSilhouetteType.HERRING
+            id.contains("sardine") || name.contains("sardine") -> JigSilhouetteType.SARDINE
+            id.contains("needle") || name.contains("needle") -> JigSilhouetteType.NEEDLE
+            id.contains("slim") || name.contains("slim") -> JigSilhouetteType.SLIM
+            id.contains("wide") || name.contains("wide body") -> JigSilhouetteType.WIDE_BODY
+            id.contains("deep") || name.contains("deep body") -> JigSilhouetteType.DEEP_BODY
+            id.contains("paddle") || name.contains("paddle") -> JigSilhouetteType.PADDLE
+            id.contains("tear_blade") || name.contains("tear blade") -> JigSilhouetteType.TEAR_BLADE
+            id.contains("blade") || name.contains("blade") -> JigSilhouetteType.BLADE
+            id.contains("spoon") || name.contains("spoon") -> JigSilhouetteType.SPOON
+            id.contains("leaf") || name.contains("leaf") -> JigSilhouetteType.LEAF
+
+            // Special / Distinctive Silhouettes
+            id.contains("diamond") || name.contains("diamond") -> JigSilhouetteType.DIAMOND
+            id.contains("hexagon") || name.contains("hexagon") -> JigSilhouetteType.HEXAGON
+            id.contains("triangle") || name.contains("triangle") -> JigSilhouetteType.TRIANGLE
+            id.contains("hammer") || name.contains("hammer") -> JigSilhouetteType.HAMMER
+            id.contains("crescent") || name.contains("crescent") -> JigSilhouetteType.CRESCENT
+            id.contains("split") || name.contains("split body") -> JigSilhouetteType.SPLIT_BODY
+            id.contains("twin") || name.contains("twin profile") -> JigSilhouetteType.TWIN_PROFILE
+
+            // 7Hooks Signature Series
             id.contains("flutter") || name.contains("flutter") || id.contains("candy_blue_orange") || name.contains("candy blue") || model.contains("cbo") || model.contains("flu") ->
                 JigSilhouetteType.PELAGIC_S_CURVE
-
             id.contains("knife") || name.contains("knife") || id.contains("yellow_orange") || name.contains("yellow-orange") || model.contains("yo") || model.contains("kni") ->
                 JigSilhouetteType.VERTICAL_NEEDLE_NOSE
-
-            id.contains("leaf") || name.contains("leaf") || id.contains("yellow_dotted") || name.contains("yellow-dotted") || model.contains("yd") || model.contains("lea") ->
+            id.contains("yellow_dotted") || name.contains("yellow-dotted") || model.contains("yd") ->
                 JigSilhouetteType.SLOW_PITCH_DIAMOND
-
             id.contains("asymmetric") || name.contains("asymmetric") || id.contains("orange_black") || name.contains("orange-black") || model.contains("ob") || model.contains("asy") ->
                 JigSilhouetteType.ASYMMETRIC_HYDRO_KEEL
-
             id.contains("stepped") || name.contains("stepped") || id.contains("candy_yellow_black") || name.contains("bumble") || model.contains("cyb-40g") || model.contains("ste") ->
                 JigSilhouetteType.STEPPED_HYDROFOIL
-
             id.contains("shore") || name.contains("shore") || id.contains("candy_pink_green") || name.contains("candy pink") || model.contains("cpg") || model.contains("sho") ->
                 JigSilhouetteType.SHORE_CAST_TEARDROP
-
             id.contains("crystal") || name.contains("crystal") || model.contains("cpb") || model.contains("cyb-05") ->
                 JigSilhouetteType.CRYSTAL_FACETED
 
@@ -669,7 +787,7 @@ object JigGeometryEngine {
     /**
      * Builds the authentic parametric 2D front silhouette path.
      */
-    private fun buildFrontSilhouettePath(
+    fun buildFrontSilhouettePath(
         silhouette: JigSilhouetteType,
         cx: Float,
         cy: Float,
@@ -678,7 +796,409 @@ object JigGeometryEngine {
     ): Path {
         return Path().apply {
             when (silhouette) {
-                JigSilhouetteType.ASYMMETRIC_HYDRO_KEEL -> {
+                // =============================================================
+                // 1. BASIC / GEOMETRIC
+                // =============================================================
+                JigSilhouetteType.ROUND, JigSilhouetteType.BALL_HEAD -> {
+                    // True circular spherical ballast profile
+                    addCircle(cx, cy, min(halfL, halfW), Path.Direction.CW)
+                }
+
+                JigSilhouetteType.CIRCULAR, JigSilhouetteType.ROUND_HEAD -> {
+                    // Flattened coin / radial profile
+                    addOval(RectF(cx - halfL, cy - halfW, cx + halfL, cy + halfW), Path.Direction.CW)
+                }
+
+                JigSilhouetteType.OVAL -> {
+                    // Smooth elongated ellipse
+                    addOval(RectF(cx - halfL, cy - halfW, cx + halfL, cy + halfW), Path.Direction.CW)
+                }
+
+                JigSilhouetteType.DISC -> {
+                    // Flat lens / disc profile with rounded convex ends
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.5f, cy - halfW, cx + halfL * 0.5f, cy - halfW, cx + halfL, cy)
+                    cubicTo(cx + halfL * 0.5f, cy + halfW, cx - halfL * 0.5f, cy + halfW, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.FLAT_DISC -> {
+                    // Planar disc with crisp chamfered corners
+                    moveTo(cx - halfL + 6f, cy - halfW)
+                    lineTo(cx + halfL - 6f, cy - halfW)
+                    lineTo(cx + halfL, cy - halfW + 6f)
+                    lineTo(cx + halfL, cy + halfW - 6f)
+                    lineTo(cx + halfL - 6f, cy + halfW)
+                    lineTo(cx - halfL + 6f, cy + halfW)
+                    lineTo(cx - halfL, cy + halfW - 6f)
+                    lineTo(cx - halfL, cy - halfW + 6f)
+                    close()
+                }
+
+                JigSilhouetteType.TEARDROP, JigSilhouetteType.SHORE_CAST_TEARDROP -> {
+                    // Narrow head expanding to bulbous posterior
+                    moveTo(cx - halfL, cy)
+                    cubicTo(
+                        cx - halfL * 0.65f, cy - halfW * 0.95f,
+                        cx - halfL * 0.25f, cy - halfW * 1.00f,
+                        cx, cy - halfW * 0.85f
+                    )
+                    cubicTo(
+                        cx + halfL * 0.40f, cy - halfW * 0.65f,
+                        cx + halfL * 0.75f, cy - halfW * 0.35f,
+                        cx + halfL, cy
+                    )
+                    cubicTo(
+                        cx + halfL * 0.75f, cy + halfW * 0.35f,
+                        cx + halfL * 0.40f, cy + halfW * 0.65f,
+                        cx, cy + halfW * 0.85f
+                    )
+                    cubicTo(
+                        cx - halfL * 0.25f, cy + halfW * 1.00f,
+                        cx - halfL * 0.65f, cy + halfW * 0.95f,
+                        cx - halfL, cy
+                    )
+                    close()
+                }
+
+                JigSilhouetteType.PEAR -> {
+                    // Piriform pear shape - forward pinch expanding to bottom-heavy belly
+                    moveTo(cx - halfL, cy)
+                    cubicTo(
+                        cx - halfL * 0.5f, cy - halfW * 0.4f,
+                        cx + halfL * 0.1f, cy - halfW * 0.95f,
+                        cx + halfL * 0.6f, cy - halfW
+                    )
+                    cubicTo(
+                        cx + halfL * 0.9f, cy - halfW * 0.7f,
+                        cx + halfL, cy - halfW * 0.3f,
+                        cx + halfL, cy
+                    )
+                    cubicTo(
+                        cx + halfL, cy + halfW * 0.3f,
+                        cx + halfL * 0.9f, cy + halfW * 0.7f,
+                        cx + halfL * 0.6f, cy + halfW
+                    )
+                    cubicTo(
+                        cx + halfL * 0.1f, cy + halfW * 0.95f,
+                        cx - halfL * 0.5f, cy + halfW * 0.4f,
+                        cx - halfL, cy
+                    )
+                    close()
+                }
+
+                JigSilhouetteType.EGG -> {
+                    // Ovoid profile peaking towards rear third
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.6f, cy - halfW * 0.7f, cx + halfL * 0.2f, cy - halfW, cx + halfL * 0.5f, cy - halfW)
+                    cubicTo(cx + halfL * 0.85f, cy - halfW * 0.8f, cx + halfL, cy - halfW * 0.4f, cx + halfL, cy)
+                    cubicTo(cx + halfL, cy + halfW * 0.4f, cx + halfL * 0.85f, cy + halfW * 0.8f, cx + halfL * 0.5f, cy + halfW)
+                    cubicTo(cx + halfL * 0.2f, cy + halfW, cx - halfL * 0.6f, cy + halfW * 0.7f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.BULLET -> {
+                    // Ogive parabolic nose with flat base
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.6f, cy - halfW * 0.8f, cx - halfL * 0.1f, cy - halfW, cx + halfL * 0.6f, cy - halfW)
+                    lineTo(cx + halfL, cy - halfW)
+                    lineTo(cx + halfL, cy + halfW)
+                    lineTo(cx + halfL * 0.6f, cy + halfW)
+                    cubicTo(cx - halfL * 0.1f, cy + halfW, cx - halfL * 0.6f, cy + halfW * 0.8f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.CONE -> {
+                    // Sharp conical nose expanding linearly to planar base
+                    moveTo(cx - halfL, cy)
+                    lineTo(cx + halfL, cy - halfW)
+                    lineTo(cx + halfL, cy + halfW)
+                    close()
+                }
+
+                JigSilhouetteType.CYLINDER -> {
+                    // Parallel cylinder with rounded cap ends
+                    addRoundRect(
+                        RectF(cx - halfL, cy - halfW, cx + halfL, cy + halfW),
+                        8f, 8f, Path.Direction.CW
+                    )
+                }
+
+                JigSilhouetteType.TAPERED_CYLINDER -> {
+                    // Trapezoidal body with filleted corners
+                    moveTo(cx - halfL, cy - halfW * 0.45f)
+                    lineTo(cx + halfL, cy - halfW)
+                    lineTo(cx + halfL, cy + halfW)
+                    lineTo(cx - halfL, cy + halfW * 0.45f)
+                    close()
+                }
+
+                // =============================================================
+                // 2. HEAD / JIG STYLES
+                // =============================================================
+                JigSilhouetteType.FOOTBALL_HEAD -> {
+                    // Wide lateral football cross-axis head with rear shank collar
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.8f, cy - halfW * 1.1f, cx - halfL * 0.2f, cy - halfW * 1.1f, cx, cy - halfW * 0.8f)
+                    lineTo(cx + halfL * 0.7f, cy - halfW * 0.35f)
+                    lineTo(cx + halfL, cy - halfW * 0.20f)
+                    lineTo(cx + halfL, cy + halfW * 0.20f)
+                    lineTo(cx + halfL * 0.7f, cy + halfW * 0.35f)
+                    lineTo(cx, cy + halfW * 0.8f)
+                    cubicTo(cx - halfL * 0.2f, cy + halfW * 1.1f, cx - halfL * 0.8f, cy + halfW * 1.1f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.ARKIE_HEAD -> {
+                    // Modified arkie wedge with flat planing bottom
+                    moveTo(cx - halfL, cy - halfW * 0.4f)
+                    cubicTo(cx - halfL * 0.5f, cy - halfW * 0.95f, cx, cy - halfW * 0.95f, cx + halfL * 0.4f, cy - halfW * 0.6f)
+                    lineTo(cx + halfL, cy - halfW * 0.25f)
+                    lineTo(cx + halfL, cy + halfW * 0.25f)
+                    lineTo(cx + halfL * 0.2f, cy + halfW * 0.8f)
+                    lineTo(cx - halfL * 0.6f, cy + halfW * 0.8f)
+                    lineTo(cx - halfL, cy + halfW * 0.3f)
+                    close()
+                }
+
+                JigSilhouetteType.FINESSE_HEAD -> {
+                    // Low profile compact teardrop with slender collar
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.7f, cy - halfW * 0.9f, cx - halfL * 0.1f, cy - halfW * 0.9f, cx + halfL * 0.2f, cy - halfW * 0.5f)
+                    lineTo(cx + halfL, cy - halfW * 0.25f)
+                    lineTo(cx + halfL, cy + halfW * 0.25f)
+                    lineTo(cx + halfL * 0.2f, cy + halfW * 0.5f)
+                    cubicTo(cx - halfL * 0.1f, cy + halfW * 0.9f, cx - halfL * 0.7f, cy + halfW * 0.9f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.MUSHROOM_HEAD, JigSilhouetteType.NED_HEAD -> {
+                    // Hemispherical mushroom dome with flat vertical trailing face
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.9f, cy - halfW * 0.95f, cx - halfL * 0.1f, cy - halfW, cx + halfL * 0.3f, cy - halfW)
+                    lineTo(cx + halfL * 0.3f, cy - halfW * 0.3f)
+                    lineTo(cx + halfL, cy - halfW * 0.2f)
+                    lineTo(cx + halfL, cy + halfW * 0.2f)
+                    lineTo(cx + halfL * 0.3f, cy + halfW * 0.3f)
+                    lineTo(cx + halfL * 0.3f, cy + halfW)
+                    cubicTo(cx - halfL * 0.1f, cy + halfW, cx - halfL * 0.9f, cy + halfW * 0.95f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.DART_HEAD, JigSilhouetteType.DART_BLADE -> {
+                    // Arrowhead wedge pointed nose with angular swept flukes
+                    moveTo(cx - halfL, cy)
+                    lineTo(cx + halfL * 0.1f, cy - halfW)
+                    lineTo(cx + halfL * 0.4f, cy - halfW * 0.5f)
+                    lineTo(cx + halfL, cy - halfW * 0.2f)
+                    lineTo(cx + halfL, cy + halfW * 0.2f)
+                    lineTo(cx + halfL * 0.4f, cy + halfW * 0.5f)
+                    lineTo(cx + halfL * 0.1f, cy + halfW)
+                    close()
+                }
+
+                JigSilhouetteType.STAND_UP_HEAD -> {
+                    // Flat-bottomed triangular stand-up planing jig
+                    moveTo(cx - halfL, cy - halfW * 0.2f)
+                    lineTo(cx + halfL * 0.2f, cy - halfW * 0.9f)
+                    lineTo(cx + halfL, cy - halfW * 0.25f)
+                    lineTo(cx + halfL, cy + halfW * 0.35f)
+                    lineTo(cx - halfL * 0.3f, cy + halfW)
+                    lineTo(cx - halfL, cy + halfW)
+                    close()
+                }
+
+                JigSilhouetteType.SWIMBAIT_HEAD -> {
+                    // Realistic hydrodynamic minnow head with gill flare
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.6f, cy - halfW * 0.7f, cx - halfL * 0.1f, cy - halfW * 0.9f, cx + halfL * 0.3f, cy - halfW * 0.7f)
+                    lineTo(cx + halfL * 0.35f, cy - halfW * 0.4f)
+                    lineTo(cx + halfL, cy - halfW * 0.2f)
+                    lineTo(cx + halfL, cy + halfW * 0.2f)
+                    lineTo(cx + halfL * 0.35f, cy + halfW * 0.4f)
+                    lineTo(cx + halfL * 0.3f, cy + halfW * 0.7f)
+                    cubicTo(cx - halfL * 0.1f, cy + halfW * 0.9f, cx - halfL * 0.6f, cy + halfW * 0.7f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.SHAKY_HEAD -> {
+                    // Round/football hybrid with screwlock collar
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.7f, cy - halfW * 0.95f, cx, cy - halfW * 0.95f, cx + halfL * 0.3f, cy - halfW * 0.5f)
+                    lineTo(cx + halfL, cy - halfW * 0.2f)
+                    lineTo(cx + halfL, cy + halfW * 0.2f)
+                    lineTo(cx + halfL * 0.3f, cy + halfW * 0.5f)
+                    cubicTo(cx, cy + halfW * 0.95f, cx - halfL * 0.7f, cy + halfW * 0.95f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.TUBE_HEAD -> {
+                    // Cylindrical insert head tapered at nose
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.7f, cy - halfW * 0.8f, cx - halfL * 0.3f, cy - halfW, cx, cy - halfW)
+                    lineTo(cx + halfL, cy - halfW * 0.85f)
+                    lineTo(cx + halfL, cy + halfW * 0.85f)
+                    lineTo(cx, cy + halfW)
+                    cubicTo(cx - halfL * 0.3f, cy + halfW, cx - halfL * 0.7f, cy + halfW * 0.8f, cx - halfL, cy)
+                    close()
+                }
+
+                // =============================================================
+                // 3. FISHING-ORIENTED BODY SHAPES
+                // =============================================================
+                JigSilhouetteType.LONG_SHAD -> {
+                    // Slender baitfish profile with deep belly chord and slender tail
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.6f, cy - halfW * 0.8f, cx - halfL * 0.1f, cy - halfW * 0.95f, cx + halfL * 0.3f, cy - halfW * 0.6f)
+                    cubicTo(cx + halfL * 0.7f, cy - halfW * 0.3f, cx + halfL * 0.9f, cy - halfW * 0.1f, cx + halfL, cy)
+                    cubicTo(cx + halfL * 0.9f, cy + halfW * 0.1f, cx + halfL * 0.6f, cy + halfW * 0.4f, cx + halfL * 0.1f, cy + halfW * 0.95f)
+                    cubicTo(cx - halfL * 0.3f, cy + halfW * 1.0f, cx - halfL * 0.7f, cy + halfW * 0.6f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.SHORT_SHAD -> {
+                    // Compact deep-bodied shad profile
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.5f, cy - halfW * 0.9f, cx - halfL * 0.1f, cy - halfW, cx + halfL * 0.2f, cy - halfW * 0.7f)
+                    cubicTo(cx + halfL * 0.6f, cy - halfW * 0.4f, cx + halfL * 0.85f, cy - halfW * 0.15f, cx + halfL, cy)
+                    cubicTo(cx + halfL * 0.85f, cy + halfW * 0.15f, cx + halfL * 0.5f, cy + halfW * 0.5f, cx, cy + halfW)
+                    cubicTo(cx - halfL * 0.4f, cy + halfW * 1.0f, cx - halfL * 0.75f, cy + halfW * 0.7f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.MINNOW, JigSilhouetteType.SLIM, JigSilhouetteType.SARDINE -> {
+                    // Classic streamlined minnow baitfish silhouette
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.6f, cy - halfW * 0.7f, cx - halfL * 0.1f, cy - halfW * 0.85f, cx + halfL * 0.3f, cy - halfW * 0.7f)
+                    cubicTo(cx + halfL * 0.7f, cy - halfW * 0.4f, cx + halfL * 0.9f, cy - halfW * 0.15f, cx + halfL, cy)
+                    cubicTo(cx + halfL * 0.9f, cy + halfW * 0.15f, cx + halfL * 0.7f, cy + halfW * 0.4f, cx + halfL * 0.3f, cy + halfW * 0.7f)
+                    cubicTo(cx - halfL * 0.1f, cy + halfW * 0.85f, cx - halfL * 0.6f, cy + halfW * 0.7f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.BAITFISH, JigSilhouetteType.HERRING -> {
+                    // Herring with broad dorsal shoulder
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.5f, cy - halfW * 0.95f, cx, cy - halfW * 0.9f, cx + halfL * 0.4f, cy - halfW * 0.6f)
+                    cubicTo(cx + halfL * 0.75f, cy - halfW * 0.3f, cx + halfL * 0.9f, cy - halfW * 0.1f, cx + halfL, cy)
+                    cubicTo(cx + halfL * 0.9f, cy + halfW * 0.1f, cx + halfL * 0.6f, cy + halfW * 0.5f, cx + halfL * 0.1f, cy + halfW * 0.9f)
+                    cubicTo(cx - halfL * 0.3f, cy + halfW * 0.95f, cx - halfL * 0.7f, cy + halfW * 0.6f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.NEEDLE, JigSilhouetteType.VERTICAL_NEEDLE_NOSE -> {
+                    // Slender needle forward, rear-weighted bulbous flair
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.40f, cy - halfW * 0.35f, cx + halfL * 0.10f, cy - halfW * 0.50f, cx + halfL * 0.55f, cy - halfW * 0.95f)
+                    cubicTo(cx + halfL * 0.75f, cy - halfW * 1.00f, cx + halfL * 0.92f, cy - halfW * 0.50f, cx + halfL, cy)
+                    cubicTo(cx + halfL * 0.92f, cy + halfW * 0.50f, cx + halfL * 0.75f, cy + halfW * 1.00f, cx + halfL * 0.55f, cy + halfW * 0.95f)
+                    cubicTo(cx + halfL * 0.10f, cy + halfW * 0.50f, cx - halfL * 0.40f, cy + halfW * 0.35f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.WIDE_BODY, JigSilhouetteType.DEEP_BODY -> {
+                    // Deep slab-sided body with heavy displacement
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.6f, cy - halfW * 1.1f, cx, cy - halfW * 1.1f, cx + halfL * 0.5f, cy - halfW * 0.75f)
+                    cubicTo(cx + halfL * 0.8f, cy - halfW * 0.4f, cx + halfL * 0.95f, cy - halfW * 0.15f, cx + halfL, cy)
+                    cubicTo(cx + halfL * 0.95f, cy + halfW * 0.15f, cx + halfL * 0.8f, cy + halfW * 0.4f, cx + halfL * 0.5f, cy + halfW * 0.75f)
+                    cubicTo(cx, cy + halfW * 1.1f, cx - halfL * 0.6f, cy + halfW * 1.1f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.PADDLE, JigSilhouetteType.HAMMER -> {
+                    // Body expanding rearward to wide paddle/hammer tail
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.5f, cy - halfW * 0.4f, cx, cy - halfW * 0.5f, cx + halfL * 0.4f, cy - halfW * 0.6f)
+                    lineTo(cx + halfL * 0.7f, cy - halfW)
+                    lineTo(cx + halfL, cy - halfW * 0.9f)
+                    lineTo(cx + halfL, cy + halfW * 0.9f)
+                    lineTo(cx + halfL * 0.7f, cy + halfW)
+                    lineTo(cx + halfL * 0.4f, cy + halfW * 0.6f)
+                    cubicTo(cx, cy + halfW * 0.5f, cx - halfL * 0.5f, cy + halfW * 0.4f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.BLADE, JigSilhouetteType.TEAR_BLADE -> {
+                    // Precision stamped blade with high-speed hydrofoil curvature
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.5f, cy - halfW * 0.95f, cx + halfL * 0.2f, cy - halfW * 0.95f, cx + halfL * 0.7f, cy - halfW * 0.4f)
+                    lineTo(cx + halfL, cy)
+                    lineTo(cx + halfL * 0.7f, cy + halfW * 0.4f)
+                    cubicTo(cx + halfL * 0.2f, cy + halfW * 0.95f, cx - halfL * 0.5f, cy + halfW * 0.95f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.SPOON -> {
+                    // Deep concave cupped spoon profile
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.6f, cy - halfW * 0.7f, cx - halfL * 0.1f, cy - halfW * 1.1f, cx + halfL * 0.4f, cy - halfW * 0.9f)
+                    cubicTo(cx + halfL * 0.8f, cy - halfW * 0.6f, cx + halfL, cy - halfW * 0.3f, cx + halfL, cy)
+                    cubicTo(cx + halfL, cy + halfW * 0.3f, cx + halfL * 0.8f, cy + halfW * 0.6f, cx + halfL * 0.4f, cy + halfW * 0.9f)
+                    cubicTo(cx - halfL * 0.1f, cy + halfW * 1.1f, cx - halfL * 0.6f, cy + halfW * 0.7f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.LEAF, JigSilhouetteType.SLOW_PITCH_DIAMOND -> {
+                    // Willow leaf / diamond profile peaking at 50% length
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.60f, cy - halfW * 0.75f, cx - halfL * 0.15f, cy - halfW * 1.00f, cx, cy - halfW)
+                    cubicTo(cx + halfL * 0.15f, cy - halfW * 1.00f, cx + halfL * 0.60f, cy - halfW * 0.75f, cx + halfL, cy)
+                    cubicTo(cx + halfL * 0.60f, cy + halfW * 0.75f, cx + halfL * 0.15f, cy + halfW * 1.00f, cx, cy + halfW)
+                    cubicTo(cx - halfL * 0.15f, cy + halfW * 1.00f, cx - halfL * 0.60f, cy + halfW * 0.75f, cx - halfL, cy)
+                    close()
+                }
+
+                // =============================================================
+                // 4. SPECIAL / DISTINCTIVE SILHOUETTES
+                // =============================================================
+                JigSilhouetteType.DIAMOND -> {
+                    // Rhomboid geometric diamond
+                    moveTo(cx - halfL, cy)
+                    lineTo(cx, cy - halfW)
+                    lineTo(cx + halfL, cy)
+                    lineTo(cx, cy + halfW)
+                    close()
+                }
+
+                JigSilhouetteType.HEXAGON -> {
+                    // Elongated hexagon prism
+                    moveTo(cx - halfL, cy)
+                    lineTo(cx - halfL * 0.5f, cy - halfW)
+                    lineTo(cx + halfL * 0.5f, cy - halfW)
+                    lineTo(cx + halfL, cy)
+                    lineTo(cx + halfL * 0.5f, cy + halfW)
+                    lineTo(cx - halfL * 0.5f, cy + halfW)
+                    close()
+                }
+
+                JigSilhouetteType.TRIANGLE -> {
+                    // Isosceles wedge triangle
+                    moveTo(cx - halfL, cy)
+                    lineTo(cx + halfL, cy - halfW)
+                    lineTo(cx + halfL, cy + halfW)
+                    close()
+                }
+
+                JigSilhouetteType.CRESCENT -> {
+                    // Curved crescent moon arc
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.4f, cy - halfW * 1.1f, cx + halfL * 0.4f, cy - halfW * 1.1f, cx + halfL, cy)
+                    cubicTo(cx + halfL * 0.3f, cy - halfW * 0.3f, cx - halfL * 0.3f, cy - halfW * 0.3f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.SPLIT_BODY, JigSilhouetteType.TWIN_PROFILE -> {
+                    // Dual-chine split keel profile
+                    moveTo(cx - halfL, cy)
+                    cubicTo(cx - halfL * 0.5f, cy - halfW * 0.9f, cx - halfL * 0.1f, cy - halfW * 0.9f, cx, cy - halfW * 0.5f)
+                    cubicTo(cx + halfL * 0.1f, cy - halfW * 0.9f, cx + halfL * 0.5f, cy - halfW * 0.9f, cx + halfL, cy)
+                    cubicTo(cx + halfL * 0.5f, cy + halfW * 0.9f, cx + halfL * 0.1f, cy + halfW * 0.9f, cx, cy + halfW * 0.5f)
+                    cubicTo(cx - halfL * 0.1f, cy + halfW * 0.9f, cx - halfL * 0.5f, cy + halfW * 0.9f, cx - halfL, cy)
+                    close()
+                }
+
+                JigSilhouetteType.ASYMMETRIC, JigSilhouetteType.ASYMMETRIC_HYDRO_KEEL -> {
                     // Orange-Black: High dorsal shoulder at 35% chord, knife-edge entry, hydro-keel belly
                     moveTo(cx - halfL, cy)
                     cubicTo(
@@ -704,58 +1224,9 @@ object JigGeometryEngine {
                     close()
                 }
 
-                JigSilhouetteType.SLOW_PITCH_DIAMOND -> {
-                    // Yellow-Dotted: Symmetrical willow leaf / diamond profile peaking at 50% length
-                    moveTo(cx - halfL, cy)
-                    cubicTo(
-                        cx - halfL * 0.60f, cy - halfW * 0.75f,
-                        cx - halfL * 0.15f, cy - halfW * 1.00f,
-                        cx, cy - halfW
-                    )
-                    cubicTo(
-                        cx + halfL * 0.15f, cy - halfW * 1.00f,
-                        cx + halfL * 0.60f, cy - halfW * 0.75f,
-                        cx + halfL, cy
-                    )
-                    cubicTo(
-                        cx + halfL * 0.60f, cy + halfW * 0.75f,
-                        cx + halfL * 0.15f, cy + halfW * 1.00f,
-                        cx, cy + halfW
-                    )
-                    cubicTo(
-                        cx - halfL * 0.15f, cy + halfW * 1.00f,
-                        cx - halfL * 0.60f, cy + halfW * 0.75f,
-                        cx - halfL, cy
-                    )
-                    close()
-                }
-
-                JigSilhouetteType.VERTICAL_NEEDLE_NOSE -> {
-                    // Yellow-Orange: Slender needle forward, rear-weighted bulbous flair at 75% chord
-                    moveTo(cx - halfL, cy)
-                    cubicTo(
-                        cx - halfL * 0.40f, cy - halfW * 0.35f,
-                        cx + halfL * 0.10f, cy - halfW * 0.50f,
-                        cx + halfL * 0.55f, cy - halfW * 0.95f
-                    )
-                    cubicTo(
-                        cx + halfL * 0.75f, cy - halfW * 1.00f,
-                        cx + halfL * 0.92f, cy - halfW * 0.50f,
-                        cx + halfL, cy
-                    )
-                    cubicTo(
-                        cx + halfL * 0.92f, cy + halfW * 0.50f,
-                        cx + halfL * 0.75f, cy + halfW * 1.00f,
-                        cx + halfL * 0.55f, cy + halfW * 0.95f
-                    )
-                    cubicTo(
-                        cx + halfL * 0.10f, cy + halfW * 0.50f,
-                        cx - halfL * 0.40f, cy + halfW * 0.35f,
-                        cx - halfL, cy
-                    )
-                    close()
-                }
-
+                // =============================================================
+                // 5. 7HOOKS SIGNATURE SERIES
+                // =============================================================
                 JigSilhouetteType.PELAGIC_S_CURVE -> {
                     // Candy Blue-Orange: Hydrodynamic S-curve inflection
                     moveTo(cx - halfL, cy)
@@ -777,32 +1248,6 @@ object JigGeometryEngine {
                     cubicTo(
                         cx - halfL * 0.60f, cy + halfW * 0.50f,
                         cx - halfL * 0.85f, cy + halfW * 0.25f,
-                        cx - halfL, cy
-                    )
-                    close()
-                }
-
-                JigSilhouetteType.SHORE_CAST_TEARDROP -> {
-                    // Candy Pink-Green: Compact rounded forward belly
-                    moveTo(cx - halfL, cy)
-                    cubicTo(
-                        cx - halfL * 0.65f, cy - halfW * 0.95f,
-                        cx - halfL * 0.25f, cy - halfW * 1.00f,
-                        cx, cy - halfW * 0.85f
-                    )
-                    cubicTo(
-                        cx + halfL * 0.40f, cy - halfW * 0.65f,
-                        cx + halfL * 0.75f, cy - halfW * 0.35f,
-                        cx + halfL, cy
-                    )
-                    cubicTo(
-                        cx + halfL * 0.75f, cy + halfW * 0.35f,
-                        cx + halfL * 0.40f, cy + halfW * 0.65f,
-                        cx, cy + halfW * 0.85f
-                    )
-                    cubicTo(
-                        cx - halfL * 0.25f, cy + halfW * 1.00f,
-                        cx - halfL * 0.65f, cy + halfW * 0.95f,
                         cx - halfL, cy
                     )
                     close()
@@ -855,7 +1300,7 @@ object JigGeometryEngine {
         paint: Paint
     ) {
         when (silhouette) {
-            JigSilhouetteType.ASYMMETRIC_HYDRO_KEEL -> {
+            JigSilhouetteType.ASYMMETRIC_HYDRO_KEEL, JigSilhouetteType.ASYMMETRIC -> {
                 // Keel ridge line separating flat belly and angled dorsal face
                 val keelPath = Path().apply {
                     moveTo(cx - halfL, cy)
@@ -868,7 +1313,7 @@ object JigGeometryEngine {
                 canvas.drawPath(keelPath, paint)
             }
 
-            JigSilhouetteType.SLOW_PITCH_DIAMOND -> {
+            JigSilhouetteType.SLOW_PITCH_DIAMOND, JigSilhouetteType.DIAMOND, JigSilhouetteType.LEAF -> {
                 // Diamond center facet crease and lateral cross lines
                 canvas.drawLine(cx - halfL + 8f, cy, cx + halfL - 8f, cy, paint)
                 canvas.drawLine(cx, cy - halfW, cx, cy + halfW, paint)
@@ -878,7 +1323,7 @@ object JigGeometryEngine {
                 canvas.drawLine(cx + halfL * 0.4f, cy, cx, cy + halfW, paint)
             }
 
-            JigSilhouetteType.VERTICAL_NEEDLE_NOSE -> {
+            JigSilhouetteType.VERTICAL_NEEDLE_NOSE, JigSilhouetteType.NEEDLE, JigSilhouetteType.SLIM -> {
                 // Hydro-stabilizer flute along needle body
                 canvas.drawLine(cx - halfL * 0.70f, cy, cx + halfL * 0.50f, cy, paint)
             }
@@ -892,7 +1337,7 @@ object JigGeometryEngine {
                 canvas.drawPath(sLine, paint)
             }
 
-            JigSilhouetteType.CRYSTAL_FACETED -> {
+            JigSilhouetteType.CRYSTAL_FACETED, JigSilhouetteType.HEXAGON -> {
                 // Prismatic internal break lines
                 canvas.drawLine(cx - halfL, cy, cx + halfL, cy, paint)
                 canvas.drawLine(cx - halfL * 0.20f, cy - halfW, cx - halfL * 0.20f, cy + halfW, paint)
@@ -918,13 +1363,24 @@ object JigGeometryEngine {
         halfW: Float
     ): Point2D {
         return when (silhouette) {
-            JigSilhouetteType.ASYMMETRIC_HYDRO_KEEL -> Point2D(cx - halfL + 18f, cy - halfW * 0.35f)
-            JigSilhouetteType.SLOW_PITCH_DIAMOND -> Point2D(cx - halfL + 16f, cy)
-            JigSilhouetteType.VERTICAL_NEEDLE_NOSE -> Point2D(cx - halfL + 12f, cy - halfW * 0.20f)
-            JigSilhouetteType.PELAGIC_S_CURVE -> Point2D(cx - halfL + 17f, cy - halfW * 0.30f)
-            JigSilhouetteType.SHORE_CAST_TEARDROP -> Point2D(cx - halfL + 19f, cy - halfW * 0.25f)
-            JigSilhouetteType.STEPPED_HYDROFOIL -> Point2D(cx - halfL + 16f, cy - halfW * 0.30f)
-            JigSilhouetteType.CRYSTAL_FACETED -> Point2D(cx - halfL + 18f, cy - halfW * 0.30f)
+            JigSilhouetteType.ROUND, JigSilhouetteType.BALL_HEAD, JigSilhouetteType.CIRCULAR ->
+                Point2D(cx - halfL * 0.35f, cy - halfW * 0.25f)
+            JigSilhouetteType.ASYMMETRIC_HYDRO_KEEL, JigSilhouetteType.ASYMMETRIC ->
+                Point2D(cx - halfL + 18f, cy - halfW * 0.35f)
+            JigSilhouetteType.SLOW_PITCH_DIAMOND, JigSilhouetteType.DIAMOND, JigSilhouetteType.LEAF ->
+                Point2D(cx - halfL + 16f, cy)
+            JigSilhouetteType.VERTICAL_NEEDLE_NOSE, JigSilhouetteType.NEEDLE ->
+                Point2D(cx - halfL + 12f, cy - halfW * 0.20f)
+            JigSilhouetteType.PELAGIC_S_CURVE ->
+                Point2D(cx - halfL + 17f, cy - halfW * 0.30f)
+            JigSilhouetteType.SHORE_CAST_TEARDROP, JigSilhouetteType.TEARDROP, JigSilhouetteType.PEAR ->
+                Point2D(cx - halfL + 19f, cy - halfW * 0.25f)
+            JigSilhouetteType.STEPPED_HYDROFOIL ->
+                Point2D(cx - halfL + 16f, cy - halfW * 0.30f)
+            JigSilhouetteType.CRYSTAL_FACETED ->
+                Point2D(cx - halfL + 18f, cy - halfW * 0.30f)
+            else ->
+                Point2D(cx - halfL + 16f, cy - halfW * 0.20f)
         }
     }
 
