@@ -1,10 +1,10 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import android.content.Context
+import android.graphics.Bitmap
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,1638 +16,1315 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Architecture
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Science
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.JigPatternType
-import com.example.data.model.JigProduct
-import com.example.data.model.ProductConfiguration
-import com.example.ui.components.*
+import coil.compose.AsyncImage
+import com.example.data.ai.GeminiImageService
+import com.example.data.geometry.JigGeometryEngine
+import com.example.data.model.JigConfiguration
+import com.example.data.model.JigShapeRepository
+import com.example.ui.components.AppHeader
+import com.example.ui.components.JigEngineeringCanvas
+import com.example.ui.components.JigLiveCanvasPreview
 import com.example.viewmodel.ConfiguratorViewModel
+import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+/**
+ * 7Hooks Progressive Shape-First Jig Configurator Screen.
+ *
+ * Flow:
+ * - Selected shape remains permanently visible as the design foundation
+ * - Progressive 10-step wizard:
+ *   01: Size (Weight) -> 02: Length -> 03: Width -> 04: Color -> 05: Pattern ->
+ *   06: Finish -> 07: Eye -> 08: Assist Hook -> 09: Assist Cord -> 10: Rings
+ * - Review Screen (Step 11): Inspect specs + trigger Gemini Image Generation
+ * - Final Result Screen (Step 12): AI Render vs CAD Blueprint + Save + PDF Export
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JigConfigScreen(
     configViewModel: ConfiguratorViewModel,
     onNavigateToEngineering: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
-    val currentConfig by configViewModel.currentConfig.collectAsState()
-    val selectedJig by configViewModel.selectedJigProduct.collectAsState()
+    val context = LocalContext.current
+    val currentStep by configViewModel.currentConfigStep.collectAsState()
+    val jigConfig by configViewModel.currentJigConfig.collectAsState()
+    val isGeneratingAi by configViewModel.isGeneratingAi.collectAsState()
+    val aiResult by configViewModel.aiGenerationResult.collectAsState()
+    val isBlueprintView by configViewModel.isAiResultViewBlueprint.collectAsState()
+    val isGeneratingPdf by configViewModel.isGeneratingPdf.collectAsState()
+    val pdfResult by configViewModel.pdfValidationResult.collectAsState()
+    val saveMessage by configViewModel.saveStatusMessage.collectAsState()
 
-    var isMoreOptionsExpanded by remember { mutableStateOf(false) }
-    var isInlineTechnicalViewExpanded by remember { mutableStateOf(false) }
-    var isProductInActionExpanded by remember { mutableStateOf(false) }
+    val currentProductConfig by configViewModel.currentConfig.collectAsState()
+    val shapeTemplate = remember(jigConfig.shapeId) {
+        JigShapeRepository.getById(jigConfig.shapeId)
+    }
 
-    var selectedConfigTab by remember { mutableIntStateOf(0) } // 0 = Custom Specs, 1 = Best Combination
-    var activeTermInfo by remember { mutableStateOf<TechnicalTermInfo?>(null) }
-    var selectedEyeColorName by remember { mutableStateOf("Luminous Lime") }
+    val snackbarHostState = remember { SnackbarHostState() }
+    var showResetDialog by remember { mutableStateOf(false) }
 
-    val validation = remember(currentConfig.weightGrams, currentConfig.lengthMm, currentConfig.widthMm, selectedJig) {
-        validateJigParameters(
-            weight = currentConfig.weightGrams,
-            length = currentConfig.lengthMm,
-            width = currentConfig.widthMm,
-            selectedJig = selectedJig
-        )
+    LaunchedEffect(saveMessage) {
+        saveMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            configViewModel.clearStatusMessage()
+        }
+    }
+
+    LaunchedEffect(pdfResult) {
+        pdfResult?.let { res ->
+            if (res.isValid) {
+                snackbarHostState.showSnackbar("A4 PDF Specification Exported: ${res.file.name}")
+            }
+        }
     }
 
     Scaffold(
         topBar = {
+            val titleText = when (currentStep) {
+                in 1..10 -> "Step 0$currentStep/10: ${shapeTemplate.shapeName}"
+                11 -> "Review Specification"
+                12 -> "Final Product Render"
+                else -> "Jig Configurator"
+            }
+
             AppHeader(
-                title = "Configure Jig",
+                title = titleText,
                 showBackButton = true,
-                onBackClick = onNavigateBack
+                onBackClick = {
+                    if (currentStep > 1) {
+                        configViewModel.previousConfigStep()
+                    } else {
+                        onNavigateBack()
+                    }
+                }
             )
         },
-        bottomBar = {
-            Surface(
-                tonalElevation = 6.dp,
-                shadowElevation = 8.dp,
-                color = MaterialTheme.colorScheme.surface,
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "${currentConfig.lengthMm.toInt()} mm • ${currentConfig.weightGrams.toInt()} g",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "${currentConfig.modelNumber} • FR: ${currentConfig.frontRing} • BR: ${currentConfig.backRing}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-
-                    TactileButton(
-                        onClick = onNavigateToEngineering,
-                        variant = TactileButtonVariant.PRIMARY,
-                        icon = Icons.AutoMirrored.Filled.ArrowForward,
-                        text = "Technical Drawing",
-                        testTag = "jig_continue_to_dashboard_button"
-                    )
-                }
-            }
-        },
-        modifier = Modifier.testTag("jig_config_screen")
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color(0xFFF8FAFC),
+        modifier = Modifier.testTag("jig_progressive_config_screen")
     ) { paddingValues ->
-        BoxWithConstraints(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            val isWideScreen = maxWidth >= 720.dp
-
-            if (isWideScreen) {
-                // TABLET / DESKTOP TWO-COLUMN RESPONSIVE LAYOUT
-                Row(
+            // COMPACT PROGRESS BAR (Section 9)
+            if (currentStep in 1..10) {
+                val progress = currentStep / 10f
+                LinearProgressIndicator(
+                    progress = { progress },
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // LEFT COLUMN: Product Header, Product Preview, Live Summary, Technical View Launch Card
-                    Column(
-                        modifier = Modifier
-                            .weight(1.0f)
-                            .fillMaxHeight()
-                            .verticalScroll(rememberScrollState())
-                            .padding(vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        CompactProductHeader(config = currentConfig, selectedJig = selectedJig)
+                        .fillMaxWidth()
+                        .height(3.dp),
+                    color = Color(0xFF0284C7),
+                    trackColor = Color(0xFFE2E8F0)
+                )
 
-                        JigProductPreview(
-                            config = currentConfig,
-                            selectedJig = selectedJig
-                        )
-
-                        LiveConfigurationSummaryCard(config = currentConfig)
-
-                        TechnicalViewLauncherCard(
-                            config = currentConfig,
-                            onOpenTechnicalView = onNavigateToEngineering,
-                            onShowTermInfo = { activeTermInfo = it }
-                        )
-                    }
-
-                    // RIGHT COLUMN: Step Indicator, Mode Tabs, Configuration Controls / Best Combination
-                    Column(
-                        modifier = Modifier
-                            .weight(1.1f)
-                            .fillMaxHeight()
-                            .verticalScroll(rememberScrollState())
-                            .padding(vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        CompactStepPill(currentStep = 2, totalSteps = 3, label = "CONFIGURE SPECS")
-
-                        // TAB ROW: CUSTOM SPECS VS BEST COMBINATION
-                        TabRow(
-                            selectedTabIndex = selectedConfigTab,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                        ) {
-                            Tab(
-                                selected = selectedConfigTab == 0,
-                                onClick = { selectedConfigTab = 0 },
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                    ) {
-                                        Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Text("Custom Specs", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                    }
-                                }
-                            )
-                            Tab(
-                                selected = selectedConfigTab == 1,
-                                onClick = { selectedConfigTab = 1 },
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                    ) {
-                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Text("Best Combination", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                    }
-                                }
-                            )
-                        }
-
-                        if (selectedConfigTab == 0) {
-                            // Validation warning / balanced indicator
-                            JigValidationCard(
-                                validation = validation,
-                                onAutoCalibrate = {
-                                    configViewModel.updateWeight(validation.goldenWeight)
-                                    configViewModel.updateLength(validation.goldenLength)
-                                    configViewModel.updateWidth(validation.goldenWidth)
-                                    configViewModel.updateCustomWeight("")
-                                    configViewModel.updateCustomLength("")
-                                    configViewModel.updateCustomWidth("")
-                                }
-                            )
-
-                            EssentialConfigurationControls(
-                                config = currentConfig,
-                                selectedJig = selectedJig,
-                                configViewModel = configViewModel,
-                                onShowTermInfo = { activeTermInfo = it }
-                            )
-
-                            MoreOptionsSection(
-                                config = currentConfig,
-                                selectedJig = selectedJig,
-                                configViewModel = configViewModel,
-                                isExpanded = isMoreOptionsExpanded,
-                                onToggleExpand = { isMoreOptionsExpanded = !isMoreOptionsExpanded },
-                                selectedEyeColorName = selectedEyeColorName,
-                                onSelectEyeColor = { name, _ -> selectedEyeColorName = name },
-                                onShowTermInfo = { activeTermInfo = it }
-                            )
-                        } else {
-                            // Best combinations curated presets
-                            BestCombinationsSection(
-                                config = currentConfig,
-                                selectedJig = selectedJig,
-                                onApplyPreset = { preset ->
-                                    configViewModel.updateWeight(preset.weightGrams)
-                                    configViewModel.updateLength(preset.lengthMm)
-                                    configViewModel.updateWidth(preset.widthMm)
-                                    configViewModel.updateCustomWeight("")
-                                    configViewModel.updateCustomLength("")
-                                    configViewModel.updateCustomWidth("")
-                                    configViewModel.updateFinishType(preset.finishType)
-                                    configViewModel.updateFrontRing(preset.frontRing)
-                                    configViewModel.updateBackRing(preset.backRing)
-                                    configViewModel.updateHookTypeJig(preset.hookType)
-                                    configViewModel.updateEyeStyle(preset.eyeStyle)
-                                    configViewModel.updateAssistCord(preset.assistCord)
-                                }
-                            )
-                        }
-
-                        ProductInActionSection(
-                            config = currentConfig,
-                            isExpanded = isProductInActionExpanded,
-                            onToggleExpand = { isProductInActionExpanded = !isProductInActionExpanded }
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
-                    }
-                }
-            } else {
-                // MOBILE COMPACT VERTICAL LAYOUT (Strict Vertical Scroll with Bounded Preview)
-                Column(
+                // LIVE SPECIFICATION SUMMARY PILL (Section 56)
+                Surface(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 14.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF0F172A)
                 ) {
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    // 1. Compact Step Indicator
-                    CompactStepPill(currentStep = 2, totalSteps = 3, label = "CONFIGURE SPECS")
-
-                    // 2. Product Name & Model Header
-                    CompactProductHeader(config = currentConfig, selectedJig = selectedJig)
-
-                    // 3. PRODUCT PREVIEW (Exact selected jig photo with bounded height)
-                    JigProductPreview(
-                        config = currentConfig,
-                        selectedJig = selectedJig
-                    )
-
-                    // 4. LIVE CONFIGURATION SUMMARY
-                    LiveConfigurationSummaryCard(config = currentConfig)
-
-                    // 5. CONFIGURATION MODE TABS (Custom Specs vs Best Combination)
-                    TabRow(
-                        selectedTabIndex = selectedConfigTab,
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Tab(
-                            selected = selectedConfigTab == 0,
-                            onClick = { selectedConfigTab = 0 },
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                ) {
-                                    Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Text("Custom Specs", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                }
-                            }
+                        Text(
+                            text = "${shapeTemplate.shapeName} • ${jigConfig.weightGrams.toInt()}g • ${jigConfig.lengthMm.toInt()}mm",
+                            color = Color(0xFF38BDF8),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
                         )
-                        Tab(
-                            selected = selectedConfigTab == 1,
-                            onClick = { selectedConfigTab = 1 },
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                ) {
-                                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Text("Best Combination", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(
+                            text = "${jigConfig.mainColor} / ${jigConfig.pattern}",
+                            color = Color(0xFFE2E8F0),
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+            }
+
+            // CENTER: LIVE PREVIEW CANVAS (Always visible, Section 5 & 10)
+            if (currentStep <= 11) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    JigLiveCanvasPreview(
+                        config = jigConfig,
+                        activeStep = currentStep,
+                        showControls = true
+                    )
+                }
+            }
+
+            // BOTTOM: PROGRESSIVE STEP CONTENT / REVIEW / RESULT
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                when (currentStep) {
+                    in 1..10 -> {
+                        // Progressive Step Wizard
+                        AnimatedContent(
+                            targetState = currentStep,
+                            transitionSpec = {
+                                if (targetState > initialState) {
+                                    (slideInHorizontally(animationSpec = tween(220)) { it } + fadeIn())
+                                        .togetherWith(slideOutHorizontally(animationSpec = tween(220)) { -it } + fadeOut())
+                                } else {
+                                    (slideInHorizontally(animationSpec = tween(220)) { -it } + fadeIn())
+                                        .togetherWith(slideOutHorizontally(animationSpec = tween(220)) { it } + fadeOut())
                                 }
-                            }
+                            },
+                            label = "step_transition"
+                        ) { step ->
+                            StepContainer(
+                                step = step,
+                                config = jigConfig,
+                                template = shapeTemplate,
+                                viewModel = configViewModel
+                            )
+                        }
+                    }
+
+                    11 -> {
+                        // Step 11: Review Specifications & Trigger Gemini AI Render
+                        ReviewAndGenerateView(
+                            config = jigConfig,
+                            template = shapeTemplate,
+                            isGenerating = isGeneratingAi,
+                            result = aiResult,
+                            onEditClick = { targetStep -> configViewModel.setConfigStep(targetStep) },
+                            onGenerateClick = { configViewModel.generateFinalAiProduct() }
                         )
                     }
 
-                    if (selectedConfigTab == 0) {
-                        // 6. HYDRODYNAMIC & BREAKAGE VALIDATION CARD
-                        JigValidationCard(
-                            validation = validation,
-                            onAutoCalibrate = {
-                                configViewModel.updateWeight(validation.goldenWeight)
-                                configViewModel.updateLength(validation.goldenLength)
-                                configViewModel.updateWidth(validation.goldenWidth)
-                                configViewModel.updateCustomWeight("")
-                                configViewModel.updateCustomLength("")
-                                configViewModel.updateCustomWidth("")
-                            }
-                        )
-
-                        // 7. ESSENTIAL CONFIGURATION CONTROLS
-                        EssentialConfigurationControls(
-                            config = currentConfig,
-                            selectedJig = selectedJig,
-                            configViewModel = configViewModel,
-                            onShowTermInfo = { activeTermInfo = it }
-                        )
-
-                        // 8. MORE OPTIONS (Progressive Disclosure Accordion)
-                        MoreOptionsSection(
-                            config = currentConfig,
-                            selectedJig = selectedJig,
-                            configViewModel = configViewModel,
-                            isExpanded = isMoreOptionsExpanded,
-                            onToggleExpand = { isMoreOptionsExpanded = !isMoreOptionsExpanded },
-                            selectedEyeColorName = selectedEyeColorName,
-                            onSelectEyeColor = { name, _ -> selectedEyeColorName = name },
-                            onShowTermInfo = { activeTermInfo = it }
-                        )
-                    } else {
-                        // BEST COMBINATION PRESETS
-                        BestCombinationsSection(
-                            config = currentConfig,
-                            selectedJig = selectedJig,
-                            onApplyPreset = { preset ->
-                                configViewModel.updateWeight(preset.weightGrams)
-                                configViewModel.updateLength(preset.lengthMm)
-                                configViewModel.updateWidth(preset.widthMm)
-                                configViewModel.updateCustomWeight("")
-                                configViewModel.updateCustomLength("")
-                                configViewModel.updateCustomWidth("")
-                                configViewModel.updateFinishType(preset.finishType)
-                                configViewModel.updateFrontRing(preset.frontRing)
-                                configViewModel.updateBackRing(preset.backRing)
-                                configViewModel.updateHookTypeJig(preset.hookType)
-                                configViewModel.updateEyeStyle(preset.eyeStyle)
-                                configViewModel.updateAssistCord(preset.assistCord)
-                            }
+                    12 -> {
+                        // Step 12: Final Product Result Screen
+                        FinalProductResultView(
+                            config = jigConfig,
+                            productConfig = currentProductConfig,
+                            template = shapeTemplate,
+                            isBlueprintView = isBlueprintView,
+                            isGeneratingAi = isGeneratingAi,
+                            isGeneratingPdf = isGeneratingPdf,
+                            aiResult = aiResult,
+                            onToggleView = { configViewModel.toggleAiResultView() },
+                            onRegenerate = { configViewModel.generateFinalAiProduct(forceRegenerate = true) },
+                            onSave = { configViewModel.saveCurrentConfig() },
+                            onExportPdf = { configViewModel.generatePdf(context) },
+                            onOpenEngineering = onNavigateToEngineering,
+                            onEdit = { configViewModel.setConfigStep(10) }
                         )
                     }
-
-                    // 9. TECHNICAL VIEW LAUNCHER CARD
-                    TechnicalViewLauncherCard(
-                        config = currentConfig,
-                        onOpenTechnicalView = onNavigateToEngineering,
-                        isInlineExpanded = isInlineTechnicalViewExpanded,
-                        onToggleInline = { isInlineTechnicalViewExpanded = !isInlineTechnicalViewExpanded },
-                        onShowTermInfo = { activeTermInfo = it }
-                    )
-
-                    // 10. PRODUCT IN ACTION (Collapsed presentation)
-                    ProductInActionSection(
-                        config = currentConfig,
-                        isExpanded = isProductInActionExpanded,
-                        onToggleExpand = { isProductInActionExpanded = !isProductInActionExpanded }
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }
+    }
 
-        // Technical Term Information Modal Dialog
-        TechnicalTermDialog(
-            termInfo = activeTermInfo,
-            onDismiss = { activeTermInfo = null }
+    // Reset Confirmation Dialog
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            title = { Text("Reset Configuration?") },
+            text = { Text("This will reset all dimensions, finishes, and hardware options back to the base template defaults.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        configViewModel.resetJigConfiguration()
+                        showResetDialog = false
+                    }
+                ) {
+                    Text("Reset", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 }
 
+private fun getStepTitle(step: Int): String {
+    return when (step) {
+        1 -> "Size & Target Weight"
+        2 -> "Total Length"
+        3 -> "Body Width"
+        4 -> "Color Scheme"
+        5 -> "Attraction Pattern"
+        6 -> "Surface Finish"
+        7 -> "3D Strike Eye"
+        8 -> "Assist Hook Rig"
+        9 -> "Assist Cord"
+        10 -> "Solid Rings"
+        else -> "Configuration"
+    }
+}
+
 /**
- * Compact Step Indicator Pill (Restrained, doesn't eat vertical space)
+ * Step Container providing scrolling options and bottom Prev/Next navigation bar.
  */
 @Composable
-private fun CompactStepPill(currentStep: Int, totalSteps: Int, label: String) {
+private fun StepContainer(
+    step: Int,
+    config: JigConfiguration,
+    template: com.example.data.model.JigShapeTemplate,
+    viewModel: ConfiguratorViewModel
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
+        // Step Options Form (Scrollable)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            when (step) {
+                1 -> SizeStep(config, template, viewModel)
+                2 -> LengthStep(config, template, viewModel)
+                3 -> WidthStep(config, template, viewModel)
+                4 -> ColorStep(config, template, viewModel)
+                5 -> PatternStep(config, template, viewModel)
+                6 -> FinishStep(config, template, viewModel)
+                7 -> EyeStep(config, template, viewModel)
+                8 -> AssistHookStep(config, template, viewModel)
+                9 -> AssistCordStep(config, template, viewModel)
+                10 -> RingsStep(config, template, viewModel)
+            }
+        }
+
+        // Bottom Wizard Navigation Row
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            shape = RoundedCornerShape(14.dp),
+            color = Color.White,
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            shadowElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (step > 1) {
+                    OutlinedButton(
+                        onClick = { viewModel.previousConfigStep() },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF334155))
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Previous",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Back")
+                    }
+                } else {
+                    Spacer(modifier = Modifier.width(1.dp))
+                }
+
+                Button(
+                    onClick = { viewModel.nextConfigStep() },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))
+                ) {
+                    Text(
+                        text = if (step == 10) "Review Specs" else "Next Step",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Next",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// STEP IMPLEMENTATIONS (01 to 10)
+// -----------------------------------------------------------------------------
+
+@Composable
+private fun SizeStep(config: JigConfiguration, template: com.example.data.model.JigShapeTemplate, viewModel: ConfiguratorViewModel) {
+    val presets = listOf(40f, 60f, 80f, 100f, 120f, 150f, 200f)
+    var isCustom by remember { mutableStateOf(config.customValues.containsKey("weight")) }
+    var customText by remember { mutableStateOf(config.customValues["weight"] ?: "") }
+
+    Text("TARGET CASTING WEIGHT", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Text("Select standard gram weight or specify custom ballistic ballast.", fontSize = 13.sp, color = Color(0xFF64748B))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        presets.forEach { weight ->
+            val isSelected = !isCustom && config.weightGrams == weight
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    isCustom = false
+                    viewModel.updateJigWeight(weight)
+                },
+                label = { Text("${weight.toInt()} g", fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+
+        FilterChip(
+            selected = isCustom,
+            onClick = { isCustom = true },
+            label = { Text("Custom...") },
+            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+        )
+    }
+
+    if (isCustom) {
+        OutlinedTextField(
+            value = customText,
+            onValueChange = {
+                customText = it
+                val parsed = it.toFloatOrNull()
+                if (parsed != null && parsed in 10f..350f) {
+                    viewModel.updateJigWeight(parsed, custom = it)
+                }
+            },
+            label = { Text("Custom Weight (10 - 350 grams)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+
+    Slider(
+        value = config.weightGrams.coerceIn(template.minWeightGrams, template.maxWeightGrams),
+        onValueChange = {
+            isCustom = false
+            viewModel.updateJigWeight(it)
+        },
+        valueRange = template.minWeightGrams..template.maxWeightGrams,
+        steps = 19
+    )
+}
+
+@Composable
+private fun LengthStep(config: JigConfiguration, template: com.example.data.model.JigShapeTemplate, viewModel: ConfiguratorViewModel) {
+    val presets = listOf(80f, 100f, 115f, 130f, 150f, 180f, 210f)
+    var isCustom by remember { mutableStateOf(config.customValues.containsKey("length")) }
+    var customText by remember { mutableStateOf(config.customValues["length"] ?: "") }
+
+    Text("OVERALL LENGTH", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Text("Hydrodynamic body chord length from front ring anchor to rear eyelet.", fontSize = 13.sp, color = Color(0xFF64748B))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        presets.forEach { length ->
+            val isSelected = !isCustom && config.lengthMm == length
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    isCustom = false
+                    viewModel.updateJigLength(length)
+                },
+                label = { Text("${length.toInt()} mm", fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+
+        FilterChip(
+            selected = isCustom,
+            onClick = { isCustom = true },
+            label = { Text("Custom...") },
+            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+        )
+    }
+
+    if (isCustom) {
+        OutlinedTextField(
+            value = customText,
+            onValueChange = {
+                customText = it
+                val parsed = it.toFloatOrNull()
+                if (parsed != null && parsed in 40f..300f) {
+                    viewModel.updateJigLength(parsed, custom = it)
+                }
+            },
+            label = { Text("Custom Length (40 - 300 mm)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+
+    Slider(
+        value = config.lengthMm.coerceIn(template.minLengthMm, template.maxLengthMm),
+        onValueChange = {
+            isCustom = false
+            viewModel.updateJigLength(it)
+        },
+        valueRange = template.minLengthMm..template.maxLengthMm,
+        steps = 19
+    )
+}
+
+@Composable
+private fun WidthStep(config: JigConfiguration, template: com.example.data.model.JigShapeTemplate, viewModel: ConfiguratorViewModel) {
+    val presets = listOf(14f, 18f, 20f, 22f, 26f, 30f)
+    var isCustom by remember { mutableStateOf(config.customValues.containsKey("width")) }
+    var customText by remember { mutableStateOf(config.customValues["width"] ?: "") }
+
+    Text("MAXIMUM BODY WIDTH / KEEL BEAM", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Text("Controls lateral water displacement and fluttering cadence.", fontSize = 13.sp, color = Color(0xFF64748B))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        presets.forEach { width ->
+            val isSelected = !isCustom && config.widthMm == width
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    isCustom = false
+                    viewModel.updateJigWidth(width)
+                },
+                label = { Text("${width.toInt()} mm", fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+
+        FilterChip(
+            selected = isCustom,
+            onClick = { isCustom = true },
+            label = { Text("Custom...") },
+            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+        )
+    }
+
+    if (isCustom) {
+        OutlinedTextField(
+            value = customText,
+            onValueChange = {
+                customText = it
+                val parsed = it.toFloatOrNull()
+                if (parsed != null && parsed in 8f..50f) {
+                    viewModel.updateJigWidth(parsed, custom = it)
+                }
+            },
+            label = { Text("Custom Width (8 - 50 mm)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+
+    Slider(
+        value = config.widthMm.coerceIn(template.minWidthMm, template.maxWidthMm),
+        onValueChange = {
+            isCustom = false
+            viewModel.updateJigWidth(it)
+        },
+        valueRange = template.minWidthMm..template.maxWidthMm,
+        steps = 15
+    )
+}
+
+@Composable
+private fun ColorStep(config: JigConfiguration, template: com.example.data.model.JigShapeTemplate, viewModel: ConfiguratorViewModel) {
+    val palette = listOf(
+        Pair("Tournament Orange", 0xFFEA580CL),
+        Pair("Deep Sea Blue", 0xFF0284C7L),
+        Pair("Solar Yellow", 0xFFEAB308L),
+        Pair("Stealth Black", 0xFF0F172AL),
+        Pair("Cyber Yellow", 0xFFFACC15L),
+        Pair("Blossom Pink", 0xFFEC4899L),
+        Pair("Chrome Silver", 0xFFCBD5E1L),
+        Pair("Emerald Green", 0xFF10B981L),
+        Pair("Pure Pearl", 0xFFF8FAFCL)
+    )
+
+    Text("PRIMARY DORSAL COLOR", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        palette.forEach { (name, hex) ->
+            val isSelected = config.mainColor == name
+            FilterChip(
+                selected = isSelected,
+                onClick = { viewModel.updateJigColors(name, hex, config.secondaryColor, config.secondaryColorHex) },
+                label = { Text(name, fontSize = 11.sp) },
+                leadingIcon = {
+                    Box(modifier = Modifier.size(14.dp).background(Color(hex), CircleShape).border(1.dp, Color.Gray, CircleShape))
+                },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(6.dp))
+    Text("SECONDARY KEEL / ACCENT COLOR", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        palette.forEach { (name, hex) ->
+            val isSelected = config.secondaryColor == name
+            FilterChip(
+                selected = isSelected,
+                onClick = { viewModel.updateJigColors(config.mainColor, config.mainColorHex, name, hex) },
+                label = { Text(name, fontSize = 11.sp) },
+                leadingIcon = {
+                    Box(modifier = Modifier.size(14.dp).background(Color(hex), CircleShape).border(1.dp, Color.Gray, CircleShape))
+                },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PatternStep(config: JigConfiguration, template: com.example.data.model.JigShapeTemplate, viewModel: ConfiguratorViewModel) {
+    val patterns = listOf("Solid", "Tiger", "Dots", "Chevron", "Scales", "Zebra")
+    val patternColors = listOf(
+        Pair("Stealth Black", 0xFF0F172AL),
+        Pair("Chrome Silver", 0xFFCBD5E1L),
+        Pair("Deep Sea Blue", 0xFF0284C7L),
+        Pair("Luminous Lime", 0xFF84CC16L),
+        Pair("Solar Yellow", 0xFFEAB308L),
+        Pair("Blaze Orange", 0xFFEA580CL)
+    )
+
+    Text("TACTICAL ATTRACTION PATTERN", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        patterns.forEach { pat ->
+            val isSelected = config.pattern.equals(pat, ignoreCase = true)
+            FilterChip(
+                selected = isSelected,
+                onClick = { viewModel.updateJigPattern(pat, config.patternColor, config.patternColorHex) },
+                label = { Text(pat, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+    }
+
+    if (config.pattern != "Solid") {
+        Spacer(modifier = Modifier.height(6.dp))
+        Text("PATTERN CONTRAST COLOR", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            patternColors.forEach { (name, hex) ->
+                val isSelected = config.patternColor == name
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { viewModel.updateJigPattern(config.pattern, name, hex) },
+                    label = { Text(name, fontSize = 11.sp) },
+                    leadingIcon = {
+                        Box(modifier = Modifier.size(14.dp).background(Color(hex), CircleShape).border(1.dp, Color.Gray, CircleShape))
+                    },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FinishStep(config: JigConfiguration, template: com.example.data.model.JigShapeTemplate, viewModel: ConfiguratorViewModel) {
+    val finishes = listOf("Metallic", "Gloss", "Matte", "Holographic", "Glitter", "Glow", "UV Reactive")
+    var isCustom by remember { mutableStateOf(config.customValues.containsKey("finish")) }
+    var customText by remember { mutableStateOf(config.customValues["finish"] ?: "") }
+
+    Text("SURFACE COATING & FINISH", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Text("Multi-layer automotive clear-coat and light-refraction characteristics.", fontSize = 13.sp, color = Color(0xFF64748B))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        finishes.forEach { fin ->
+            val isSelected = !isCustom && config.finish.equals(fin, ignoreCase = true)
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    isCustom = false
+                    viewModel.updateJigFinish(fin)
+                },
+                label = { Text(fin, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+
+        FilterChip(
+            selected = isCustom,
+            onClick = { isCustom = true },
+            label = { Text("Custom...") },
+            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+        )
+    }
+
+    if (isCustom) {
+        OutlinedTextField(
+            value = customText,
+            onValueChange = {
+                customText = it
+                viewModel.updateJigFinish("Custom", custom = it)
+            },
+            label = { Text("Custom Surface Finish Specification") },
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun EyeStep(config: JigConfiguration, template: com.example.data.model.JigShapeTemplate, viewModel: ConfiguratorViewModel) {
+    val styles = listOf("3D Strike", "Holographic", "Luminous Target")
+    val colors = listOf("Ruby Red", "Emerald Green", "Solar Gold", "Chrome Silver", "Luminous Lime", "Sapphire Blue")
+
+    Text("3D STRIKE EYE PROFILE", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        styles.forEach { st ->
+            val isSelected = config.eyeStyle.equals(st, ignoreCase = true)
+            FilterChip(
+                selected = isSelected,
+                onClick = { viewModel.updateJigEye(st, config.eyeColor) },
+                label = { Text(st, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(6.dp))
+    Text("EYE IRIS COLOR", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        colors.forEach { col ->
+            val isSelected = config.eyeColor.equals(col, ignoreCase = true)
+            FilterChip(
+                selected = isSelected,
+                onClick = { viewModel.updateJigEye(config.eyeStyle, col) },
+                label = { Text(col, fontSize = 11.sp) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AssistHookStep(config: JigConfiguration, template: com.example.data.model.JigShapeTemplate, viewModel: ConfiguratorViewModel) {
+    val hooks = listOf("None", "Standard Mustad 3/0", "Heavy Duty BKK 5/0", "Owner Monster 5/0", "Twin Assist Rig 3/0")
+    var isCustom by remember { mutableStateOf(config.customValues.containsKey("assistHook")) }
+    var customText by remember { mutableStateOf(config.customValues["assistHook"] ?: "") }
+
+    Text("ASSIST HOOK RIGGING", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Text("Forged saltwater carbon steel hook bound to nose ring anchor.", fontSize = 13.sp, color = Color(0xFF64748B))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        hooks.forEach { hk ->
+            val isSelected = !isCustom && config.assistHook == hk
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    isCustom = false
+                    viewModel.updateJigAssistHook(hk)
+                },
+                label = { Text(hk, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+
+        FilterChip(
+            selected = isCustom,
+            onClick = { isCustom = true },
+            label = { Text("Custom...") },
+            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+        )
+    }
+
+    if (isCustom) {
+        OutlinedTextField(
+            value = customText,
+            onValueChange = {
+                customText = it
+                viewModel.updateJigAssistHook("Custom", custom = it)
+            },
+            label = { Text("Custom Hook Specification") },
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun AssistCordStep(config: JigConfiguration, template: com.example.data.model.JigShapeTemplate, viewModel: ConfiguratorViewModel) {
+    val cordColors = listOf("Red", "Royal Blue", "Stealth Black", "Blaze Orange", "Chartreuse Glow", "Kevlar Gold")
+    var isCustom by remember { mutableStateOf(config.customValues.containsKey("assistCord")) }
+    var customText by remember { mutableStateOf(config.customValues["assistCord"] ?: "") }
+
+    Text("BRAIDED PE ASSIST CORD", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Text("200 lb high-tensile braided filament with Kevlar whipping collar.", fontSize = 13.sp, color = Color(0xFF64748B))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        cordColors.forEach { cord ->
+            val isSelected = !isCustom && config.assistCordColor == cord
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    isCustom = false
+                    viewModel.updateJigAssistCord(cord)
+                },
+                label = { Text(cord, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+
+        FilterChip(
+            selected = isCustom,
+            onClick = { isCustom = true },
+            label = { Text("Custom...") },
+            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+        )
+    }
+
+    if (isCustom) {
+        OutlinedTextField(
+            value = customText,
+            onValueChange = {
+                customText = it
+                viewModel.updateJigAssistCord("Custom", custom = it)
+            },
+            label = { Text("Custom Cord Material / Color") },
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun RingsStep(config: JigConfiguration, template: com.example.data.model.JigShapeTemplate, viewModel: ConfiguratorViewModel) {
+    val ringOptions = listOf("None", "Standard", "Heavy Duty")
+    var isCustomFR by remember { mutableStateOf(config.customValues.containsKey("frontRing")) }
+    var isCustomBR by remember { mutableStateOf(config.customValues.containsKey("backRing")) }
+    var customFRText by remember { mutableStateOf(config.customValues["frontRing"] ?: "") }
+    var customBRText by remember { mutableStateOf(config.customValues["backRing"] ?: "") }
+
+    Text("FRONT SOLID NOSE RING", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ringOptions.forEach { opt ->
+            val isSelected = !isCustomFR && config.frontRing == opt
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    isCustomFR = false
+                    viewModel.updateJigRings(opt, config.backRing)
+                },
+                label = { Text(opt) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+        FilterChip(
+            selected = isCustomFR,
+            onClick = { isCustomFR = true },
+            label = { Text("Custom...") },
+            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+        )
+    }
+
+    if (isCustomFR) {
+        OutlinedTextField(
+            value = customFRText,
+            onValueChange = {
+                customFRText = it
+                viewModel.updateJigRings("Custom", config.backRing, customFront = it)
+            },
+            label = { Text("Custom Front Ring Specification") },
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
+    Text("REAR TAIL SPLIT RING", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ringOptions.forEach { opt ->
+            val isSelected = !isCustomBR && config.backRing == opt
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    isCustomBR = false
+                    viewModel.updateJigRings(config.frontRing, opt)
+                },
+                label = { Text(opt) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+        FilterChip(
+            selected = isCustomBR,
+            onClick = { isCustomBR = true },
+            label = { Text("Custom...") },
+            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+        )
+    }
+
+    if (isCustomBR) {
+        OutlinedTextField(
+            value = customBRText,
+            onValueChange = {
+                customBRText = it
+                viewModel.updateJigRings(config.frontRing, "Custom", customBack = it)
+            },
+            label = { Text("Custom Back Ring Specification") },
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+// -----------------------------------------------------------------------------
+// STEP 11: REVIEW & GENERATE VIEW (Section 30-34)
+// -----------------------------------------------------------------------------
+
+@Composable
+private fun ReviewAndGenerateView(
+    config: JigConfiguration,
+    template: com.example.data.model.JigShapeTemplate,
+    isGenerating: Boolean,
+    result: GeminiImageService.GenerationResult?,
+    onEditClick: (Int) -> Unit,
+    onGenerateClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = Color(0xFF0F172A),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "SPECIFICATION VERIFICATION",
+                    color = Color(0xFF38BDF8),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+                Text(
+                    text = "${template.shapeName} Hydrodynamic Jig",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Canonical Hash: ${config.configurationHash.take(16)}...",
+                    color = Color(0xFF94A3B8),
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+
+        // Specification Grid Table
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SpecRow("Base Shape", template.shapeName, 1, onEditClick)
+                SpecRow("Dimensions", "${config.lengthMm.toInt()} mm × ${config.widthMm.toInt()} mm", 2, onEditClick)
+                SpecRow("Target Weight", "${config.weightGrams.toInt()} g", 1, onEditClick)
+                SpecRow("Color Scheme", "${config.mainColor} / ${config.secondaryColor}", 4, onEditClick)
+                SpecRow("Pattern", "${config.pattern} (${config.patternColor})", 5, onEditClick)
+                SpecRow("Surface Finish", config.finish, 6, onEditClick)
+                SpecRow("Strike Eye", "${config.eyeStyle} (${config.eyeColor})", 7, onEditClick)
+                SpecRow("Assist Hook", config.assistHook, 8, onEditClick)
+                SpecRow("Assist Cord", config.assistCordColor, 9, onEditClick)
+                SpecRow("Solid Rings", "Front: ${config.frontRing} • Back: ${config.backRing}", 10, onEditClick)
+            }
+        }
+
+        // Error message if generation failed
+        if (result is GeminiImageService.GenerationResult.Failure) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0xFFFEF2F2),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECACA)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color(0xFFDC2626))
+                    Column {
+                        Text("Final AI Rendering Connection Notice", fontWeight = FontWeight.Bold, color = Color(0xFF991B1B), fontSize = 13.sp)
+                        Text(result.errorMessage, color = Color(0xFFB91C1C), fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+
+        // Prominent Action: Generate Final Product
+        Button(
+            onClick = onGenerateClick,
+            enabled = !isGenerating,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp)
+                .testTag("generate_final_product_button"),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            if (isGenerating) {
+                CircularProgressIndicator(
+                    color = Color(0xFF38BDF8),
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.5.dp
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "GENERATING STUDIO RENDER...",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontFamily = FontFamily.Monospace
+                )
+            } else {
+                Icon(imageVector = Icons.Default.Science, contentDescription = null, tint = Color(0xFF38BDF8))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "GENERATE FINAL PRODUCT",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    letterSpacing = 1.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpecRow(label: String, value: String, stepIndex: Int, onEditClick: (Int) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Surface(
-                color = MaterialTheme.colorScheme.primary,
-                shape = RoundedCornerShape(4.dp)
-            ) {
-                Text(
-                    text = "STEP $currentStep OF $totalSteps",
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                )
-            }
-            Text(
-                text = label,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label.uppercase(), fontSize = 10.sp, color = Color(0xFF64748B), fontFamily = FontFamily.Monospace)
+            Text(value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F172A))
         }
-
-        Text(
-            text = "7Hooks Factory Specs",
-            fontSize = 10.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            fontFamily = FontFamily.Monospace
-        )
+        TextButton(
+            onClick = { onEditClick(stepIndex) },
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+        ) {
+            Text("Edit", fontSize = 12.sp, color = Color(0xFF0284C7))
+        }
     }
 }
 
-/**
- * Compact Product Header:
- * Product Name (clear, moderately strong), Model (smaller secondary text), clean tag
- * No oversized OEM SPEC badge
- */
+// -----------------------------------------------------------------------------
+// STEP 12: FINAL PRODUCT RESULT VIEW (Section 35-46)
+// -----------------------------------------------------------------------------
+
 @Composable
-private fun CompactProductHeader(config: ProductConfiguration, selectedJig: JigProduct) {
-    TactileCard(
-        modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 1.5.dp
+private fun FinalProductResultView(
+    config: JigConfiguration,
+    productConfig: com.example.data.model.ProductConfiguration,
+    template: com.example.data.model.JigShapeTemplate,
+    isBlueprintView: Boolean,
+    isGeneratingAi: Boolean,
+    isGeneratingPdf: Boolean,
+    aiResult: GeminiImageService.GenerationResult?,
+    onToggleView: () -> Unit,
+    onRegenerate: () -> Unit,
+    onSave: () -> Unit,
+    onExportPdf: () -> Unit,
+    onOpenEngineering: () -> Unit,
+    onEdit: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        // Mode Switcher: AI Studio Render vs CAD Blueprint
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = config.productName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "Model: ${config.modelNumber}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "•",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                    Text(
-                        text = selectedJig.category,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(4.dp),
-                border = androidx.compose.foundation.BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                Text(
-                    text = "COMMERCIAL JIG",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 9.sp,
-                    letterSpacing = 0.4.sp,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                )
-            }
-        }
-    }
-}
-
-/**
- * Live Configuration Summary:
- * Compact summary near the configuration controls with live custom spec indicators
- */
-@Composable
-private fun LiveConfigurationSummaryCard(config: ProductConfiguration) {
-    val frDisplay = if (config.frontRing == "Custom" && config.customFrontRing.isNotEmpty()) "FR: ${config.customFrontRing}" else "FR: ${config.frontRing}"
-    val brDisplay = if (config.backRing == "Custom" && config.customBackRing.isNotEmpty()) "BR: ${config.customBackRing}" else "BR: ${config.backRing}"
-    val cordDisplay = if (config.threadColor == "Custom" && config.customAssistCordColor.isNotEmpty()) "Cord: ${config.customAssistCordColor}" else "Cord: ${config.threadColor}"
-    val finishDisplay = if (config.finishType == "Custom" && config.customFinish.isNotEmpty()) config.customFinish else config.finishType
-
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-        shape = RoundedCornerShape(8.dp),
-        border = androidx.compose.foundation.BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "CONFIGURED SPECIFICATION",
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 0.5.sp
-                )
-                Text(
-                    text = "${config.weightGrams.toInt()} g • ${config.lengthMm.toInt()} mm • ${config.widthMm.toInt()} mm",
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "$finishDisplay • ${config.colorName}",
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "$frDisplay  |  $brDisplay  |  $cordDisplay",
-                    fontSize = 9.5.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1
-                )
-            }
-        }
-    }
-}
-
-/**
- * Essential Configuration Section:
- * Weight, Length, Width, Finish & Colors, Front & Back Rings, Hook, Thread/Cord
- * Compact professional controls (segmented selectors, compact steppers, swatches, custom fields)
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun EssentialConfigurationControls(
-    config: ProductConfiguration,
-    selectedJig: JigProduct,
-    configViewModel: ConfiguratorViewModel,
-    onShowTermInfo: (TechnicalTermInfo) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // 1. WEIGHT CONFIGURATION (Supported options + Custom Stepper/Input)
-        var isCustomWeightActive by remember(config.customWeight) {
-            mutableStateOf(config.customWeight.isNotEmpty())
-        }
-
-        TactileCard(
-            modifier = Modifier.fillMaxWidth(),
-            shadowElevation = 1.5.dp
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "WEIGHT (FINISHED MASS)",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 0.5.sp
-                        )
-                        TechnicalInfoIcon(
-                            term = "Finished Mass (Weight in Grams)",
-                            definition = "The solid mass of the jig alloy core after surface plating and clear coat. In saltwater vertical jigging, heavier jigs sink faster to punch through thermoclines and drift currents, while lighter jigs stay in the strike zone longer.",
-                            recommendation = "Select 1 to 1.5 grams per meter of water depth as a factory standard rule of thumb.",
-                            onShowInfo = onShowTermInfo
-                        )
-                    }
-                    Text(
-                        text = if (isCustomWeightActive && config.customWeight.isNotEmpty()) "${config.customWeight} g (Custom)" else "${config.weightGrams.toInt()} g",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Supported Weight Chips + Custom Chip
-                val supportedWeights = listOf(40f, 50f, 60f, 80f, 100f, 120f, 150f, 200f)
-                    .filter { it in selectedJig.minWeightGrams..selectedJig.maxWeightGrams }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    supportedWeights.forEach { weightVal ->
-                        val isSelected = !isCustomWeightActive && config.weightGrams == weightVal
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = {
-                                isCustomWeightActive = false
-                                configViewModel.updateCustomWeight("")
-                                configViewModel.updateWeight(weightVal)
-                            },
-                            label = { Text("${weightVal.toInt()}g", fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            ),
-                            modifier = Modifier.height(28.dp)
-                        )
-                    }
-
-                    // Custom Weight Chip
-                    FilterChip(
-                        selected = isCustomWeightActive,
-                        onClick = { isCustomWeightActive = true },
-                        label = { Text("Custom", fontSize = 11.sp, fontWeight = if (isCustomWeightActive) FontWeight.Bold else FontWeight.Normal) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        ),
-                        modifier = Modifier.height(28.dp)
-                    )
-                }
-
-                if (isCustomWeightActive) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = config.customWeight,
-                        onValueChange = { input ->
-                            val filtered = input.filter { it.isDigit() || it == '.' }
-                            configViewModel.updateCustomWeight(filtered)
-                            filtered.toFloatOrNull()?.let { configViewModel.updateWeight(it) }
-                        },
-                        label = { Text("Custom Weight in Grams (e.g. 118)", fontSize = 12.sp) },
-                        placeholder = { Text("Enter exact grams") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Slider(
-                        value = config.weightGrams,
-                        onValueChange = { configViewModel.updateWeight(it) },
-                        valueRange = selectedJig.minWeightGrams..selectedJig.maxWeightGrams,
-                        steps = ((selectedJig.maxWeightGrams - selectedJig.minWeightGrams) / 5f).toInt() - 1,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(26.dp)
-                            .testTag("jig_weight_slider")
-                    )
-                }
-            }
-        }
-
-        // 2. LENGTH & WIDTH (Compact dual-dimension card + Custom Millimeters entry)
-        var showCustomDimensions by remember {
-            mutableStateOf(config.customLength.isNotEmpty() || config.customWidth.isNotEmpty())
-        }
-
-        TactileCard(
-            modifier = Modifier.fillMaxWidth(),
-            shadowElevation = 1.5.dp
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                // Length Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "TOTAL LENGTH",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 0.5.sp
-                        )
-                        TechnicalInfoIcon(
-                            term = "Total Body Length (mm)",
-                            definition = "The axial length from the tip of the front tow eye to the base of the rear split ring eyelet.",
-                            recommendation = "Longer bodies produce erratic wide darting (knife action), while shorter bodies flutter rapidly on the drop.",
-                            onShowInfo = onShowTermInfo
-                        )
-                    }
-                    Text(
-                        text = if (config.customLength.isNotEmpty()) "${config.customLength} mm (Custom)" else "${config.lengthMm.toInt()} mm",
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                Slider(
-                    value = config.lengthMm,
-                    onValueChange = {
-                        configViewModel.updateLength(it)
-                        configViewModel.updateCustomLength("")
-                    },
-                    valueRange = selectedJig.minLengthMm..selectedJig.maxLengthMm,
-                    steps = ((selectedJig.maxLengthMm - selectedJig.minLengthMm) / 5f).toInt() - 1,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp)
-                        .testTag("jig_length_slider")
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Width Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "HYDRODYNAMIC WIDTH",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 0.5.sp
-                        )
-                        TechnicalInfoIcon(
-                            term = "Hydrodynamic Keel Width (mm)",
-                            definition = "The maximum transverse width across the jig belly keel.",
-                            recommendation = "A wider belly slows the descent and generates erratic side-to-side flutter on slack line.",
-                            onShowInfo = onShowTermInfo
-                        )
-                    }
-                    Text(
-                        text = if (config.customWidth.isNotEmpty()) "${config.customWidth} mm (Custom)" else "${config.widthMm.toInt()} mm",
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                Slider(
-                    value = config.widthMm,
-                    onValueChange = {
-                        configViewModel.updateWidth(it)
-                        configViewModel.updateCustomWidth("")
-                    },
-                    valueRange = selectedJig.minWidthMm..selectedJig.maxWidthMm,
-                    steps = ((selectedJig.maxWidthMm - selectedJig.minWidthMm) / 1f).toInt() - 1,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp)
-                        .testTag("jig_width_slider")
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Custom Dimensions Toggle & Fields
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(
-                        onClick = { showCustomDimensions = !showCustomDimensions },
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = if (showCustomDimensions) "Hide Custom Dimensions" else "Enter Custom mm Overrides",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-
-                if (showCustomDimensions) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = config.customLength,
-                            onValueChange = { input ->
-                                val filtered = input.filter { it.isDigit() || it == '.' }
-                                configViewModel.updateCustomLength(filtered)
-                                filtered.toFloatOrNull()?.let { configViewModel.updateLength(it) }
-                            },
-                            label = { Text("Custom Length (mm)", fontSize = 11.sp) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = config.customWidth,
-                            onValueChange = { input ->
-                                val filtered = input.filter { it.isDigit() || it == '.' }
-                                configViewModel.updateCustomWidth(filtered)
-                                filtered.toFloatOrNull()?.let { configViewModel.updateWidth(it) }
-                            },
-                            label = { Text("Custom Width (mm)", fontSize = 11.sp) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-        }
-
-        // 3. FINISH & COLORS (Compact Swatches & Finish Chips + Custom Finish)
-        TactileCard(
-            modifier = Modifier.fillMaxWidth(),
-            shadowElevation = 1.5.dp
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "FINISH & COLOR PALETTE",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
-                    )
-                    TechnicalInfoIcon(
-                        term = "Surface Finish & Holographic Coating",
-                        definition = "Multi-layered vacuum metalized plating with UV reactive topcoat.",
-                        recommendation = "Matches prey forage light transmission at varying sea depths.",
-                        onShowInfo = onShowTermInfo
-                    )
-                }
-                Text(
-                    text = "Protective coating and light reflection treatment.",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Finishes (Solid, Metallic, Matte, Glow, Holographic, UV Reactive, Custom)
-                val finishes = listOf(
-                    "High-Gloss Metallic",
-                    "Solid Color",
-                    "Matte Stealth",
-                    "Luminous Glow",
-                    "Holographic Flash",
-                    "UV Reactive",
-                    "Custom"
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    finishes.forEach { fin ->
-                        val isSelected = config.finishType == fin
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = {
-                                configViewModel.updateFinish(
-                                    finishName = fin,
-                                    baseHex = config.baseColorHex,
-                                    accentHex = config.accentColorHex,
-                                    patternType = when {
-                                        fin.contains("Holographic", ignoreCase = true) -> JigPatternType.HOLOGRAPHIC_SLASH
-                                        fin.contains("Glow", ignoreCase = true) -> JigPatternType.DOT_PATTERN
-                                        else -> JigPatternType.SOLID_STRIPE
-                                    }
-                                )
-                            },
-                            label = { Text(fin, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                            modifier = Modifier.height(28.dp)
-                        )
-                    }
-                }
-
-                if (config.finishType == "Custom") {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = config.customFinish,
-                        onValueChange = { configViewModel.updateCustomFinish(it) },
-                        label = { Text("Custom Finish (e.g. Chameleon Flip-Flop Pearl)", fontSize = 11.5.sp) },
-                        placeholder = { Text("Enter custom finish specification") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Realistic Presets Selector
-                RealisticFinishSelector(
-                    selectedColorName = config.colorName,
-                    onSelectFinish = { finish ->
-                        configViewModel.updateFinish(
-                            finishName = finish.name.substringBefore(" /"),
-                            baseHex = (finish.baseColor.value shr 32).toLong(),
-                            accentHex = (finish.accentColor.value shr 32).toLong(),
-                            patternType = finish.patternType
-                        )
-                    }
-                )
-            }
-        }
-
-        // 4. ATTACHMENT RINGS (FRONT RING & BACK RING) - FlowRow prevents any clipping
-        TactileCard(
-            modifier = Modifier.fillMaxWidth(),
-            shadowElevation = 1.5.dp
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "ATTACHMENT RINGS (FRONT & BACK)",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 0.5.sp
-                        )
-                        TechnicalInfoIcon(
-                            term = "Solid & Split Rigging Rings",
-                            definition = "SUS304 forged stainless steel seamless solid front ring and heavy-duty rear split ring.",
-                            recommendation = "Heavy-duty rings prevent deformation under extreme drag loads and violent predatory headshakes.",
-                            onShowInfo = onShowTermInfo
-                        )
-                    }
-                    Text(
-                        text = "SUS304 STAINLESS",
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Front Ring Selector
-                Text(
-                    text = "Front Ring (Line Tie)",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Front attachment point of the Jig for leader line tie.",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    listOf("None", "Standard", "Heavy Duty", "Custom").forEach { ringOption ->
-                        val isSelected = config.frontRing == ringOption
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { configViewModel.updateFrontRing(ringOption) },
-                            label = { Text(ringOption, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                            leadingIcon = if (isSelected) {
-                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
-                            } else null,
-                            modifier = Modifier.height(30.dp)
-                        )
-                    }
-                }
-
-                if (config.frontRing == "Custom") {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = config.customFrontRing,
-                        onValueChange = { configViewModel.updateCustomFrontRing(it) },
-                        label = { Text("Custom Front Ring (e.g. #7 Heavy Forged Titanium)", fontSize = 11.5.sp) },
-                        placeholder = { Text("Enter custom front ring specification") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Back Ring Selector
-                Text(
-                    text = "Back Ring (Rear Stinger)",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Rear attachment ring for tail stinger hook or teaser blade.",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    listOf("None", "Standard", "Heavy Duty", "Custom").forEach { ringOption ->
-                        val isSelected = config.backRing == ringOption
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { configViewModel.updateBackRing(ringOption) },
-                            label = { Text(ringOption, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                            leadingIcon = if (isSelected) {
-                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
-                            } else null,
-                            modifier = Modifier.height(30.dp)
-                        )
-                    }
-                }
-
-                if (config.backRing == "Custom") {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = config.customBackRing,
-                        onValueChange = { configViewModel.updateCustomBackRing(it) },
-                        label = { Text("Custom Back Ring (e.g. #5 Solid Stinger Ring)", fontSize = 11.5.sp) },
-                        placeholder = { Text("Enter custom back ring specification") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
-
-        // 5. HOOK RIGGING
-        TactileCard(
-            modifier = Modifier.fillMaxWidth(),
-            shadowElevation = 1.5.dp
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "HOOK RIGGING SPECIFICATION",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
-                    )
-                    TechnicalInfoIcon(
-                        term = "Assist Hook Rigging",
-                        definition = "Saltwater forged chemically sharpened assist hooks attached via braided cord.",
-                        recommendation = "Top assist hooks target predatory fish attacking the head during the jig pause.",
-                        onShowInfo = onShowTermInfo
-                    )
-                }
-                Text(
-                    text = "Hook attached to the Jig for strikes.",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                val availableHooks = (selectedJig.availableHooks + listOf("Custom")).distinct()
-
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    availableHooks.forEach { hook ->
-                        val isSelected = config.hookTypeJig == hook
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { configViewModel.updateHook(hook) },
-                            label = { Text(hook, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                            leadingIcon = if (isSelected) {
-                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
-                            } else null,
-                            modifier = Modifier.height(30.dp)
-                        )
-                    }
-                }
-
-                if (config.hookTypeJig == "Custom") {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = config.customHook,
-                        onValueChange = { configViewModel.updateCustomHook(it) },
-                        label = { Text("Custom Hook (e.g. Gamakatsu Heavy Jig 4/0)", fontSize = 11.5.sp) },
-                        placeholder = { Text("Enter custom hook specification") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
-
-        // 6. ASSIST CORD / THREAD BINDING COLOR (Requirement: clear terminology & explanation)
-        TactileCard(
-            modifier = Modifier.fillMaxWidth(),
-            shadowElevation = 1.5.dp
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "ASSIST CORD / THREAD BINDING COLOR",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
-                    )
-                    TechnicalInfoIcon(
-                        term = "Assist Cord Filament & Thread Binding",
-                        definition = "High-tensile Ultra-High Molecular Weight Polyethylene (PE) or Kevlar line securing the hook eye to the solid ring.",
-                        recommendation = "Bright color binding acts as a hot-spot strike trigger in low light conditions.",
-                        onShowInfo = onShowTermInfo
-                    )
-                }
-                Text(
-                    text = "Color of the cord attached to the Assist Hook.",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                ThreadSelector(
-                    selectedThread = config.threadColor,
-                    onSelectThread = { threadOption ->
-                        configViewModel.updateThread(
-                            threadColor = threadOption.name,
-                            colorHex = threadOption.color?.let { (it.value shr 32).toLong() }
-                        )
-                    }
-                )
-
-                if (config.threadColor == "Custom") {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = config.customAssistCordColor,
-                        onValueChange = { configViewModel.updateCustomAssistCordColor(it) },
-                        label = { Text("Custom Assist Cord Specification (e.g. UV Fluorescent Chartreuse PE)", fontSize = 11.5.sp) },
-                        placeholder = { Text("Enter custom assist cord details") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * More Options Progressive Disclosure Accordion:
- * Secondary manufacturing parameters (Core Alloy, 3D Strike Eye, Assist Cord, ISO Tolerance)
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun MoreOptionsSection(
-    config: ProductConfiguration,
-    selectedJig: JigProduct,
-    configViewModel: ConfiguratorViewModel,
-    isExpanded: Boolean,
-    onToggleExpand: () -> Unit,
-    selectedEyeColorName: String,
-    onSelectEyeColor: (String, Color) -> Unit,
-    onShowTermInfo: (TechnicalTermInfo) -> Unit
-) {
-    TactileCard(
-        modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 1.5.dp
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onToggleExpand() },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Tune,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = "MORE OPTIONS (ALLOY, EYE & CORD)",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 0.5.sp
-                    )
-                }
-
-                Icon(
-                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "Collapse" else "Expand",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(
-                    modifier = Modifier.padding(top = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // 1. ALLOY & CORE CONSTRUCTION
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "Core Alloy Construction:",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        TechnicalInfoIcon(
-                            term = "Core Alloy Composition",
-                            definition = "High-purity antimony-hardened lead alloy or lead-free tungsten matrix providing density and flexural rigidity.",
-                            recommendation = "Hardened alloy prevents bending under violent fish headshakes and reef strikes.",
-                            onShowInfo = onShowTermInfo
-                        )
-                    }
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        selectedJig.materials.forEach { mat ->
-                            val isSelected = config.material == mat
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { configViewModel.updateMaterial(mat) },
-                                label = { Text(mat, fontSize = 11.sp) },
-                                leadingIcon = if (isSelected) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
-                                } else null,
-                                modifier = Modifier.height(28.dp)
-                            )
-                        }
-                    }
-
-                    // 2. 3D EYE STYLE
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "3D Strike Eye Specification:",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        TechnicalInfoIcon(
-                            term = "3D Luminous Strike Eye",
-                            definition = "Optically clear domed resin lens with UV luminous or holographic iris reflection.",
-                            recommendation = "Predators target the eye as the vulnerability trigger point when attacking from below.",
-                            onShowInfo = onShowTermInfo
-                        )
-                    }
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        listOf(
-                            "3D Luminous Strike Eye",
-                            "Holographic Foil Eye",
-                            "High-Contrast Target Eye",
-                            "Custom Etched Eye"
-                        ).forEach { eye ->
-                            val isSelected = config.eyeStyle == eye
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { configViewModel.updateEyeStyle(eye) },
-                                label = { Text(eye, fontSize = 11.sp) },
-                                leadingIcon = if (isSelected) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
-                                } else null,
-                                modifier = Modifier.height(28.dp)
-                            )
-                        }
-                    }
-
-                    // Live 3D Eye Preview Box
-                    StrikeEyePreviewBox(
-                        eyeStyle = config.eyeStyle,
-                        selectedEyeColorName = selectedEyeColorName,
-                        onSelectEyeColor = onSelectEyeColor
-                    )
-
-                    // 3. ASSIST CORD MATERIAL (OPTIONAL)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "Assist Cord Tensile Rigging (Optional):",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        TechnicalInfoIcon(
-                            term = "Assist Cord Tensile Rating",
-                            definition = "Breaking strain rating and core material of the assist cord rigging.",
-                            recommendation = "Optional parameter. Choose 'None' for unrigged jigs or 150lb to 250lb depending on target pelagic species.",
-                            onShowInfo = onShowTermInfo
-                        )
-                    }
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        listOf(
-                            "None (Optional / Unrigged)",
-                            "Braided PE (200 lb)",
-                            "Kevlar Core (250 lb)",
-                            "Wire Assist (150 lb)",
-                            "Fluorocarbon Core (180 lb)"
-                        ).forEach { cord ->
-                            val isSelected = config.assistCord == cord
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { configViewModel.updateAssistCord(cord) },
-                                label = { Text(cord, fontSize = 11.sp) },
-                                leadingIcon = if (isSelected) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
-                                } else null,
-                                modifier = Modifier.height(28.dp)
-                            )
-                        }
-                    }
-
-                    // 4. MANUFACTURING TOLERANCE NOTE
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(6.dp),
-                        border = androidx.compose.foundation.BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = "MANUFACTURING TOLERANCE",
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                TechnicalInfoIcon(
-                                    term = "ISO 2768-m Machining Tolerance",
-                                    definition = "General dimensional and geometric tolerances for metal die casting and CNC mold tooling.",
-                                    recommendation = "Ensures weight consistency within ±1.5% and axial symmetry across batch production runs.",
-                                    onShowInfo = onShowTermInfo
-                                )
-                            }
-                            Text(
-                                text = "ISO 2768-m (±0.2mm)",
-                                fontSize = 9.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Technical View Launcher Card:
- * Opens the separate technical drawing / specification view using the exact SAME configuration.
- * Redesigned to eliminate truncation and provide clear call-to-action button.
- */
-@Composable
-private fun TechnicalViewLauncherCard(
-    config: ProductConfiguration,
-    onOpenTechnicalView: () -> Unit,
-    isInlineExpanded: Boolean = false,
-    onToggleInline: (() -> Unit)? = null,
-    onShowTermInfo: ((TechnicalTermInfo) -> Unit)? = null
-) {
-    TactileCard(
-        modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 1.5.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        Icons.Default.Architecture,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = "TECHNICAL SPECIFICATION VIEW",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                letterSpacing = 0.5.sp
-                            )
-                            if (onShowTermInfo != null) {
-                                TechnicalInfoIcon(
-                                    term = "1:1 Orthographic CAD Projection",
-                                    definition = "Precision engineering drawing displaying frontal, lateral, and cross-sectional views with dimensional tolerances.",
-                                    recommendation = "Used by CNC toolmakers to cut high-pressure steel injection dies.",
-                                    onShowInfo = onShowTermInfo
-                                )
-                            }
-                        }
-                        Text(
-                            text = "1:1 Orthographic CAD Projection & Tolerances",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            // High-contrast, full-width action button - NEVER truncated to "Op"
-            TactileButton(
-                onClick = onOpenTechnicalView,
-                variant = TactileButtonVariant.PRIMARY,
-                icon = Icons.Default.Architecture,
-                text = "View Engineering Blueprint",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(38.dp)
+            Text(
+                text = "FINAL PRODUCT OUTPUT",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                color = Color(0xFF0F172A)
             )
 
-            if (onToggleInline != null) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(6.dp))
-                        .clickable { onToggleInline() }
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (isInlineExpanded) "Hide Inline CAD Blueprint" else "Show Inline CAD Blueprint Preview",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Icon(
-                        imageVector = if (isInlineExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                AnimatedVisibility(
-                    visible = isInlineExpanded,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
-                    Column(modifier = Modifier.padding(top = 8.dp)) {
-                        JigEngineeringCanvas(config = config)
-                    }
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FilterChip(
+                    selected = !isBlueprintView,
+                    onClick = onToggleView,
+                    label = { Text("AI Studio Render", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+                )
+                FilterChip(
+                    selected = isBlueprintView,
+                    onClick = onToggleView,
+                    label = { Text("CAD Blueprint", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+                )
             }
         }
-    }
-}
 
-/**
- * Product in Action Section (Clean Collapsible Presentation)
- */
-@Composable
-private fun ProductInActionSection(
-    config: ProductConfiguration,
-    isExpanded: Boolean,
-    onToggleExpand: () -> Unit
-) {
-    TactileCard(
-        modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 1.5.dp
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onToggleExpand() },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Surface(
-                        color = Color(0xFF0F2942),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            text = "VISUAL PRESENTATION",
-                            color = Color(0xFF38BDF8),
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                        )
-                    }
-                    Text(
-                        text = "Product in Action",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+        // HERO MEDIA CANVAS (Section 35)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .border(1.dp, Color(0xFF94A3B8), RoundedCornerShape(16.dp))
+                .background(Color(0xFFF1F5F9)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!isBlueprintView) {
+                // AI PHOTOREALISTIC STUDIO RENDER
+                val imageFile = (aiResult as? GeminiImageService.GenerationResult.Success)?.file
+                if (imageFile != null && imageFile.exists()) {
+                    AsyncImage(
+                        model = imageFile,
+                        contentDescription = "Final AI Product Render",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
                     )
+                } else {
+                    // Fallback to high-res Live Compositor if file hasn't loaded
+                    JigLiveCanvasPreview(config = config, activeStep = 10, showControls = false)
                 }
-
-                Icon(
-                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "Collapse" else "Expand",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                // CAD ORTHOGRAPHIC BLUEPRINT VIEW
+                JigEngineeringCanvas(
+                    config = productConfig,
+                    perspective = JigGeometryEngine.EngineeringPerspective.FRONT_ELEVATION,
+                    theme = JigGeometryEngine.EngineeringTheme.BLUEPRINT_NAVY,
+                    showDimensions = true,
+                    showGrid = true,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
 
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+            // High-Res Watermark Pill
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(10.dp),
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xDD0F172A)
             ) {
-                Column(modifier = Modifier.padding(top = 10.dp)) {
-                    JigFishingAnimation(config = config)
-                }
+                Text(
+                    text = "7HOOKS PRECISION TACKLE",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    color = Color(0xFF38BDF8),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
             }
+        }
+
+        // SUMMARY CARD
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "${template.shapeName} ${config.weightGrams.toInt()}g — ${config.mainColor}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0F172A)
+                )
+                Text(
+                    text = "Ref: ${productConfig.referenceNumber} • Model: ${productConfig.modelNumber}",
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                    color = Color(0xFF64748B)
+                )
+                Text(
+                    text = "Finish: ${config.finish} • Pattern: ${config.pattern} • Rigging: ${config.assistHook} with ${config.assistCordColor} cord",
+                    fontSize = 12.sp,
+                    color = Color(0xFF475569)
+                )
+            }
+        }
+
+        // ACTION BUTTONS (Section 39-46)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(
+                onClick = onSave,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+            ) {
+                Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Save Config", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+
+            OutlinedButton(
+                onClick = onRegenerate,
+                enabled = !isGeneratingAi,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Icon(imageVector = Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Regenerate", fontSize = 12.sp)
+            }
+        }
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(
+                onClick = onOpenEngineering,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))
+            ) {
+                Icon(imageVector = Icons.Default.Architecture, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("CAD Studio", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Button(
+                onClick = onExportPdf,
+                enabled = !isGeneratingPdf,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669))
+            ) {
+                if (isGeneratingPdf) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Export PDF", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        TextButton(
+            onClick = onEdit,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        ) {
+            Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF64748B))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("Edit Configuration", color = Color(0xFF64748B), fontSize = 13.sp)
         }
     }
 }

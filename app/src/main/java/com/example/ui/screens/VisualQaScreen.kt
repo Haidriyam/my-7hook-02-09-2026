@@ -330,8 +330,8 @@ fun VisualQaScreen(
                         }
                         QaScreenDestination.JIG_CATALOG -> {
                             JigCatalogScreen(
-                                onSelectJig = { selectedJig ->
-                                    configViewModel.selectJig(selectedJig)
+                                onSelectShape = { selectedShape ->
+                                    configViewModel.selectShape(selectedShape)
                                     selectedScreen = QaScreenDestination.JIG_CONFIG
                                 },
                                 onNavigateBack = { selectedScreen = QaScreenDestination.DASHBOARD }

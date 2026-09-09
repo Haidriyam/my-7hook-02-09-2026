@@ -113,11 +113,11 @@ fun AppNavHost(
             )
         }
 
-        // JIG FLOW
+        // JIG FLOW (Shape-First Workflow)
         composable(Screen.JigCatalog.route) {
             JigCatalogScreen(
-                onSelectJig = { selectedJig ->
-                    configViewModel.selectJig(selectedJig)
+                onSelectShape = { selectedShape ->
+                    configViewModel.selectShape(selectedShape)
                     navController.navigate(Screen.JigConfig.route)
                 },
                 onNavigateBack = {

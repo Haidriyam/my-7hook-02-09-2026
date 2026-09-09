@@ -2,8 +2,10 @@ package com.example.viewmodel
 
 import android.app.Application
 import android.content.Context
+import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.ai.GeminiImageService
 import com.example.data.local.AppDatabase
 import com.example.data.local.SavedConfigEntity
 import com.example.data.model.*
@@ -15,6 +17,27 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
 
     private val db = AppDatabase.getDatabase(application)
     private val configDao = db.savedConfigDao()
+    private val geminiService = GeminiImageService(application)
+
+    // PROGRESSIVE JIG CONFIGURATOR STATE (Shape-First)
+    private val _currentJigConfig = MutableStateFlow(
+        JigConfiguration.fromShape(JigShapeRepository.shapes.first())
+    )
+    val currentJigConfig: StateFlow<JigConfiguration> = _currentJigConfig.asStateFlow()
+
+    // Active progressive step (1..10 = Config steps, 11 = Review, 12 = Final Product Result)
+    private val _currentConfigStep = MutableStateFlow(1)
+    val currentConfigStep: StateFlow<Int> = _currentConfigStep.asStateFlow()
+
+    // Gemini AI Generation State
+    private val _isGeneratingAi = MutableStateFlow(false)
+    val isGeneratingAi: StateFlow<Boolean> = _isGeneratingAi.asStateFlow()
+
+    private val _aiGenerationResult = MutableStateFlow<GeminiImageService.GenerationResult?>(null)
+    val aiGenerationResult: StateFlow<GeminiImageService.GenerationResult?> = _aiGenerationResult.asStateFlow()
+
+    private val _isAiResultViewBlueprint = MutableStateFlow(false)
+    val isAiResultViewBlueprint: StateFlow<Boolean> = _isAiResultViewBlueprint.asStateFlow()
 
     // Active Jig or Rod Configuration
     private val _currentConfig = MutableStateFlow(
@@ -65,6 +88,155 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
 
     private val _saveStatusMessage = MutableStateFlow<String?>(null)
     val saveStatusMessage: StateFlow<String?> = _saveStatusMessage.asStateFlow()
+
+    // -------------------------------------------------------------------------
+    // PROGRESSIVE SHAPE-FIRST JIG CONFIGURATOR ACTIONS
+    // -------------------------------------------------------------------------
+
+    fun selectShape(shape: JigShapeTemplate) {
+        val newConfig = JigConfiguration.fromShape(shape)
+        _currentJigConfig.value = newConfig
+        _currentConfigStep.value = 1
+        _aiGenerationResult.value = null
+        syncJigToProductConfig(newConfig)
+    }
+
+    fun setConfigStep(step: Int) {
+        _currentConfigStep.value = step.coerceIn(1, 12)
+    }
+
+    fun nextConfigStep() {
+        val next = (_currentConfigStep.value + 1).coerceAtMost(12)
+        _currentConfigStep.value = next
+    }
+
+    fun previousConfigStep() {
+        val prev = (_currentConfigStep.value - 1).coerceAtLeast(1)
+        _currentConfigStep.value = prev
+    }
+
+    fun updateJigWeight(weight: Float, custom: String = "") {
+        val customMap = if (custom.isNotBlank()) _currentJigConfig.value.customValues + ("weight" to custom) else _currentJigConfig.value.customValues
+        val updated = _currentJigConfig.value.copy(weightGrams = weight, customValues = customMap)
+        _currentJigConfig.value = updated
+        syncJigToProductConfig(updated)
+    }
+
+    fun updateJigLength(length: Float, custom: String = "") {
+        val customMap = if (custom.isNotBlank()) _currentJigConfig.value.customValues + ("length" to custom) else _currentJigConfig.value.customValues
+        val updated = _currentJigConfig.value.copy(lengthMm = length, customValues = customMap)
+        _currentJigConfig.value = updated
+        syncJigToProductConfig(updated)
+    }
+
+    fun updateJigWidth(width: Float, custom: String = "") {
+        val customMap = if (custom.isNotBlank()) _currentJigConfig.value.customValues + ("width" to custom) else _currentJigConfig.value.customValues
+        val updated = _currentJigConfig.value.copy(widthMm = width, customValues = customMap)
+        _currentJigConfig.value = updated
+        syncJigToProductConfig(updated)
+    }
+
+    fun updateJigColors(mainColor: String, mainHex: Long, secondaryColor: String, secondaryHex: Long) {
+        val updated = _currentJigConfig.value.copy(
+            mainColor = mainColor,
+            mainColorHex = mainHex,
+            secondaryColor = secondaryColor,
+            secondaryColorHex = secondaryHex
+        )
+        _currentJigConfig.value = updated
+        syncJigToProductConfig(updated)
+    }
+
+    fun updateJigPattern(pattern: String, patternColor: String, patternColorHex: Long) {
+        val updated = _currentJigConfig.value.copy(
+            pattern = pattern,
+            patternColor = patternColor,
+            patternColorHex = patternColorHex
+        )
+        _currentJigConfig.value = updated
+        syncJigToProductConfig(updated)
+    }
+
+    fun updateJigFinish(finish: String, custom: String = "") {
+        val customMap = if (custom.isNotBlank()) _currentJigConfig.value.customValues + ("finish" to custom) else _currentJigConfig.value.customValues
+        val updated = _currentJigConfig.value.copy(finish = finish, customValues = customMap)
+        _currentJigConfig.value = updated
+        syncJigToProductConfig(updated)
+    }
+
+    fun updateJigEye(eyeStyle: String, eyeColor: String) {
+        val updated = _currentJigConfig.value.copy(eyeStyle = eyeStyle, eyeColor = eyeColor)
+        _currentJigConfig.value = updated
+        syncJigToProductConfig(updated)
+    }
+
+    fun updateJigAssistHook(hook: String, custom: String = "") {
+        val customMap = if (custom.isNotBlank()) _currentJigConfig.value.customValues + ("assistHook" to custom) else _currentJigConfig.value.customValues
+        val updated = _currentJigConfig.value.copy(assistHook = hook, customValues = customMap)
+        _currentJigConfig.value = updated
+        syncJigToProductConfig(updated)
+    }
+
+    fun updateJigAssistCord(cordColor: String, custom: String = "") {
+        val customMap = if (custom.isNotBlank()) _currentJigConfig.value.customValues + ("assistCord" to custom) else _currentJigConfig.value.customValues
+        val updated = _currentJigConfig.value.copy(assistCordColor = cordColor, customValues = customMap)
+        _currentJigConfig.value = updated
+        syncJigToProductConfig(updated)
+    }
+
+    fun updateJigRings(frontRing: String, backRing: String, customFront: String = "", customBack: String = "") {
+        var customMap = _currentJigConfig.value.customValues
+        if (customFront.isNotBlank()) customMap = customMap + ("frontRing" to customFront)
+        if (customBack.isNotBlank()) customMap = customMap + ("backRing" to customBack)
+        val updated = _currentJigConfig.value.copy(
+            frontRing = frontRing,
+            backRing = backRing,
+            customValues = customMap
+        )
+        _currentJigConfig.value = updated
+        syncJigToProductConfig(updated)
+    }
+
+    fun resetJigConfiguration() {
+        val shape = JigShapeRepository.getById(_currentJigConfig.value.shapeId)
+        val reset = JigConfiguration.fromShape(shape)
+        _currentJigConfig.value = reset
+        _currentConfigStep.value = 1
+        _aiGenerationResult.value = null
+        syncJigToProductConfig(reset)
+    }
+
+    fun toggleAiResultView() {
+        _isAiResultViewBlueprint.value = !_isAiResultViewBlueprint.value
+    }
+
+    fun generateFinalAiProduct(referenceCanvasBitmap: Bitmap? = null, forceRegenerate: Boolean = false) {
+        viewModelScope.launch {
+            _isGeneratingAi.value = true
+            val config = _currentJigConfig.value
+            val result = geminiService.generateFinalProductImage(
+                config = config,
+                referenceCanvasBitmap = referenceCanvasBitmap,
+                forceRegenerate = forceRegenerate
+            )
+            _aiGenerationResult.value = result
+            _isGeneratingAi.value = false
+
+            if (result is GeminiImageService.GenerationResult.Success) {
+                // Update shared product config with the generated image file URI
+                val imageUri = result.file.absolutePath
+                syncJigToProductConfig(config, imageUrl = imageUri)
+                _currentConfigStep.value = 12 // Advance to Final Product Result View
+            }
+        }
+    }
+
+    private fun syncJigToProductConfig(
+        jigConfig: JigConfiguration = _currentJigConfig.value,
+        imageUrl: String = _currentConfig.value.imageUrl
+    ) {
+        _currentConfig.value = jigConfig.toProductConfiguration(imageUrl)
+    }
 
     fun selectJig(jig: JigProduct) {
         _selectedJigProduct.value = jig

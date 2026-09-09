@@ -73,23 +73,23 @@ object JigGeometryEngine {
         val model = config.modelNumber.lowercase()
 
         return when {
-            id.contains("orange_black") || name.contains("orange-black") || model.contains("ob") ->
-                JigSilhouetteType.ASYMMETRIC_HYDRO_KEEL
-
-            id.contains("yellow_dotted") || name.contains("yellow-dotted") || model.contains("yd") ->
-                JigSilhouetteType.SLOW_PITCH_DIAMOND
-
-            id.contains("yellow_orange") || name.contains("yellow-orange") || model.contains("yo") ->
-                JigSilhouetteType.VERTICAL_NEEDLE_NOSE
-
-            id.contains("candy_blue_orange") || name.contains("candy blue") || model.contains("cbo") ->
+            id.contains("flutter") || name.contains("flutter") || id.contains("candy_blue_orange") || name.contains("candy blue") || model.contains("cbo") || model.contains("flu") ->
                 JigSilhouetteType.PELAGIC_S_CURVE
 
-            id.contains("candy_pink_green") || name.contains("candy pink") || model.contains("cpg") ->
-                JigSilhouetteType.SHORE_CAST_TEARDROP
+            id.contains("knife") || name.contains("knife") || id.contains("yellow_orange") || name.contains("yellow-orange") || model.contains("yo") || model.contains("kni") ->
+                JigSilhouetteType.VERTICAL_NEEDLE_NOSE
 
-            id.contains("candy_yellow_black") || name.contains("bumble") || model.contains("cyb-40g") ->
+            id.contains("leaf") || name.contains("leaf") || id.contains("yellow_dotted") || name.contains("yellow-dotted") || model.contains("yd") || model.contains("lea") ->
+                JigSilhouetteType.SLOW_PITCH_DIAMOND
+
+            id.contains("asymmetric") || name.contains("asymmetric") || id.contains("orange_black") || name.contains("orange-black") || model.contains("ob") || model.contains("asy") ->
+                JigSilhouetteType.ASYMMETRIC_HYDRO_KEEL
+
+            id.contains("stepped") || name.contains("stepped") || id.contains("candy_yellow_black") || name.contains("bumble") || model.contains("cyb-40g") || model.contains("ste") ->
                 JigSilhouetteType.STEPPED_HYDROFOIL
+
+            id.contains("shore") || name.contains("shore") || id.contains("candy_pink_green") || name.contains("candy pink") || model.contains("cpg") || model.contains("sho") ->
+                JigSilhouetteType.SHORE_CAST_TEARDROP
 
             id.contains("crystal") || name.contains("crystal") || model.contains("cpb") || model.contains("cyb-05") ->
                 JigSilhouetteType.CRYSTAL_FACETED
