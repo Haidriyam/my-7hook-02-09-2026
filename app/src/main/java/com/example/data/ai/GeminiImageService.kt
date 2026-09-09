@@ -104,13 +104,19 @@ class GeminiImageService(private val context: Context) {
 
         // 2. Validate API Key
         val apiKey = try {
-            val keyField = BuildConfig::class.java.getField("GEMINI_API_KEY")
-            keyField.get(null) as? String ?: ""
-        } catch (e: Exception) {
-            ""
-        }
+            val buildConfigKey = BuildConfig.GEMINI_API_KEY
+            if (buildConfigKey.isNotBlank() && buildConfigKey != "MY_GEMINI_API_KEY" && !buildConfigKey.startsWith("YOUR_")) {
+                buildConfigKey
+            } else {
+                val envKey = System.getenv("GEMINI_API_KEY") ?: ""
+                if (envKey.isNotBlank() && envKey != "MY_GEMINI_API_KEY") envKey else ""
+            }
+        } catch (e: Throwable) {
+            System.getenv("GEMINI_API_KEY")?.takeIf { it.isNotBlank() && it != "MY_GEMINI_API_KEY" } ?: ""
+        }.trim()
 
         if (apiKey.isBlank()) {
+            android.util.Log.i("GeminiImageService", "No active Gemini API key configured. Generating high-fidelity local studio render.")
             // If API key is not configured or in offline simulation, generate high-fidelity fallback render
             val fallback = generateHighQualityLocalStudioRender(config, referenceCanvasBitmap)
             val savedFile = if (forceRegenerate) {
@@ -126,6 +132,8 @@ class GeminiImageService(private val context: Context) {
                 renderKey = renderKey
             )
         }
+
+        android.util.Log.d("GeminiImageService", "Generating AI studio product image via Gemini API ($MODEL_VERSION)...")
 
         // 3. Construct Photorealistic Studio Product Prompt (Section 31 & 34)
         val shape = JigShapeRepository.getById(config.shapeId)
