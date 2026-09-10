@@ -329,27 +329,64 @@ private fun DrawScope.renderJigCompositor(
     // 1. BUILD SILHOUETTE PATH
     val bodyPath = buildSilhouettePath(template.silhouetteType, cx, cy, halfL, halfW)
 
-    // 2. BASE COLOR LAYER (Always live, supports Dual-Tone)
-    val mainColor = Color(config.mainColorHex)
-    val secondaryColor = Color(config.secondaryColorHex)
-
-    if (config.hasDualTone) {
-        val bodyBrush = Brush.verticalGradient(
+    // 2. BASE COLOR LAYER (Progressive: CAD raw blank at Steps 1-3, painted at Step 4+)
+    if (activeStep < 4) {
+        // Raw machined titanium/alloy CAD blank
+        val blankBrush = Brush.linearGradient(
             colors = listOf(
-                mainColor,
-                mainColor.copy(alpha = 0.90f),
-                secondaryColor
+                Color(0xFFE2E8F0),
+                Color(0xFFCBD5E1),
+                Color(0xFF94A3B8),
+                Color(0xFFE2E8F0)
             ),
-            startY = cy - halfW,
-            endY = cy + halfW
+            start = Offset(cx - halfL, cy - halfW),
+            end = Offset(cx + halfL, cy + halfW)
         )
-        drawPath(path = bodyPath, brush = bodyBrush)
+        drawPath(path = bodyPath, brush = blankBrush)
+
+        // Technical CAD measurement overlay grid
+        clipPath(bodyPath) {
+            val stepX = halfL / 5f
+            for (i in -4..4) {
+                val gx = cx + i * stepX
+                drawLine(
+                    color = Color(0x33475569),
+                    start = Offset(gx, cy - halfW),
+                    end = Offset(gx, cy + halfW),
+                    strokeWidth = 1f
+                )
+            }
+            drawLine(
+                color = Color(0x550284C7),
+                start = Offset(cx - halfL, cy),
+                end = Offset(cx + halfL, cy),
+                strokeWidth = 1.2f,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 4f))
+            )
+        }
     } else {
-        drawPath(path = bodyPath, color = mainColor)
+        // Step 4+: Full chosen colors and dual-tone gradients
+        val mainColor = Color(config.mainColorHex)
+        val secondaryColor = Color(config.secondaryColorHex)
+
+        if (config.hasDualTone) {
+            val bodyBrush = Brush.verticalGradient(
+                colors = listOf(
+                    mainColor,
+                    mainColor.copy(alpha = 0.90f),
+                    secondaryColor
+                ),
+                startY = cy - halfW,
+                endY = cy + halfW
+            )
+            drawPath(path = bodyPath, brush = bodyBrush)
+        } else {
+            drawPath(path = bodyPath, color = mainColor)
+        }
     }
 
-    // 3. PATTERN LAYER (Strictly clipped to jig surface)
-    if (config.pattern.isNotBlank() && config.pattern != "Solid" && config.pattern != "None") {
+    // 3. PATTERN LAYER (Strictly clipped to jig surface, appears Step 5+)
+    if (activeStep >= 5 && config.pattern.isNotBlank() && config.pattern != "Solid" && config.pattern != "None") {
         clipPath(bodyPath) {
             drawPatternOverlay(
                 pattern = config.pattern,
@@ -363,8 +400,8 @@ private fun DrawScope.renderJigCompositor(
         }
     }
 
-    // 4. MATERIAL & SURFACE FINISH LAYER
-    if (config.finish.isNotBlank() && config.finish != "None") {
+    // 4. MATERIAL & SURFACE FINISH LAYER (Appears Step 6+)
+    if (activeStep >= 6 && config.finish.isNotBlank() && config.finish != "None") {
         clipPath(bodyPath) {
             drawFinishShader(
                 finish = config.finish,
@@ -379,15 +416,21 @@ private fun DrawScope.renderJigCompositor(
     // Body Contour Border / Edge Definition
     drawPath(
         path = bodyPath,
-        color = Color(0x660F172A),
-        style = Stroke(width = 1.5f)
+        color = if (activeStep < 4) Color(0xFF475569) else Color(0x660F172A),
+        style = Stroke(width = if (activeStep < 4) 2.0f else 1.5f)
     )
 
-    // 5. 3D EYE LAYER (Anchored dynamically using template anchors)
-    if (config.eyeStyle != "None") {
+    // 5. 3D EYE LAYER (Appears Step 7+, dynamic eye size scaling)
+    if (activeStep >= 7 && config.eyeStyle != "None") {
         val eyeX = cx - halfL + (bodyLength * template.eyeAnchorX)
         val eyeY = cy - halfW + (bodyWidth * template.eyeAnchorY)
-        val eyeRadius = (bodyWidth * 0.22f).coerceIn(5f, 15f)
+        val eyeSizeMultiplier = when {
+            config.eyeSize.contains("Small", ignoreCase = true) -> 0.15f
+            config.eyeSize.contains("Large", ignoreCase = true) -> 0.28f
+            config.eyeSize.contains("Magnum", ignoreCase = true) -> 0.36f
+            else -> 0.22f // Medium (8mm)
+        }
+        val eyeRadius = (bodyWidth * eyeSizeMultiplier).coerceIn(4f, 22f)
 
         draw3DEye(
             eyeX = eyeX,
@@ -398,52 +441,8 @@ private fun DrawScope.renderJigCompositor(
         )
     }
 
-    // 6. FRONT RING
-    if (config.frontRing != "None") {
-        val noseX = cx - halfL + (bodyLength * template.frontAnchorX)
-        val noseY = cy - halfW + (bodyWidth * template.frontAnchorY)
-        val isHeavy = config.frontRing.contains("Heavy", ignoreCase = true)
-        val ringRadius = if (isHeavy) 10f else 7.5f
-        val strokeW = if (isHeavy) 3.5f else 2.2f
-
-        drawCircle(
-            color = Color(0xFFCBD5E1),
-            radius = ringRadius,
-            center = Offset(noseX - ringRadius * 0.6f, noseY),
-            style = Stroke(width = strokeW)
-        )
-        drawCircle(
-            color = Color(0xFF64748B),
-            radius = ringRadius - strokeW / 2f,
-            center = Offset(noseX - ringRadius * 0.6f, noseY),
-            style = Stroke(width = 0.8f)
-        )
-    }
-
-    // 7. BACK RING
-    if (config.backRing != "None") {
-        val tailX = cx - halfL + (bodyLength * template.backAnchorX)
-        val tailY = cy - halfW + (bodyWidth * template.backAnchorY)
-        val isHeavy = config.backRing.contains("Heavy", ignoreCase = true)
-        val ringRadius = if (isHeavy) 9.5f else 7f
-        val strokeW = if (isHeavy) 3.2f else 2f
-
-        drawCircle(
-            color = Color(0xFFCBD5E1),
-            radius = ringRadius,
-            center = Offset(tailX + ringRadius * 0.6f, tailY),
-            style = Stroke(width = strokeW)
-        )
-        drawCircle(
-            color = Color(0xFF64748B),
-            radius = ringRadius - strokeW / 2f,
-            center = Offset(tailX + ringRadius * 0.6f, tailY),
-            style = Stroke(width = 0.8f)
-        )
-    }
-
-    // 8. ASSIST HOOK & ASSIST CORD LAYER
-    if (config.hookType != "None" && config.assistHook != "None") {
+    // 6. ASSIST HOOK & ASSIST CORD LAYER (Appears Step 8+, cord at Step 9+)
+    if (activeStep >= 8 && config.hookType != "None" && config.assistHook != "None") {
         val anchorX = cx - halfL + (bodyLength * template.hookAnchorX)
         val anchorY = cy - halfW + (bodyWidth * template.hookAnchorY)
         val cordColor = resolveCordColor(config.assistCordColor)
@@ -454,8 +453,129 @@ private fun DrawScope.renderJigCompositor(
             hookType = config.hookType.ifBlank { config.assistHook },
             hookSize = config.hookSize,
             cordColor = cordColor,
-            showCord = config.assistCord != "None"
+            showCord = activeStep >= 9 && config.assistCord != "None"
         )
+    }
+
+    // 7. SOLID RINGS LAYER (Appears Step 10+, with Front, Back, Top, Bottom rings & accurate sizing)
+    if (activeStep >= 10) {
+        val ringRadius = when {
+            config.ringSize.contains("#4") -> 7.0f
+            config.ringSize.contains("#6") -> 10.5f
+            config.ringSize.contains("#7") -> 12.5f
+            config.ringSize.contains("#8") -> 14.5f
+            else -> 9.0f // #5 (5.5mm)
+        }
+        val isHeavy = config.frontRing.contains("Heavy", ignoreCase = true) ||
+                config.backRing.contains("Heavy", ignoreCase = true) ||
+                config.ringSize.contains("#7") || config.ringSize.contains("#8")
+        val strokeW = if (isHeavy) 3.2f else 2.2f
+
+        // 7a. FRONT LINE TIE NOSE RING (Firmly positioned outside nose tip with forged eyelet lug)
+        if (config.frontRing != "None") {
+            val noseTipX = cx - halfL
+            val noseTipY = cy
+            val ringCenter = Offset(noseTipX - ringRadius * 0.85f, noseTipY)
+
+            // Forged metal attachment lug
+            drawCircle(
+                color = Color(0xFF64748B),
+                radius = ringRadius * 0.40f,
+                center = Offset(noseTipX + 1f, noseTipY)
+            )
+            // Solid Stainless Ring
+            drawCircle(
+                color = Color(0xFFCBD5E1),
+                radius = ringRadius,
+                center = ringCenter,
+                style = Stroke(width = strokeW)
+            )
+            drawCircle(
+                color = Color(0xFF475569),
+                radius = ringRadius - strokeW / 2f,
+                center = ringCenter,
+                style = Stroke(width = 0.8f)
+            )
+        }
+
+        // 7b. REAR TAIL SPLIT RING (Firmly positioned outside tail tip with forged eyelet lug)
+        if (config.backRing != "None") {
+            val tailTipX = cx + halfL
+            val tailTipY = cy
+            val ringCenter = Offset(tailTipX + ringRadius * 0.85f, tailTipY)
+
+            // Forged metal attachment lug
+            drawCircle(
+                color = Color(0xFF64748B),
+                radius = ringRadius * 0.40f,
+                center = Offset(tailTipX - 1f, tailTipY)
+            )
+            // Split Ring
+            drawCircle(
+                color = Color(0xFFCBD5E1),
+                radius = ringRadius,
+                center = ringCenter,
+                style = Stroke(width = strokeW)
+            )
+            drawCircle(
+                color = Color(0xFF475569),
+                radius = ringRadius - strokeW / 2f,
+                center = ringCenter,
+                style = Stroke(width = 0.8f)
+            )
+        }
+
+        // 7c. TOP DORSAL RING (Dorsal balance ring for slow pitch jigs)
+        if (config.topRing != "None") {
+            val topX = cx
+            val topY = cy - halfW
+            val topRadius = ringRadius * 0.85f
+            val ringCenter = Offset(topX, topY - topRadius * 0.85f)
+
+            drawCircle(
+                color = Color(0xFF64748B),
+                radius = topRadius * 0.40f,
+                center = Offset(topX, topY + 1f)
+            )
+            drawCircle(
+                color = Color(0xFFCBD5E1),
+                radius = topRadius,
+                center = ringCenter,
+                style = Stroke(width = strokeW)
+            )
+            drawCircle(
+                color = Color(0xFF475569),
+                radius = topRadius - strokeW / 2f,
+                center = ringCenter,
+                style = Stroke(width = 0.8f)
+            )
+        }
+
+        // 7d. BOTTOM VENTRAL RING (Ventral belly ring for stinger assist hooks)
+        if (config.bottomRing != "None") {
+            val botX = cx
+            val botY = cy + halfW
+            val botRadius = ringRadius * 0.85f
+            val ringCenter = Offset(botX, botY + botRadius * 0.85f)
+
+            drawCircle(
+                color = Color(0xFF64748B),
+                radius = botRadius * 0.40f,
+                center = Offset(botX, botY - 1f)
+            )
+            drawCircle(
+                color = Color(0xFFCBD5E1),
+                radius = botRadius,
+                center = ringCenter,
+                style = Stroke(width = strokeW)
+            )
+            drawCircle(
+                color = Color(0xFF475569),
+                radius = botRadius - strokeW / 2f,
+                center = ringCenter,
+                style = Stroke(width = 0.8f)
+            )
+        }
     }
 }
 

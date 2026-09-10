@@ -26,6 +26,7 @@ data class JigConfiguration(
     val material: String = "Lead-Free Zinc Alloy",
     val eyeStyle: String = "3D Strike",
     val eyeColor: String = "Ruby Red",
+    val eyeSize: String = "Medium (8mm)",
     val hookType: String = "O'Shaughnessy",
     val hookSize: String = "3/0",
     val assistHook: String = "Standard Mustad 3/0",
@@ -33,6 +34,10 @@ data class JigConfiguration(
     val assistCordColor: String = "Red",
     val frontRing: String = "Standard",
     val backRing: String = "Heavy Duty",
+    val topRing: String = "None",
+    val bottomRing: String = "None",
+    val ringSize: String = "#5 (5.5mm)",
+    val colorComboName: String = "",
     val customValues: Map<String, String> = emptyMap(),
     val referenceNumber: String = ""
 ) {
@@ -47,8 +52,10 @@ data class JigConfiguration(
             "assistCordColor" to assistCordColor.trim().uppercase(Locale.US),
             "assistHook" to assistHook.trim().uppercase(Locale.US),
             "backRing" to backRing.trim().uppercase(Locale.US),
+            "bottomRing" to bottomRing.trim().uppercase(Locale.US),
             "custom" to customValues.entries.sortedBy { it.key }.joinToString(";") { "${it.key.uppercase(Locale.US)}=${it.value.uppercase(Locale.US)}" },
             "eyeColor" to eyeColor.trim().uppercase(Locale.US),
+            "eyeSize" to eyeSize.trim().uppercase(Locale.US),
             "eyeStyle" to eyeStyle.trim().uppercase(Locale.US),
             "finish" to finish.trim().uppercase(Locale.US),
             "frontRing" to frontRing.trim().uppercase(Locale.US),
@@ -62,9 +69,11 @@ data class JigConfiguration(
             "pattern" to pattern.trim().uppercase(Locale.US),
             "patternColor" to patternColor.trim().uppercase(Locale.US),
             "promptVersion" to promptVersion.toString(),
+            "ringSize" to ringSize.trim().uppercase(Locale.US),
             "secondaryColor" to (if (hasDualTone) secondaryColor.trim().uppercase(Locale.US) else "NONE"),
             "shape" to shapeId.trim().uppercase(Locale.US),
             "shapeVersion" to shapeVersion.toString(),
+            "topRing" to topRing.trim().uppercase(Locale.US),
             "weight" to String.format(Locale.US, "%.1f", weightGrams),
             "width" to String.format(Locale.US, "%.1f", widthMm)
         )

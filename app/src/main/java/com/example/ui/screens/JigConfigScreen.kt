@@ -149,7 +149,20 @@ fun JigConfigScreen(
                     trackColor = Color(0xFFE2E8F0)
                 )
 
-                // LIVE SPECIFICATION SUMMARY PILL (Section 56)
+                // LIVE SPECIFICATION SUMMARY PILL (Progressive Disclosure)
+                val (specLeft, specRight) = when {
+                    currentStep == 1 -> Pair("${shapeTemplate.shapeName} • Weight: ${jigConfig.weightGrams.toInt()}g", "Stage 1: Weight")
+                    currentStep == 2 -> Pair("${shapeTemplate.shapeName} • ${jigConfig.weightGrams.toInt()}g • ${jigConfig.lengthMm.toInt()}mm", "Stage 2: Length")
+                    currentStep == 3 -> Pair("${shapeTemplate.shapeName} • ${jigConfig.lengthMm.toInt()}×${jigConfig.widthMm.toInt()}mm", "Stage 3: Keel Beam")
+                    currentStep == 4 -> Pair("${shapeTemplate.shapeName} • ${jigConfig.mainColor}", if (jigConfig.hasDualTone) "Dual-Tone Keel" else "Stage 4: Paint")
+                    currentStep == 5 -> Pair("${jigConfig.mainColor} / ${jigConfig.secondaryColor}", "Pattern: ${jigConfig.pattern}")
+                    currentStep == 6 -> Pair("${jigConfig.mainColor} • ${jigConfig.finish}", "Finish: ${jigConfig.finish}")
+                    currentStep == 7 -> Pair("Eye: ${jigConfig.eyeStyle} (${jigConfig.eyeSize})", "Iris: ${jigConfig.eyeColor}")
+                    currentStep == 8 -> Pair("Rigging: ${jigConfig.assistHook}", "Hook Rig")
+                    currentStep == 9 -> Pair("Cord: ${jigConfig.assistCordColor}", "200lb Braided PE")
+                    currentStep == 10 -> Pair("Rings: Front, Rear, Top, Bottom", "Size: ${jigConfig.ringSize}")
+                    else -> Pair("${shapeTemplate.shapeName} • ${jigConfig.weightGrams.toInt()}g • ${jigConfig.lengthMm.toInt()}mm", "${jigConfig.mainColor} / ${jigConfig.pattern}")
+                }
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -165,14 +178,14 @@ fun JigConfigScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "${shapeTemplate.shapeName} • ${jigConfig.weightGrams.toInt()}g • ${jigConfig.lengthMm.toInt()}mm",
+                            text = specLeft,
                             color = Color(0xFF38BDF8),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace
                         )
                         Text(
-                            text = "${jigConfig.mainColor} / ${jigConfig.pattern}",
+                            text = specRight,
                             color = Color(0xFFE2E8F0),
                             fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace
@@ -620,18 +633,86 @@ private fun WidthStep(config: JigConfiguration, template: com.example.data.model
 
 @Composable
 private fun ColorStep(config: JigConfiguration, template: com.example.data.model.JigShapeTemplate, viewModel: ConfiguratorViewModel) {
-    val palette = listOf(
-        Pair("Tournament Orange", 0xFFEA580CL),
-        Pair("Deep Sea Blue", 0xFF0284C7L),
-        Pair("Solar Yellow", 0xFFEAB308L),
-        Pair("Stealth Black", 0xFF0F172AL),
-        Pair("Cyber Yellow", 0xFFFACC15L),
-        Pair("Blossom Pink", 0xFFEC4899L),
-        Pair("Chrome Silver", 0xFFCBD5E1L),
-        Pair("Emerald Green", 0xFF10B981L),
-        Pair("Pure Pearl", 0xFFF8FAFCL)
+    data class ColorCombo(
+        val name: String,
+        val mainName: String,
+        val mainHex: Long,
+        val secName: String,
+        val secHex: Long,
+        val pattern: String,
+        val patName: String,
+        val patHex: Long
     )
 
+    val curatedCombos = listOf(
+        ColorCombo("Sardine Pelagic", "Deep Ocean Blue", 0xFF0284C7L, "Chrome Silver", 0xFFCBD5E1L, "Dots", "Stealth Black", 0xFF0F172AL),
+        ColorCombo("Mackerel Strike", "Emerald Mackerel", 0xFF10B981L, "Solar Gold", 0xFFEAB308L, "Zebra", "Stealth Black", 0xFF0F172AL),
+        ColorCombo("Red Head Ghost", "Crimson Red", 0xFFDC2626L, "Pure Pearl", 0xFFF8FAFCL, "Solid", "Pure Pearl", 0xFFF8FAFCL),
+        ColorCombo("Pink Glow Flasher", "Blossom Pink", 0xFFEC4899L, "Chrome Silver", 0xFFCBD5E1L, "Zebra", "Pure Pearl", 0xFFF8FAFCL),
+        ColorCombo("Chartreuse Dorado", "Cyber Chartreuse", 0xFF84CC16L, "Solar Gold", 0xFFEAB308L, "Tiger", "Stealth Black", 0xFF0F172AL),
+        ColorCombo("Midnight Squid", "Stealth Black", 0xFF0F172AL, "Electric UV Violet", 0xFF8B5CF6L, "Chevron", "Chrome Silver", 0xFFCBD5E1L),
+        ColorCombo("Firetiger Predator", "Blaze Orange", 0xFFEA580CL, "Solar Gold", 0xFFEAB308L, "Tiger", "Stealth Black", 0xFF0F172AL),
+        ColorCombo("Zebra Glow Dual", "Pure Pearl", 0xFFF8FAFCL, "Chrome Silver", 0xFFCBD5E1L, "Zebra", "Luminous Glow", 0xFF4ADE80L),
+        ColorCombo("Bluefin Bullet", "Abyssal Navy", 0xFF1E3A8AL, "Chrome Silver", 0xFFCBD5E1L, "Chevron", "Chrome Silver", 0xFFCBD5E1L),
+        ColorCombo("Blood Baitfish", "Tuna Blood Red", 0xFF991B1BL, "Chrome Silver", 0xFFCBD5E1L, "Scales", "Stealth Black", 0xFF0F172AL)
+    )
+
+    val palette = listOf(
+        Pair("Deep Ocean Blue", 0xFF0284C7L),
+        Pair("Abyssal Navy", 0xFF1E3A8AL),
+        Pair("Emerald Mackerel", 0xFF10B981L),
+        Pair("Tournament Orange", 0xFFEA580CL),
+        Pair("Crimson Red", 0xFFDC2626L),
+        Pair("Tuna Blood Red", 0xFF991B1BL),
+        Pair("Solar Gold", 0xFFEAB308L),
+        Pair("Cyber Chartreuse", 0xFF84CC16L),
+        Pair("Blossom Pink", 0xFFEC4899L),
+        Pair("Electric UV Violet", 0xFF8B5CF6L),
+        Pair("Chrome Silver", 0xFFCBD5E1L),
+        Pair("Stealth Black", 0xFF0F172AL),
+        Pair("Pure Pearl", 0xFFF8FAFCL),
+        Pair("Luminous Glow", 0xFF4ADE80L)
+    )
+
+    Text("⚡ CURATED TOURNAMENT COLOR COMBOS (MIXED & STRIPES)", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Text("Pre-engineered hydrodynamic patterns featuring two-tone color blending and contrast stripes.", fontSize = 12.sp, color = Color(0xFF64748B))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        curatedCombos.forEach { combo ->
+            val isSelected = config.colorComboName == combo.name ||
+                    (config.mainColor == combo.mainName && config.secondaryColor == combo.secName && config.pattern == combo.pattern)
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    viewModel.applyColorCombo(
+                        comboName = combo.name,
+                        mainColor = combo.mainName,
+                        mainHex = combo.mainHex,
+                        secondaryColor = combo.secName,
+                        secondaryHex = combo.secHex,
+                        pattern = combo.pattern,
+                        patternColor = combo.patName,
+                        patternColorHex = combo.patHex
+                    )
+                },
+                label = { Text(combo.name, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                leadingIcon = {
+                    Row(modifier = Modifier.size(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(8.dp).background(Color(combo.mainHex), CircleShape))
+                        Box(modifier = Modifier.size(8.dp).background(Color(combo.secHex), CircleShape))
+                    }
+                },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0F172A), selectedLabelColor = Color.White)
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
     Text("PRIMARY DORSAL COLOR", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
     Row(
         modifier = Modifier
@@ -654,7 +735,7 @@ private fun ColorStep(config: JigConfiguration, template: com.example.data.model
     }
 
     Spacer(modifier = Modifier.height(6.dp))
-    Text("SECONDARY KEEL / ACCENT COLOR", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Text("SECONDARY KEEL / BELLY BLEND COLOR", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -782,8 +863,9 @@ private fun FinishStep(config: JigConfiguration, template: com.example.data.mode
 
 @Composable
 private fun EyeStep(config: JigConfiguration, template: com.example.data.model.JigShapeTemplate, viewModel: ConfiguratorViewModel) {
-    val styles = listOf("3D Strike", "Holographic", "Luminous Target")
-    val colors = listOf("Ruby Red", "Emerald Green", "Solar Gold", "Chrome Silver", "Luminous Lime", "Sapphire Blue")
+    val styles = listOf("3D Strike", "Holographic", "Luminous Target", "Realist Fish Pupil")
+    val sizes = listOf("Small (5 mm)", "Medium (8 mm)", "Large (12 mm)", "Magnum (15 mm)")
+    val colors = listOf("Ruby Red", "Emerald Green", "Solar Gold", "Chrome Silver", "Luminous Lime", "Sapphire Blue", "Amethyst UV", "Pure Pearl")
 
     Text("3D STRIKE EYE PROFILE", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
     Row(
@@ -796,8 +878,27 @@ private fun EyeStep(config: JigConfiguration, template: com.example.data.model.J
             val isSelected = config.eyeStyle.equals(st, ignoreCase = true)
             FilterChip(
                 selected = isSelected,
-                onClick = { viewModel.updateJigEye(st, config.eyeColor) },
+                onClick = { viewModel.updateJigEye(st, config.eyeColor, config.eyeSize) },
                 label = { Text(st, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(6.dp))
+    Text("EYE DIAMETER / SIZE", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        sizes.forEach { sz ->
+            val isSelected = config.eyeSize.equals(sz, ignoreCase = true)
+            FilterChip(
+                selected = isSelected,
+                onClick = { viewModel.updateJigEye(config.eyeStyle, config.eyeColor, sz) },
+                label = { Text(sz, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                 colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
             )
         }
@@ -815,7 +916,7 @@ private fun EyeStep(config: JigConfiguration, template: com.example.data.model.J
             val isSelected = config.eyeColor.equals(col, ignoreCase = true)
             FilterChip(
                 selected = isSelected,
-                onClick = { viewModel.updateJigEye(config.eyeStyle, col) },
+                onClick = { viewModel.updateJigEye(config.eyeStyle, col, config.eyeSize) },
                 label = { Text(col, fontSize = 11.sp) },
                 colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
             )
@@ -923,12 +1024,50 @@ private fun AssistCordStep(config: JigConfiguration, template: com.example.data.
 
 @Composable
 private fun RingsStep(config: JigConfiguration, template: com.example.data.model.JigShapeTemplate, viewModel: ConfiguratorViewModel) {
+    val ringSizes = listOf(
+        "#4 (4.5 mm • 50 lb Light)",
+        "#5 (5.5 mm • 80 lb Standard)",
+        "#6 (6.5 mm • 120 lb Offshore)",
+        "#7 (7.5 mm • 180 lb Tuna Grade)",
+        "#8 (8.5 mm • 250 lb Giant Trevally)"
+    )
     val ringOptions = listOf("None", "Standard", "Heavy Duty")
+    val topRingOptions = listOf("None", "Center Dorsal #5", "Forward Dorsal #7")
+    val bottomRingOptions = listOf("None", "Center Keel #5", "Rear Keel #7")
+
     var isCustomFR by remember { mutableStateOf(config.customValues.containsKey("frontRing")) }
     var isCustomBR by remember { mutableStateOf(config.customValues.containsKey("backRing")) }
     var customFRText by remember { mutableStateOf(config.customValues["frontRing"] ?: "") }
     var customBRText by remember { mutableStateOf(config.customValues["backRing"] ?: "") }
 
+    Text("HARDWARE RING SIZE & STRENGTH", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Text("Seamless forged 304 marine stainless steel rings scaled to withstand targeted pelagic species.", fontSize = 12.sp, color = Color(0xFF64748B))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ringSizes.forEach { sz ->
+            val isSelected = config.ringSize.equals(sz, ignoreCase = true)
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    viewModel.updateJigRingsAll(
+                        frontRing = config.frontRing,
+                        backRing = config.backRing,
+                        topRing = config.topRing,
+                        bottomRing = config.bottomRing,
+                        ringSize = sz
+                    )
+                },
+                label = { Text(sz, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
     Text("FRONT SOLID NOSE RING", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
     Row(
         modifier = Modifier
@@ -942,7 +1081,13 @@ private fun RingsStep(config: JigConfiguration, template: com.example.data.model
                 selected = isSelected,
                 onClick = {
                     isCustomFR = false
-                    viewModel.updateJigRings(opt, config.backRing)
+                    viewModel.updateJigRingsAll(
+                        frontRing = opt,
+                        backRing = config.backRing,
+                        topRing = config.topRing,
+                        bottomRing = config.bottomRing,
+                        ringSize = config.ringSize
+                    )
                 },
                 label = { Text(opt) },
                 colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
@@ -961,7 +1106,14 @@ private fun RingsStep(config: JigConfiguration, template: com.example.data.model
             value = customFRText,
             onValueChange = {
                 customFRText = it
-                viewModel.updateJigRings("Custom", config.backRing, customFront = it)
+                viewModel.updateJigRingsAll(
+                    frontRing = "Custom",
+                    backRing = config.backRing,
+                    topRing = config.topRing,
+                    bottomRing = config.bottomRing,
+                    ringSize = config.ringSize,
+                    customFront = it
+                )
             },
             label = { Text("Custom Front Ring Specification") },
             modifier = Modifier.fillMaxWidth()
@@ -982,7 +1134,13 @@ private fun RingsStep(config: JigConfiguration, template: com.example.data.model
                 selected = isSelected,
                 onClick = {
                     isCustomBR = false
-                    viewModel.updateJigRings(config.frontRing, opt)
+                    viewModel.updateJigRingsAll(
+                        frontRing = config.frontRing,
+                        backRing = opt,
+                        topRing = config.topRing,
+                        bottomRing = config.bottomRing,
+                        ringSize = config.ringSize
+                    )
                 },
                 label = { Text(opt) },
                 colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
@@ -1001,11 +1159,72 @@ private fun RingsStep(config: JigConfiguration, template: com.example.data.model
             value = customBRText,
             onValueChange = {
                 customBRText = it
-                viewModel.updateJigRings(config.frontRing, "Custom", customBack = it)
+                viewModel.updateJigRingsAll(
+                    frontRing = config.frontRing,
+                    backRing = "Custom",
+                    topRing = config.topRing,
+                    bottomRing = config.bottomRing,
+                    ringSize = config.ringSize,
+                    customBack = it
+                )
             },
             label = { Text("Custom Back Ring Specification") },
             modifier = Modifier.fillMaxWidth()
         )
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
+    Text("TOP DORSAL BALANCE RING", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        topRingOptions.forEach { opt ->
+            val isSelected = config.topRing == opt
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    viewModel.updateJigRingsAll(
+                        frontRing = config.frontRing,
+                        backRing = config.backRing,
+                        topRing = opt,
+                        bottomRing = config.bottomRing,
+                        ringSize = config.ringSize
+                    )
+                },
+                label = { Text(opt) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
+    Text("BOTTOM VENTRAL KEEL RING", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        bottomRingOptions.forEach { opt ->
+            val isSelected = config.bottomRing == opt
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    viewModel.updateJigRingsAll(
+                        frontRing = config.frontRing,
+                        backRing = config.backRing,
+                        topRing = config.topRing,
+                        bottomRing = opt,
+                        ringSize = config.ringSize
+                    )
+                },
+                label = { Text(opt) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+            )
+        }
     }
 }
 
@@ -1515,7 +1734,7 @@ private fun FinalProductResultView(
             }
         }
 
-        // AI IMAGE STUDIO: CREATE & EDIT IMAGES WITH GEMINI
+        // AI IMAGE STUDIO: JIG STYLING & FINISH MODIFIER (Edit-Only Constraint)
         Card(
             modifier = Modifier.fillMaxWidth().testTag("gemini_image_studio_card"),
             shape = RoundedCornerShape(14.dp),
@@ -1542,7 +1761,7 @@ private fun FinalProductResultView(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "AI IMAGE STUDIO",
+                            text = "JIG STYLING & FINISH MODIFIER",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
@@ -1555,28 +1774,55 @@ private fun FinalProductResultView(
                         color = Color(0xFFF1F5F9)
                     ) {
                         Text(
-                            text = "gemini-3.1-flash-image-preview",
+                            text = "CAD LOCKED • EDIT-ONLY",
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
-                            color = Color(0xFF475569)
+                            color = Color(0xFF0284C7)
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFF0F9FF),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBAE6FD))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = Color(0xFF0284C7),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Fixed CAD Silhouette: Prompting applies surface finishes, marine water caustics, and studio lighting to your configured ${template.shapeName}. Subject replacement is restricted.",
+                            fontSize = 11.sp,
+                            color = Color(0xFF0369A1),
+                            lineHeight = 15.sp
                         )
                     }
                 }
 
                 Text(
-                    text = "Refine, edit, or regenerate your product render with natural language text prompts.",
+                    text = "Refine surface reflections, iridescence, or water environment for this jig:",
                     fontSize = 12.sp,
                     color = Color(0xFF64748B)
                 )
 
-                // Quick Prompt Suggestion Chips
+                // Quick Styling Suggestions
                 val quickPrompts = listOf(
-                    "Underwater sun rays & reef",
-                    "Dynamic saltwater splash",
-                    "Matte carbon stealth lighting",
+                    "Underwater sun rays & reef caustics",
+                    "Dynamic saltwater spray & wake",
+                    "Matte stealth studio lighting",
                     "Holographic laser prism shimmer",
-                    "Night glow phosphorescence"
+                    "Night glow phosphorescence",
+                    "Realistic wet fish scale iridescence"
                 )
 
                 Row(
@@ -1593,11 +1839,11 @@ private fun FinalProductResultView(
                     }
                 }
 
-                // Custom Prompt Input
+                // Styling Prompt Input
                 OutlinedTextField(
                     value = promptText,
                     onValueChange = { promptText = it },
-                    placeholder = { Text("e.g. Add ocean caustics and subtle metallic refraction...", fontSize = 12.sp) },
+                    placeholder = { Text("e.g. Add subtle saltwater spray and deep ocean sun rays...", fontSize = 12.sp) },
                     modifier = Modifier.fillMaxWidth().testTag("ai_prompt_text_field"),
                     shape = RoundedCornerShape(10.dp),
                     trailingIcon = {
@@ -1632,7 +1878,7 @@ private fun FinalProductResultView(
                     } else {
                         Icon(Icons.Default.AutoFixHigh, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Generate & Edit Image", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Apply Styling to Jig", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }

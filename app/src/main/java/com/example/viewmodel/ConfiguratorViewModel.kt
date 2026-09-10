@@ -138,10 +138,35 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
 
     fun updateJigColors(mainColor: String, mainHex: Long, secondaryColor: String, secondaryHex: Long) {
         val updated = _currentJigConfig.value.copy(
+            colorComboName = "",
             mainColor = mainColor,
             mainColorHex = mainHex,
             secondaryColor = secondaryColor,
             secondaryColorHex = secondaryHex
+        )
+        _currentJigConfig.value = updated
+        syncJigToProductConfig(updated)
+    }
+
+    fun applyColorCombo(
+        comboName: String,
+        mainColor: String,
+        mainHex: Long,
+        secondaryColor: String,
+        secondaryHex: Long,
+        pattern: String,
+        patternColor: String,
+        patternColorHex: Long
+    ) {
+        val updated = _currentJigConfig.value.copy(
+            colorComboName = comboName,
+            mainColor = mainColor,
+            mainColorHex = mainHex,
+            secondaryColor = secondaryColor,
+            secondaryColorHex = secondaryHex,
+            pattern = pattern,
+            patternColor = patternColor,
+            patternColorHex = patternColorHex
         )
         _currentJigConfig.value = updated
         syncJigToProductConfig(updated)
@@ -164,8 +189,12 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
         syncJigToProductConfig(updated)
     }
 
-    fun updateJigEye(eyeStyle: String, eyeColor: String) {
-        val updated = _currentJigConfig.value.copy(eyeStyle = eyeStyle, eyeColor = eyeColor)
+    fun updateJigEye(eyeStyle: String, eyeColor: String, eyeSize: String? = null) {
+        val updated = _currentJigConfig.value.copy(
+            eyeStyle = eyeStyle,
+            eyeColor = eyeColor,
+            eyeSize = eyeSize ?: _currentJigConfig.value.eyeSize
+        )
         _currentJigConfig.value = updated
         syncJigToProductConfig(updated)
     }
@@ -191,6 +220,30 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
         val updated = _currentJigConfig.value.copy(
             frontRing = frontRing,
             backRing = backRing,
+            customValues = customMap
+        )
+        _currentJigConfig.value = updated
+        syncJigToProductConfig(updated)
+    }
+
+    fun updateJigRingsAll(
+        frontRing: String,
+        backRing: String,
+        topRing: String,
+        bottomRing: String,
+        ringSize: String,
+        customFront: String = "",
+        customBack: String = ""
+    ) {
+        var customMap = _currentJigConfig.value.customValues
+        if (customFront.isNotBlank()) customMap = customMap + ("frontRing" to customFront)
+        if (customBack.isNotBlank()) customMap = customMap + ("backRing" to customBack)
+        val updated = _currentJigConfig.value.copy(
+            frontRing = frontRing,
+            backRing = backRing,
+            topRing = topRing,
+            bottomRing = bottomRing,
+            ringSize = ringSize,
             customValues = customMap
         )
         _currentJigConfig.value = updated

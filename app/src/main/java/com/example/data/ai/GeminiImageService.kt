@@ -305,11 +305,13 @@ class GeminiImageService(private val context: Context) {
             - Secondary Accent Color: ${if (config.hasDualTone) config.secondaryColor else "None"}
             - Pattern Style: ${config.pattern} in ${config.patternColor}
             - Surface Finish: ${config.finish}
-            - Strike Eye: ${config.eyeStyle}, ${config.eyeColor} iris with high-clarity optical dome
+            - Strike Eye: ${config.eyeStyle} (${config.eyeSize}), ${config.eyeColor} iris with high-clarity optical dome
             - Assist Hook Rig: ${config.hookType} (Size ${config.hookSize})
             - Assist Cord: ${config.assistCordColor} braided PE cord bound securely to hook shank
-            - Front Ring: ${config.frontRing}
-            - Back Ring: ${config.backRing}
+            - Front Line Ring: ${config.frontRing} (Size: ${config.ringSize})
+            - Back Tail Ring: ${config.backRing} (Size: ${config.ringSize})
+            - Top Dorsal Ring: ${config.topRing}
+            - Bottom Ventral Ring: ${config.bottomRing}
 
             COMPOSITION & PHOTOGRAPHY DIRECTIVES:
             - The product MUST strictly preserve the supplied base shape silhouette and attachment positions.
@@ -324,10 +326,14 @@ class GeminiImageService(private val context: Context) {
             """
             $basePrompt
 
-            CREATIVE USER EDIT & STYLING INSTRUCTIONS:
-            $customPrompt
+            STRICT JIG STYLING REFINEMENT (EDIT-ONLY CONSTRAINT):
+            The user has requested the following visual styling modification specifically for this exact $shapeName fishing jig:
+            "${customPrompt.trim()}"
             
-            Please incorporate the creative styling instructions above while faithfully showcasing the 7Hooks fishing jig model.
+            MANDATORY ENFORCEMENT RULES:
+            1. DO NOT change the product into a different object, animal, person, car, or other entity. The subject MUST REMAIN the exact 7Hooks $shapeName fishing jig.
+            2. The user's input MUST ONLY be interpreted as a surface finish nuance, environmental water/splash effect, marine lighting angle, or background atmosphere for this exact jig.
+            3. All geometry, silhouette lines, and hardware positions must remain 100% faithful to the configured specifications.
             """.trimIndent()
         } else {
             basePrompt
