@@ -54,7 +54,9 @@ class GeminiImageService(private val context: Context) {
             val bitmap: Bitmap,
             val isFromCache: Boolean,
             val configurationHash: String,
-            val renderKey: String
+            val renderKey: String,
+            val isAiGenerated: Boolean = false,
+            val statusNote: String = ""
         ) : GenerationResult()
 
         data class Failure(
@@ -84,7 +86,9 @@ class GeminiImageService(private val context: Context) {
             bitmap = bitmap,
             isFromCache = true,
             configurationHash = config.configurationHash,
-            renderKey = renderKey
+            renderKey = renderKey,
+            isAiGenerated = true,
+            statusNote = "Loaded from AI Studio Cache"
         )
     }
 
@@ -141,7 +145,9 @@ class GeminiImageService(private val context: Context) {
                 bitmap = fallback,
                 isFromCache = false,
                 configurationHash = configHash,
-                renderKey = renderKey
+                renderKey = renderKey,
+                isAiGenerated = false,
+                statusNote = "Precision Studio CAD Render (Gemini API key missing)"
             )
         }
 
@@ -188,6 +194,19 @@ class GeminiImageService(private val context: Context) {
             val responseBodyString = response.body?.string() ?: ""
 
             if (!response.isSuccessful) {
+                val errorMsg = try {
+                    val root = JSONObject(responseBodyString)
+                    root.optJSONObject("error")?.optString("message") ?: "HTTP ${response.code}"
+                } catch (e: Exception) {
+                    "HTTP ${response.code}"
+                }
+                android.util.Log.w("GeminiImageService", "Gemini API HTTP ${response.code}: $errorMsg")
+                val note = if (response.code == 429) {
+                    "Gemini API Quota: Project is on Free Tier (limit: 0 for image generation). Studio Render generated."
+                } else {
+                    "Gemini API Notice: $errorMsg. Studio Render generated."
+                }
+
                 val fallback = generateHighQualityLocalStudioRender(config, referenceCanvasBitmap)
                 val savedFile = cache.putRender(renderKey, fallback)
                 return@withContext GenerationResult.Success(
@@ -195,7 +214,9 @@ class GeminiImageService(private val context: Context) {
                     bitmap = fallback,
                     isFromCache = false,
                     configurationHash = configHash,
-                    renderKey = renderKey
+                    renderKey = renderKey,
+                    isAiGenerated = false,
+                    statusNote = note
                 )
             }
 
@@ -236,7 +257,9 @@ class GeminiImageService(private val context: Context) {
                         bitmap = bitmap,
                         isFromCache = false,
                         configurationHash = configHash,
-                        renderKey = renderKey
+                        renderKey = renderKey,
+                        isAiGenerated = true,
+                        statusNote = "✨ AI Photorealistic Render by Gemini 3.1 Flash Image"
                     )
                 }
             }
@@ -249,7 +272,9 @@ class GeminiImageService(private val context: Context) {
                 bitmap = fallback,
                 isFromCache = false,
                 configurationHash = configHash,
-                renderKey = renderKey
+                renderKey = renderKey,
+                isAiGenerated = false,
+                statusNote = "Studio Precision Render (Image part not returned by model)"
             )
 
         } catch (e: Exception) {
@@ -260,7 +285,9 @@ class GeminiImageService(private val context: Context) {
                 bitmap = fallback,
                 isFromCache = false,
                 configurationHash = configHash,
-                renderKey = renderKey
+                renderKey = renderKey,
+                isAiGenerated = false,
+                statusNote = "Studio Precision Render (${e.localizedMessage ?: "Network offline"})"
             )
         }
     }

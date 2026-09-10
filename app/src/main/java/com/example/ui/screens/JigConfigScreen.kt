@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,6 +29,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -233,7 +235,8 @@ fun JigConfigScreen(
                             isGenerating = isGeneratingAi,
                             result = aiResult,
                             onEditClick = { targetStep -> configViewModel.setConfigStep(targetStep) },
-                            onGenerateClick = { configViewModel.generateFinalAiProduct() }
+                            onGenerateClick = { configViewModel.generateFinalAiProduct() },
+                            onNavigateToResult = { configViewModel.setConfigStep(12) }
                         )
                     }
 
@@ -1017,12 +1020,20 @@ private fun ReviewAndGenerateView(
     isGenerating: Boolean,
     result: GeminiImageService.GenerationResult?,
     onEditClick: (Int) -> Unit,
-    onGenerateClick: () -> Unit
+    onGenerateClick: () -> Unit,
+    onNavigateToResult: () -> Unit
 ) {
-    // Auto-trigger generation upon entering review step to guarantee image generation at end of config
+    // Auto-trigger generation upon entering review step if not already generated
     LaunchedEffect(Unit) {
         if (result == null && !isGenerating) {
             onGenerateClick()
+        }
+    }
+
+    // Auto-advance to final product result screen once generation succeeds
+    LaunchedEffect(result) {
+        if (result is GeminiImageService.GenerationResult.Success) {
+            onNavigateToResult()
         }
     }
 
@@ -1054,14 +1065,14 @@ private fun ReviewAndGenerateView(
                         )
                         Column {
                             Text(
-                                text = "AI STUDIO RENDERING ACTIVE",
+                                text = "GEMINI AI GENERATION ACTIVE",
                                 color = Color(0xFF38BDF8),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace
                             )
                             Text(
-                                text = "Rendering with Gemini 3.1 Flash Image...",
+                                text = "Generating with Gemini 3.1 Flash Image...",
                                 color = Color.White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold
@@ -1077,6 +1088,61 @@ private fun ReviewAndGenerateView(
                         text = "Synthesizing dynamic lighting, physical specular reflections, braided assist rigging, and 7Hooks CAD geometry.",
                         color = Color(0xFF94A3B8),
                         fontSize = 11.sp
+                    )
+                }
+            }
+        }
+
+        // Image Preview if already generated
+        if (result is GeminiImageService.GenerationResult.Success) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToResult() }
+                    .testTag("review_generated_image_card"),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF0284C7))
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (result.isAiGenerated) "✨ GEMINI 3.1 FLASH RENDER" else "PRECISION CAD RENDER",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = Color(0xFF0284C7),
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            text = "View Output Screen →",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = Color(0xFF0284C7)
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFF1F5F9)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            bitmap = result.bitmap.asImageBitmap(),
+                            contentDescription = "Generated Jig Preview",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                    Text(
+                        text = result.statusNote.ifBlank { "Generated by 7Hooks AI Studio" },
+                        fontSize = 11.sp,
+                        color = Color(0xFF64748B)
                     )
                 }
             }
@@ -1146,48 +1212,89 @@ private fun ReviewAndGenerateView(
                 ) {
                     Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color(0xFFDC2626))
                     Column {
-                        Text("Final AI Rendering Connection Notice", fontWeight = FontWeight.Bold, color = Color(0xFF991B1B), fontSize = 13.sp)
+                        Text("AI Rendering Notice", fontWeight = FontWeight.Bold, color = Color(0xFF991B1B), fontSize = 13.sp)
                         Text(result.errorMessage, color = Color(0xFFB91C1C), fontSize = 12.sp)
                     }
                 }
             }
         }
 
-        // Prominent Action: Generate Final Product
-        Button(
-            onClick = onGenerateClick,
-            enabled = !isGenerating,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp)
-                .testTag("generate_final_product_button"),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A)),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            if (isGenerating) {
-                CircularProgressIndicator(
-                    color = Color(0xFF38BDF8),
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.5.dp
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "GENERATING STUDIO RENDER...",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    fontFamily = FontFamily.Monospace
-                )
-            } else {
-                Icon(imageVector = Icons.Default.Science, contentDescription = null, tint = Color(0xFF38BDF8))
+        // Prominent Actions
+        if (result is GeminiImageService.GenerationResult.Success) {
+            Button(
+                onClick = onNavigateToResult,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp)
+                    .testTag("view_final_result_button"),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "GENERATE FINAL PRODUCT",
-                    fontSize = 14.sp,
+                    text = "VIEW FINAL PRODUCT (IMAGE READY)",
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     letterSpacing = 1.sp
                 )
+            }
+
+            OutlinedButton(
+                onClick = onGenerateClick,
+                enabled = !isGenerating,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .testTag("regenerate_gemini_button"),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF0284C7))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "RE-GENERATE WITH GEMINI",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0284C7)
+                )
+            }
+        } else {
+            Button(
+                onClick = onGenerateClick,
+                enabled = !isGenerating,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp)
+                    .testTag("generate_final_product_button"),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                if (isGenerating) {
+                    CircularProgressIndicator(
+                        color = Color(0xFF38BDF8),
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.5.dp
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "GENERATING WITH GEMINI...",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontFamily = FontFamily.Monospace
+                    )
+                } else {
+                    Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFF38BDF8))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "GENERATE FINAL PRODUCT IMAGE",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        letterSpacing = 1.sp
+                    )
+                }
             }
         }
     }
@@ -1285,17 +1392,28 @@ private fun FinalProductResultView(
         ) {
             if (!isBlueprintView) {
                 // AI PHOTOREALISTIC STUDIO RENDER
-                val imageFile = (aiResult as? GeminiImageService.GenerationResult.Success)?.file
-                if (imageFile != null && imageFile.exists()) {
-                    AsyncImage(
-                        model = imageFile,
+                val successResult = aiResult as? GeminiImageService.GenerationResult.Success
+                val bitmap = successResult?.bitmap
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
                         contentDescription = "Final AI Product Render",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit
                     )
                 } else {
-                    // Fallback to high-res Live Compositor if file hasn't loaded
-                    JigLiveCanvasPreview(config = config, activeStep = 10, showControls = false)
+                    val imageFile = successResult?.file
+                    if (imageFile != null && imageFile.exists()) {
+                        AsyncImage(
+                            model = imageFile,
+                            contentDescription = "Final AI Product Render",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        // Fallback to high-res Live Compositor if file hasn't loaded
+                        JigLiveCanvasPreview(config = config, activeStep = 10, showControls = false)
+                    }
                 }
             } else {
                 // CAD ORTHOGRAPHIC BLUEPRINT VIEW
@@ -1325,6 +1443,47 @@ private fun FinalProductResultView(
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
                 )
+            }
+        }
+
+        // GENERATION STATUS & AI MODEL BADGE
+        val successResult = aiResult as? GeminiImageService.GenerationResult.Success
+        if (successResult != null) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = if (successResult.isAiGenerated) Color(0xFFF0FDF4) else Color(0xFFF8FAFC),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (successResult.isAiGenerated) Color(0xFF86EFAC) else Color(0xFFCBD5E1)
+                ),
+                modifier = Modifier.fillMaxWidth().testTag("ai_status_banner")
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = if (successResult.isAiGenerated) Icons.Default.AutoAwesome else Icons.Default.PrecisionManufacturing,
+                        contentDescription = null,
+                        tint = if (successResult.isAiGenerated) Color(0xFF16A34A) else Color(0xFF0284C7),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Column {
+                        Text(
+                            text = if (successResult.isAiGenerated) "GEMINI 3.1 FLASH AI RENDER" else "PRECISION CAD STUDIO GENERATION",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = if (successResult.isAiGenerated) Color(0xFF16A34A) else Color(0xFF0284C7)
+                        )
+                        Text(
+                            text = successResult.statusNote.ifBlank { "High-resolution studio product photography" },
+                            fontSize = 12.sp,
+                            color = Color(0xFF334155)
+                        )
+                    }
+                }
             }
         }
 
