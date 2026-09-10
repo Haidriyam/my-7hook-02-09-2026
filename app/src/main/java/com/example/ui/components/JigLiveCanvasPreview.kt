@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
@@ -303,7 +304,8 @@ fun JigLiveCanvasPreview(
 
 /**
  * Internal Drawing Compositor implementing the multi-layer pipeline:
- * Geometry -> Color Zones -> Patterns -> Finishes -> 3D Eyes -> Assist Hook -> Cord -> Rings
+ * Geometry -> Base Color / Dual-Tone -> Patterns (Clipped) -> Finishes -> 3D Eyes -> Hooks & Cords -> Rings
+ * Fully deterministic, immediate local preview with zero artificial step hiding.
  */
 private fun DrawScope.renderJigCompositor(
     config: JigConfiguration,
@@ -327,45 +329,51 @@ private fun DrawScope.renderJigCompositor(
     // 1. BUILD SILHOUETTE PATH
     val bodyPath = buildSilhouettePath(template.silhouetteType, cx, cy, halfL, halfW)
 
-    // 2. BASE COLOR LAYER (Step 4+)
-    val mainColor = if (activeStep >= 4) Color(config.mainColorHex) else Color(0xFF94A3B8)
-    val secondaryColor = if (activeStep >= 4) Color(config.secondaryColorHex) else Color(0xFF64748B)
+    // 2. BASE COLOR LAYER (Always live, supports Dual-Tone)
+    val mainColor = Color(config.mainColorHex)
+    val secondaryColor = Color(config.secondaryColorHex)
 
-    // Two-tone gradient across body (Dorsal to Keel)
-    val bodyBrush = Brush.verticalGradient(
-        colors = listOf(
-            mainColor,
-            mainColor.copy(alpha = 0.92f),
-            secondaryColor
-        ),
-        startY = cy - halfW,
-        endY = cy + halfW
-    )
-
-    drawPath(path = bodyPath, brush = bodyBrush)
-
-    // 3. PATTERN LAYER (Step 5+)
-    if (activeStep >= 5 && config.pattern != "Solid") {
-        drawPatternOverlay(
-            pattern = config.pattern,
-            patternColor = Color(config.patternColorHex),
-            cx = cx,
-            cy = cy,
-            halfL = halfL,
-            halfW = halfW,
-            bodyPath = bodyPath
+    if (config.hasDualTone) {
+        val bodyBrush = Brush.verticalGradient(
+            colors = listOf(
+                mainColor,
+                mainColor.copy(alpha = 0.90f),
+                secondaryColor
+            ),
+            startY = cy - halfW,
+            endY = cy + halfW
         )
+        drawPath(path = bodyPath, brush = bodyBrush)
+    } else {
+        drawPath(path = bodyPath, color = mainColor)
     }
 
-    // 4. MATERIAL & SURFACE FINISH LAYER (Step 6+)
-    if (activeStep >= 6) {
-        drawFinishShader(
-            finish = config.finish,
-            cx = cx,
-            cy = cy,
-            halfL = halfL,
-            halfW = halfW
-        )
+    // 3. PATTERN LAYER (Strictly clipped to jig surface)
+    if (config.pattern.isNotBlank() && config.pattern != "Solid" && config.pattern != "None") {
+        clipPath(bodyPath) {
+            drawPatternOverlay(
+                pattern = config.pattern,
+                patternColor = Color(config.patternColorHex),
+                cx = cx,
+                cy = cy,
+                halfL = halfL,
+                halfW = halfW,
+                bodyPath = bodyPath
+            )
+        }
+    }
+
+    // 4. MATERIAL & SURFACE FINISH LAYER
+    if (config.finish.isNotBlank() && config.finish != "None") {
+        clipPath(bodyPath) {
+            drawFinishShader(
+                finish = config.finish,
+                cx = cx,
+                cy = cy,
+                halfL = halfL,
+                halfW = halfW
+            )
+        }
     }
 
     // Body Contour Border / Edge Definition
@@ -375,11 +383,11 @@ private fun DrawScope.renderJigCompositor(
         style = Stroke(width = 1.5f)
     )
 
-    // 5. 3D EYE LAYER (Step 7+)
-    if (activeStep >= 7) {
+    // 5. 3D EYE LAYER (Anchored dynamically using template anchors)
+    if (config.eyeStyle != "None") {
         val eyeX = cx - halfL + (bodyLength * template.eyeAnchorX)
-        val eyeY = cy - halfW * 0.25f
-        val eyeRadius = (bodyWidth * 0.22f).coerceIn(5f, 14f)
+        val eyeY = cy - halfW + (bodyWidth * template.eyeAnchorY)
+        val eyeRadius = (bodyWidth * 0.22f).coerceIn(5f, 15f)
 
         draw3DEye(
             eyeX = eyeX,
@@ -390,52 +398,63 @@ private fun DrawScope.renderJigCompositor(
         )
     }
 
-    // 6. FRONT RING (Step 10+)
-    if (activeStep >= 10 && config.frontRing != "None") {
-        val noseX = cx - halfL
-        val ringRadius = if (config.frontRing.contains("Heavy", ignoreCase = true)) 10f else 7.5f
-        val strokeW = if (config.frontRing.contains("Heavy", ignoreCase = true)) 3.5f else 2.2f
+    // 6. FRONT RING
+    if (config.frontRing != "None") {
+        val noseX = cx - halfL + (bodyLength * template.frontAnchorX)
+        val noseY = cy - halfW + (bodyWidth * template.frontAnchorY)
+        val isHeavy = config.frontRing.contains("Heavy", ignoreCase = true)
+        val ringRadius = if (isHeavy) 10f else 7.5f
+        val strokeW = if (isHeavy) 3.5f else 2.2f
 
-        // Front Solid Ring
         drawCircle(
             color = Color(0xFFCBD5E1),
             radius = ringRadius,
-            center = Offset(noseX - ringRadius * 0.7f, cy),
+            center = Offset(noseX - ringRadius * 0.6f, noseY),
             style = Stroke(width = strokeW)
         )
-        // Inner highlight
         drawCircle(
             color = Color(0xFF64748B),
             radius = ringRadius - strokeW / 2f,
-            center = Offset(noseX - ringRadius * 0.7f, cy),
+            center = Offset(noseX - ringRadius * 0.6f, noseY),
             style = Stroke(width = 0.8f)
         )
     }
 
-    // 7. BACK RING (Step 10+)
-    if (activeStep >= 10 && config.backRing != "None") {
-        val tailX = cx + halfL
-        val ringRadius = if (config.backRing.contains("Heavy", ignoreCase = true)) 9f else 7f
-        val strokeW = if (config.backRing.contains("Heavy", ignoreCase = true)) 3.2f else 2f
+    // 7. BACK RING
+    if (config.backRing != "None") {
+        val tailX = cx - halfL + (bodyLength * template.backAnchorX)
+        val tailY = cy - halfW + (bodyWidth * template.backAnchorY)
+        val isHeavy = config.backRing.contains("Heavy", ignoreCase = true)
+        val ringRadius = if (isHeavy) 9.5f else 7f
+        val strokeW = if (isHeavy) 3.2f else 2f
 
         drawCircle(
             color = Color(0xFFCBD5E1),
             radius = ringRadius,
-            center = Offset(tailX + ringRadius * 0.7f, cy),
+            center = Offset(tailX + ringRadius * 0.6f, tailY),
             style = Stroke(width = strokeW)
+        )
+        drawCircle(
+            color = Color(0xFF64748B),
+            radius = ringRadius - strokeW / 2f,
+            center = Offset(tailX + ringRadius * 0.6f, tailY),
+            style = Stroke(width = 0.8f)
         )
     }
 
-    // 8. ASSIST HOOK & BRAIDED CORD LAYER (Step 8 & 9)
-    if (activeStep >= 8 && config.assistHook != "None") {
-        val anchorX = cx - halfL
-        val cordColor = if (activeStep >= 9) resolveCordColor(config.assistCordColor) else Color(0xFFDC2626)
+    // 8. ASSIST HOOK & ASSIST CORD LAYER
+    if (config.hookType != "None" && config.assistHook != "None") {
+        val anchorX = cx - halfL + (bodyLength * template.hookAnchorX)
+        val anchorY = cy - halfW + (bodyWidth * template.hookAnchorY)
+        val cordColor = resolveCordColor(config.assistCordColor)
 
         drawAssistHookAndCord(
             anchorX = anchorX,
-            anchorY = cy,
-            hookType = config.assistHook,
-            cordColor = cordColor
+            anchorY = anchorY,
+            hookType = config.hookType.ifBlank { config.assistHook },
+            hookSize = config.hookSize,
+            cordColor = cordColor,
+            showCord = config.assistCord != "None"
         )
     }
 }
@@ -454,7 +473,7 @@ private fun buildSilhouettePath(
 }
 
 /**
- * Renders tactical patterns: Tiger stripes, Strike dots, Chevrons, Scales, Zebra
+ * Renders tactical patterns: Tiger, Dots, Circles, Triangles, H-Lines, V-Lines, Chevron, Diamonds, Scales, Natural Scale, Zebra
  */
 private fun DrawScope.drawPatternOverlay(
     pattern: String,
@@ -465,66 +484,124 @@ private fun DrawScope.drawPatternOverlay(
     halfW: Float,
     bodyPath: Path
 ) {
-    when (pattern.lowercase()) {
-        "tiger" -> {
-            // Transverse tapered stripes across body
-            val stripeCount = 6
+    val normPattern = pattern.lowercase().trim()
+    when {
+        normPattern.contains("tiger") -> {
+            val stripeCount = 7
             val stepX = (halfL * 1.6f) / (stripeCount + 1)
             for (i in 1..stripeCount) {
                 val sx = (cx - halfL * 0.8f) + i * stepX
                 val stripePath = Path().apply {
-                    moveTo(sx - 3f, cy - halfW * 0.85f)
-                    lineTo(sx + 3f, cy - halfW * 0.85f)
-                    lineTo(sx + 7f, cy + halfW * 0.85f)
-                    lineTo(sx + 2f, cy + halfW * 0.85f)
+                    moveTo(sx - 3.5f, cy - halfW * 0.9f)
+                    lineTo(sx + 3.5f, cy - halfW * 0.9f)
+                    lineTo(sx + 8f, cy + halfW * 0.9f)
+                    lineTo(sx + 2f, cy + halfW * 0.9f)
                     close()
                 }
                 drawPath(path = stripePath, color = patternColor.copy(alpha = 0.88f))
             }
         }
 
-        "dots" -> {
-            // Precision laser strike dots along the lateral line
-            val dotCount = 8
+        normPattern.contains("dots") -> {
+            val dotCount = 10
             val stepX = (halfL * 1.5f) / (dotCount + 1)
             for (i in 1..dotCount) {
                 val dx = (cx - halfL * 0.75f) + i * stepX
-                val dy = cy + (if (i % 2 == 0) -halfW * 0.20f else halfW * 0.20f)
-                drawCircle(
-                    color = patternColor,
-                    radius = 3.8f,
-                    center = Offset(dx, dy)
-                )
-                drawCircle(
-                    color = Color.White.copy(alpha = 0.7f),
-                    radius = 1.2f,
-                    center = Offset(dx - 1f, dy - 1f)
+                val dy = cy + (if (i % 2 == 0) -halfW * 0.25f else halfW * 0.25f)
+                drawCircle(color = patternColor, radius = 4f, center = Offset(dx, dy))
+                drawCircle(color = Color.White.copy(alpha = 0.8f), radius = 1.4f, center = Offset(dx - 1.2f, dy - 1.2f))
+            }
+        }
+
+        normPattern.contains("circles") -> {
+            val count = 5
+            val stepX = (halfL * 1.5f) / (count + 1)
+            for (i in 1..count) {
+                val dx = (cx - halfL * 0.75f) + i * stepX
+                drawCircle(color = patternColor.copy(alpha = 0.85f), radius = 7f, center = Offset(dx, cy), style = Stroke(width = 2.2f))
+                drawCircle(color = patternColor.copy(alpha = 0.6f), radius = 3.5f, center = Offset(dx, cy), style = Stroke(width = 1.2f))
+            }
+        }
+
+        normPattern.contains("triangles") -> {
+            val count = 6
+            val stepX = (halfL * 1.5f) / (count + 1)
+            for (i in 1..count) {
+                val tx = (cx - halfL * 0.75f) + i * stepX
+                val triPath = Path().apply {
+                    moveTo(tx - 6f, cy - 8f)
+                    lineTo(tx + 6f, cy)
+                    lineTo(tx - 6f, cy + 8f)
+                    close()
+                }
+                drawPath(path = triPath, color = patternColor.copy(alpha = 0.85f))
+            }
+        }
+
+        normPattern.contains("h-lines") || normPattern.contains("horizontal") -> {
+            val lineCount = 3
+            val stepY = (halfW * 1.2f) / (lineCount + 1)
+            for (i in 1..lineCount) {
+                val ly = (cy - halfW * 0.6f) + i * stepY
+                drawLine(
+                    color = patternColor.copy(alpha = 0.85f),
+                    start = Offset(cx - halfL * 0.85f, ly),
+                    end = Offset(cx + halfL * 0.85f, ly),
+                    strokeWidth = 2.5f
                 )
             }
         }
 
-        "chevron" -> {
-            // Forward hydrodynamic arrows
-            val count = 5
+        normPattern.contains("v-lines") || normPattern.contains("vertical") -> {
+            val lineCount = 8
+            val stepX = (halfL * 1.6f) / (lineCount + 1)
+            for (i in 1..lineCount) {
+                val lx = (cx - halfL * 0.8f) + i * stepX
+                drawLine(
+                    color = patternColor.copy(alpha = 0.80f),
+                    start = Offset(lx, cy - halfW * 0.85f),
+                    end = Offset(lx, cy + halfW * 0.85f),
+                    strokeWidth = 2.2f
+                )
+            }
+        }
+
+        normPattern.contains("chevron") -> {
+            val count = 6
             val stepX = (halfL * 1.5f) / (count + 1)
             for (i in 1..count) {
                 val chX = (cx - halfL * 0.7f) + i * stepX
                 val chevPath = Path().apply {
                     moveTo(chX - 10f, cy - halfW * 0.7f)
-                    lineTo(chX + 5f, cy)
+                    lineTo(chX + 6f, cy)
                     lineTo(chX - 10f, cy + halfW * 0.7f)
                 }
                 drawPath(
                     path = chevPath,
                     color = patternColor.copy(alpha = 0.85f),
-                    style = Stroke(width = 4f, cap = StrokeCap.Round)
+                    style = Stroke(width = 3.5f, cap = StrokeCap.Round)
                 )
             }
         }
 
-        "scales" -> {
-            // Cross-hatched diamond micro-scales
-            val scaleCount = 7
+        normPattern.contains("diamonds") -> {
+            val count = 6
+            val stepX = (halfL * 1.5f) / (count + 1)
+            for (i in 1..count) {
+                val dx = (cx - halfL * 0.75f) + i * stepX
+                val diaPath = Path().apply {
+                    moveTo(dx, cy - 7f)
+                    lineTo(dx + 6f, cy)
+                    lineTo(dx, cy + 7f)
+                    lineTo(dx - 6f, cy)
+                    close()
+                }
+                drawPath(path = diaPath, color = patternColor.copy(alpha = 0.85f))
+            }
+        }
+
+        normPattern.contains("scales") || normPattern.contains("natural scale") -> {
+            val scaleCount = 8
             val stepX = (halfL * 1.6f) / (scaleCount + 1)
             for (i in 1..scaleCount) {
                 val scX = (cx - halfL * 0.8f) + i * stepX
@@ -543,9 +620,8 @@ private fun DrawScope.drawPatternOverlay(
             }
         }
 
-        "zebra" -> {
-            // Angled high-contrast glow bars
-            val barCount = 5
+        normPattern.contains("zebra") -> {
+            val barCount = 6
             val stepX = (halfL * 1.5f) / (barCount + 1)
             for (i in 1..barCount) {
                 val bx = (cx - halfL * 0.75f) + i * stepX
@@ -563,7 +639,7 @@ private fun DrawScope.drawPatternOverlay(
 }
 
 /**
- * Surface finish shader: Metallic, Gloss, Matte, Holographic, Glitter, Glow, UV Reactive
+ * Surface finish shader: Metallic, Gloss, Matte, Holographic, Glitter, Glow, UV Reactive, Natural Scale
  */
 private fun DrawScope.drawFinishShader(
     finish: String,
@@ -572,9 +648,9 @@ private fun DrawScope.drawFinishShader(
     halfL: Float,
     halfW: Float
 ) {
-    when (finish.lowercase()) {
-        "metallic" -> {
-            // Specular directional ridge reflection
+    val normFinish = finish.lowercase().trim()
+    when {
+        normFinish.contains("metallic") -> {
             val highlightPath = Path().apply {
                 moveTo(cx - halfL * 0.8f, cy - halfW * 0.35f)
                 cubicTo(
@@ -590,8 +666,7 @@ private fun DrawScope.drawFinishShader(
             )
         }
 
-        "gloss" -> {
-            // Controlled sharp white specular curve along dorsal edge
+        normFinish.contains("gloss") -> {
             val glossPath = Path().apply {
                 moveTo(cx - halfL * 0.75f, cy - halfW * 0.55f)
                 cubicTo(
@@ -607,14 +682,13 @@ private fun DrawScope.drawFinishShader(
             )
         }
 
-        "holographic" -> {
-            // Multi-spectral iridescence sheen
+        normFinish.contains("holographic") -> {
             val holoBrush = Brush.horizontalGradient(
                 colors = listOf(
                     Color(0x0000FFFF),
-                    Color(0x5506B6D4), // Cyan
-                    Color(0x66F43F5E), // Magenta
-                    Color(0x66F59E0B), // Gold
+                    Color(0x5506B6D4),
+                    Color(0x66F43F5E),
+                    Color(0x66F59E0B),
                     Color(0x00000000)
                 ),
                 startX = cx - halfL * 0.7f,
@@ -627,21 +701,19 @@ private fun DrawScope.drawFinishShader(
             )
         }
 
-        "glitter" -> {
-            // Micro sparkle flecks
-            for (i in 0..16) {
-                val gx = cx - halfL * 0.7f + (i * 27f) % (halfL * 1.4f)
-                val gy = cy - halfW * 0.4f + (i * 19f) % (halfW * 0.8f)
+        normFinish.contains("glitter") -> {
+            for (i in 0..18) {
+                val gx = cx - halfL * 0.75f + (i * 31f) % (halfL * 1.5f)
+                val gy = cy - halfW * 0.45f + (i * 23f) % (halfW * 0.9f)
                 drawCircle(
                     color = Color.White.copy(alpha = 0.9f),
-                    radius = 1.5f,
+                    radius = 1.6f,
                     center = Offset(gx, gy)
                 )
             }
         }
 
-        "glow" -> {
-            // Luminous phosphor aura
+        normFinish.contains("glow") -> {
             drawCircle(
                 color = Color(0x4422C55E),
                 radius = halfW * 1.4f,
@@ -649,8 +721,7 @@ private fun DrawScope.drawFinishShader(
             )
         }
 
-        "uv reactive" -> {
-            // High energy neon-violet wash
+        normFinish.contains("uv reactive") || normFinish.contains("uv") -> {
             val uvBrush = Brush.radialGradient(
                 colors = listOf(Color(0x668B5CF6), Color(0x00000000)),
                 center = Offset(cx, cy),
@@ -659,10 +730,22 @@ private fun DrawScope.drawFinishShader(
             drawCircle(brush = uvBrush, radius = halfL * 0.8f, center = Offset(cx, cy))
         }
 
-        "matte" -> {
-            // Diffuse overlay reducing specular glare
+        normFinish.contains("matte") -> {
             drawRect(
                 color = Color(0x220F172A),
+                topLeft = Offset(cx - halfL, cy - halfW),
+                size = Size(halfL * 2f, halfW * 2f)
+            )
+        }
+
+        normFinish.contains("natural scale") -> {
+            val bioBrush = Brush.verticalGradient(
+                colors = listOf(Color(0x3306B6D4), Color(0x110F172A), Color(0x33F59E0B)),
+                startY = cy - halfW,
+                endY = cy + halfW
+            )
+            drawRect(
+                brush = bioBrush,
                 topLeft = Offset(cx - halfL, cy - halfW),
                 size = Size(halfL * 2f, halfW * 2f)
             )
@@ -671,7 +754,7 @@ private fun DrawScope.drawFinishShader(
 }
 
 /**
- * Renders 3D Strike Eye with high-clarity lens reflections.
+ * Renders 3D Strike Eye with high-clarity lens reflections and distinct styles.
  */
 private fun DrawScope.draw3DEye(
     eyeX: Float,
@@ -681,8 +764,9 @@ private fun DrawScope.draw3DEye(
     eyeColorName: String
 ) {
     val irisColor = resolveEyeColor(eyeColorName)
+    val normStyle = eyeStyle.lowercase().trim()
 
-    // Outer Chrome Rim
+    // Outer Rim
     drawCircle(
         color = Color(0xFFE2E8F0),
         radius = radius,
@@ -690,18 +774,75 @@ private fun DrawScope.draw3DEye(
     )
 
     // Iris Base
+    val irisRadius = radius * 0.82f
     drawCircle(
         color = irisColor,
-        radius = radius * 0.82f,
+        radius = irisRadius,
         center = Offset(eyeX, eyeY)
     )
 
-    // Deep Black Pupil
-    drawCircle(
-        color = Color(0xFF0F172A),
-        radius = radius * 0.45f,
-        center = Offset(eyeX, eyeY)
-    )
+    // Pupil based on Eye Style
+    when {
+        normStyle.contains("cat-eye") || normStyle.contains("cat") -> {
+            // Slit pupil
+            val slitPath = Path().apply {
+                moveTo(eyeX, eyeY - irisRadius * 0.85f)
+                quadraticBezierTo(eyeX + irisRadius * 0.28f, eyeY, eyeX, eyeY + irisRadius * 0.85f)
+                quadraticBezierTo(eyeX - irisRadius * 0.28f, eyeY, eyeX, eyeY - irisRadius * 0.85f)
+                close()
+            }
+            drawPath(path = slitPath, color = Color(0xFF0F172A))
+        }
+
+        normStyle.contains("oval") -> {
+            drawCircle(
+                color = Color(0xFF0F172A),
+                radius = radius * 0.50f,
+                center = Offset(eyeX, eyeY)
+            )
+        }
+
+        normStyle.contains("holographic") || normStyle.contains("prismatic") -> {
+            val prismBrush = Brush.sweepGradient(
+                colors = listOf(Color.Cyan, Color.Magenta, Color.Yellow, Color.Cyan),
+                center = Offset(eyeX, eyeY)
+            )
+            drawCircle(
+                brush = prismBrush,
+                radius = irisRadius * 0.65f,
+                center = Offset(eyeX, eyeY)
+            )
+            drawCircle(
+                color = Color(0xFF0F172A),
+                radius = radius * 0.40f,
+                center = Offset(eyeX, eyeY)
+            )
+        }
+
+        normStyle.contains("dome") -> {
+            drawCircle(
+                color = Color(0xFF0F172A),
+                radius = radius * 0.52f,
+                center = Offset(eyeX, eyeY)
+            )
+            // Lens curvature highlight
+            drawCircle(
+                color = Color.White.copy(alpha = 0.5f),
+                radius = radius * 0.65f,
+                center = Offset(eyeX, eyeY),
+                style = Stroke(width = 1.2f)
+            )
+        }
+
+        else -> {
+            // Default Round / 3D Strike
+            drawCircle(
+                color = Color(0xFF0F172A),
+                radius = radius * 0.45f,
+                center = Offset(eyeX, eyeY)
+            )
+        }
+    }
 
     // Specular Lens Glare Reflection
     drawCircle(
@@ -712,86 +853,160 @@ private fun DrawScope.draw3DEye(
 }
 
 /**
- * Renders Forged Saltwater Assist Hook & Braided PE Cord.
+ * Renders Forged Saltwater Hook & Braided PE Assist Cord.
  */
 private fun DrawScope.drawAssistHookAndCord(
     anchorX: Float,
     anchorY: Float,
     hookType: String,
-    cordColor: Color
+    hookSize: String,
+    cordColor: Color,
+    showCord: Boolean = true
 ) {
-    val cordLength = 42f
+    val sizeScale = when (hookSize.trim()) {
+        "#4" -> 0.75f
+        "#2" -> 0.82f
+        "#1" -> 0.90f
+        "1/0" -> 0.95f
+        "2/0" -> 1.05f
+        "3/0" -> 1.15f
+        "4/0" -> 1.28f
+        "5/0" -> 1.40f
+        else -> 1.15f
+    }
+
+    val cordLength = 40f * sizeScale
     val tieX = anchorX - 8f
-    val hookEyeX = tieX - cordLength * 0.4f
-    val hookEyeY = anchorY + 12f
+    val hookEyeX = if (showCord) tieX - cordLength * 0.4f else tieX
+    val hookEyeY = if (showCord) anchorY + 12f else anchorY
 
-    // Braided PE Cord (bound from tie ring to hook shank)
-    drawLine(
-        color = cordColor,
-        start = Offset(tieX, anchorY),
-        end = Offset(hookEyeX, hookEyeY),
-        strokeWidth = 3.5f,
-        cap = StrokeCap.Round
-    )
+    // Braided PE Assist Cord
+    if (showCord) {
+        drawLine(
+            color = cordColor,
+            start = Offset(tieX, anchorY),
+            end = Offset(hookEyeX, hookEyeY),
+            strokeWidth = 3.5f,
+            cap = StrokeCap.Round
+        )
 
-    // Cord Whipping / Thread Binding Collar
-    drawLine(
-        color = Color(0xFFF59E0B), // Golden whipping thread
-        start = Offset(hookEyeX + 3f, hookEyeY - 2f),
-        end = Offset(hookEyeX - 3f, hookEyeY + 2f),
-        strokeWidth = 4f
-    )
+        // Cord Whipping / Thread Binding Collar
+        drawLine(
+            color = Color(0xFFF59E0B),
+            start = Offset(hookEyeX + 3f, hookEyeY - 2f),
+            end = Offset(hookEyeX - 3f, hookEyeY + 2f),
+            strokeWidth = 4f
+        )
+    }
 
-    // Forged Stainless Steel Hook Shank & Barb
+    // Hook Shank & Barb
+    val normType = hookType.lowercase().trim()
     val hookPath = Path().apply {
         moveTo(hookEyeX, hookEyeY)
-        lineTo(hookEyeX + 22f, hookEyeY + 18f)
-        cubicTo(
-            hookEyeX + 34f, hookEyeY + 28f,
-            hookEyeX + 34f, hookEyeY + 44f,
-            hookEyeX + 18f, hookEyeY + 46f
-        )
-        cubicTo(
-            hookEyeX + 6f, hookEyeY + 46f,
-            hookEyeX, hookEyeY + 36f,
-            hookEyeX - 2f, hookEyeY + 22f
-        )
-        // Barb
-        lineTo(hookEyeX + 2f, hookEyeY + 26f)
+        when {
+            normType.contains("wide gap") || normType.contains("ewg") -> {
+                lineTo(hookEyeX + 24f * sizeScale, hookEyeY + 22f * sizeScale)
+                cubicTo(
+                    hookEyeX + 42f * sizeScale, hookEyeY + 34f * sizeScale,
+                    hookEyeX + 42f * sizeScale, hookEyeY + 52f * sizeScale,
+                    hookEyeX + 20f * sizeScale, hookEyeY + 54f * sizeScale
+                )
+                cubicTo(
+                    hookEyeX + 4f * sizeScale, hookEyeY + 54f * sizeScale,
+                    hookEyeX - 2f * sizeScale, hookEyeY + 40f * sizeScale,
+                    hookEyeX - 4f * sizeScale, hookEyeY + 24f * sizeScale
+                )
+                lineTo(hookEyeX, hookEyeY + 28f * sizeScale)
+            }
+            normType.contains("octopus") -> {
+                lineTo(hookEyeX + 18f * sizeScale, hookEyeY + 16f * sizeScale)
+                cubicTo(
+                    hookEyeX + 30f * sizeScale, hookEyeY + 26f * sizeScale,
+                    hookEyeX + 30f * sizeScale, hookEyeY + 42f * sizeScale,
+                    hookEyeX + 14f * sizeScale, hookEyeY + 44f * sizeScale
+                )
+                cubicTo(
+                    hookEyeX + 2f * sizeScale, hookEyeY + 44f * sizeScale,
+                    hookEyeX - 2f * sizeScale, hookEyeY + 34f * sizeScale,
+                    hookEyeX - 4f * sizeScale, hookEyeY + 20f * sizeScale
+                )
+                lineTo(hookEyeX - 1f * sizeScale, hookEyeY + 24f * sizeScale)
+            }
+            else -> {
+                // Standard O'Shaughnessy / Aberdeen
+                lineTo(hookEyeX + 22f * sizeScale, hookEyeY + 18f * sizeScale)
+                cubicTo(
+                    hookEyeX + 34f * sizeScale, hookEyeY + 28f * sizeScale,
+                    hookEyeX + 34f * sizeScale, hookEyeY + 44f * sizeScale,
+                    hookEyeX + 18f * sizeScale, hookEyeY + 46f * sizeScale
+                )
+                cubicTo(
+                    hookEyeX + 6f * sizeScale, hookEyeY + 46f * sizeScale,
+                    hookEyeX, hookEyeY + 36f * sizeScale,
+                    hookEyeX - 2f * sizeScale, hookEyeY + 22f * sizeScale
+                )
+                lineTo(hookEyeX + 2f * sizeScale, hookEyeY + 26f * sizeScale)
+            }
+        }
     }
 
     // Hook Steel
     drawPath(
         path = hookPath,
         color = Color(0xFF94A3B8),
-        style = Stroke(width = 3.2f, cap = StrokeCap.Round)
+        style = Stroke(width = 3.2f * sizeScale, cap = StrokeCap.Round)
     )
-    // Hook Highlight
+    // Hook Specular Highlight
     drawPath(
         path = hookPath,
         color = Color(0xFFF1F5F9),
-        style = Stroke(width = 1.0f, cap = StrokeCap.Round)
+        style = Stroke(width = 1.0f * sizeScale, cap = StrokeCap.Round)
     )
 }
 
 private fun resolveCordColor(colorName: String): Color {
-    return when (colorName.lowercase()) {
-        "blue", "royal blue" -> Color(0xFF0284C7)
-        "black", "stealth black" -> Color(0xFF1E293B)
-        "orange", "blaze orange" -> Color(0xFFEA580C)
-        "chartreuse", "chartreuse glow" -> Color(0xFF84CC16)
-        "gold", "kevlar gold" -> Color(0xFFEAB308)
-        else -> Color(0xFFDC2626) // Default Red
+    val norm = colorName.lowercase().trim()
+    return when {
+        norm.startsWith("#") -> {
+            try {
+                Color(android.graphics.Color.parseColor(norm))
+            } catch (e: Exception) {
+                Color(0xFFDC2626)
+            }
+        }
+        norm == "black" || norm.contains("stealth") -> Color(0xFF1E293B)
+        norm == "white" -> Color(0xFFF8FAFC)
+        norm == "red" -> Color(0xFFDC2626)
+        norm == "orange" || norm.contains("blaze") -> Color(0xFFEA580C)
+        norm == "yellow" || norm.contains("chartreuse") -> Color(0xFF84CC16)
+        norm == "green" -> Color(0xFF16A34A)
+        norm == "blue" || norm.contains("royal") -> Color(0xFF0284C7)
+        norm == "pink" -> Color(0xFFEC4899)
+        norm == "purple" -> Color(0xFF9333EA)
+        norm == "gold" || norm.contains("kevlar") -> Color(0xFFEAB308)
+        norm == "silver" || norm == "grey" -> Color(0xFF94A3B8)
+        else -> Color(0xFFDC2626)
     }
 }
 
 private fun resolveEyeColor(colorName: String): Color {
-    return when (colorName.lowercase()) {
-        "emerald green", "green" -> Color(0xFF10B981)
-        "gold", "solar gold" -> Color(0xFFEAB308)
-        "silver", "chrome" -> Color(0xFFCBD5E1)
-        "luminous lime", "lime" -> Color(0xFF84CC16)
-        "sapphire", "blue" -> Color(0xFF0284C7)
+    val norm = colorName.lowercase().trim()
+    return when {
+        norm.startsWith("#") -> {
+            try {
+                Color(android.graphics.Color.parseColor(norm))
+            } catch (e: Exception) {
+                Color(0xFFDC2626)
+            }
+        }
+        norm == "black" -> Color(0xFF1E293B)
+        norm == "white" -> Color(0xFFF8FAFC)
+        norm == "green" || norm.contains("emerald") -> Color(0xFF10B981)
+        norm == "gold" || norm.contains("solar") -> Color(0xFFEAB308)
+        norm == "silver" || norm.contains("chrome") -> Color(0xFFCBD5E1)
+        norm == "yellow" || norm.contains("lime") -> Color(0xFF84CC16)
+        norm == "orange" -> Color(0xFFEA580C)
+        norm == "blue" || norm.contains("sapphire") -> Color(0xFF0284C7)
         else -> Color(0xFFDC2626) // Default Ruby Red
     }
 }

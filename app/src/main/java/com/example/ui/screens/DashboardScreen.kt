@@ -148,7 +148,7 @@ fun DashboardScreen(
                             modifier = Modifier.size(22.dp)
                         )
                     },
-                    label = { Text("Hard Lures", fontWeight = FontWeight.SemiBold) },
+                    label = { Text("Lures", fontWeight = FontWeight.SemiBold) },
                     selected = false,
                     onClick = {
                         coroutineScope.launch {
@@ -182,21 +182,6 @@ fun DashboardScreen(
                         .testTag("drawer_nav_packaging")
                 )
 
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.Science, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) },
-                    label = { Text("Visual QA Studio", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold) },
-                    selected = false,
-                    onClick = {
-                        coroutineScope.launch {
-                            drawerState.close()
-                            onNavigateToVisualQa()
-                        }
-                    },
-                    modifier = Modifier
-                        .padding(NavigationDrawerItemDefaults.ItemPadding)
-                        .testTag("drawer_nav_visual_qa")
-                )
-
                 Spacer(modifier = Modifier.weight(1f))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -221,7 +206,7 @@ fun DashboardScreen(
         Scaffold(
             topBar = {
                 AppHeader(
-                    title = "Dashboard",
+                    title = "Product Studio",
                     onMenuClick = {
                         coroutineScope.launch { drawerState.open() }
                     },
