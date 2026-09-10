@@ -98,6 +98,13 @@ fun JigConfigScreen(
         }
     }
 
+    // GUARANTEE: At the end of jig config, an image must be generated
+    LaunchedEffect(currentStep, jigConfig.configurationHash) {
+        if (currentStep >= 11 && aiResult == null && !isGeneratingAi) {
+            configViewModel.generateFinalAiProduct()
+        }
+    }
+
     Scaffold(
         topBar = {
             val titleText = when (currentStep) {
@@ -242,6 +249,7 @@ fun JigConfigScreen(
                             aiResult = aiResult,
                             onToggleView = { configViewModel.toggleAiResultView() },
                             onRegenerate = { configViewModel.generateFinalAiProduct(forceRegenerate = true) },
+                            onGenerateWithPrompt = { prompt -> configViewModel.generateFinalAiProduct(forceRegenerate = true, customPrompt = prompt) },
                             onSave = { configViewModel.saveCurrentConfig() },
                             onExportPdf = { configViewModel.generatePdf(context) },
                             onOpenEngineering = onNavigateToEngineering,
@@ -366,23 +374,48 @@ private fun StepContainer(
                     Spacer(modifier = Modifier.width(1.dp))
                 }
 
-                Button(
-                    onClick = { viewModel.nextConfigStep() },
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))
-                ) {
-                    Text(
-                        text = if (step == 10) "Review Specs" else "Next Step",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Next",
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
+                if (step == 10) {
+                    Button(
+                        onClick = {
+                            viewModel.nextConfigStep()
+                            viewModel.generateFinalAiProduct()
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                        modifier = Modifier.testTag("complete_and_generate_button")
+                    ) {
+                        Text(
+                            text = "Complete & Generate Image",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "Generate Image",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                } else {
+                    Button(
+                        onClick = { viewModel.nextConfigStep() },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))
+                    ) {
+                        Text(
+                            text = "Next Step",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Next",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }
@@ -986,6 +1019,13 @@ private fun ReviewAndGenerateView(
     onEditClick: (Int) -> Unit,
     onGenerateClick: () -> Unit
 ) {
+    // Auto-trigger generation upon entering review step to guarantee image generation at end of config
+    LaunchedEffect(Unit) {
+        if (result == null && !isGenerating) {
+            onGenerateClick()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -993,6 +1033,55 @@ private fun ReviewAndGenerateView(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        if (isGenerating) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFF0F172A),
+                modifier = Modifier.fillMaxWidth().testTag("ai_rendering_banner")
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            color = Color(0xFF38BDF8),
+                            modifier = Modifier.size(28.dp),
+                            strokeWidth = 3.dp
+                        )
+                        Column {
+                            Text(
+                                text = "AI STUDIO RENDERING ACTIVE",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Text(
+                                text = "Rendering with Gemini 3.1 Flash Image...",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth().height(4.dp),
+                        color = Color(0xFF38BDF8),
+                        trackColor = Color(0xFF1E293B)
+                    )
+                    Text(
+                        text = "Synthesizing dynamic lighting, physical specular reflections, braided assist rigging, and 7Hooks CAD geometry.",
+                        color = Color(0xFF94A3B8),
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        }
+
         Surface(
             shape = RoundedCornerShape(14.dp),
             color = Color(0xFF0F172A),
@@ -1139,11 +1228,14 @@ private fun FinalProductResultView(
     aiResult: GeminiImageService.GenerationResult?,
     onToggleView: () -> Unit,
     onRegenerate: () -> Unit,
+    onGenerateWithPrompt: (String) -> Unit,
     onSave: () -> Unit,
     onExportPdf: () -> Unit,
     onOpenEngineering: () -> Unit,
     onEdit: () -> Unit
 ) {
+    var promptText by remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1261,6 +1353,129 @@ private fun FinalProductResultView(
                     fontSize = 12.sp,
                     color = Color(0xFF475569)
                 )
+            }
+        }
+
+        // AI IMAGE STUDIO: CREATE & EDIT IMAGES WITH GEMINI
+        Card(
+            modifier = Modifier.fillMaxWidth().testTag("gemini_image_studio_card"),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = Color(0xFF0284C7),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "AI IMAGE STUDIO",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color(0xFF0284C7)
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFFF1F5F9)
+                    ) {
+                        Text(
+                            text = "gemini-3.1-flash-image-preview",
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            fontSize = 9.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color(0xFF475569)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Refine, edit, or regenerate your product render with natural language text prompts.",
+                    fontSize = 12.sp,
+                    color = Color(0xFF64748B)
+                )
+
+                // Quick Prompt Suggestion Chips
+                val quickPrompts = listOf(
+                    "Underwater sun rays & reef",
+                    "Dynamic saltwater splash",
+                    "Matte carbon stealth lighting",
+                    "Holographic laser prism shimmer",
+                    "Night glow phosphorescence"
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    quickPrompts.forEach { suggestion ->
+                        SuggestionChip(
+                            onClick = { promptText = suggestion },
+                            label = { Text(suggestion, fontSize = 11.sp) }
+                        )
+                    }
+                }
+
+                // Custom Prompt Input
+                OutlinedTextField(
+                    value = promptText,
+                    onValueChange = { promptText = it },
+                    placeholder = { Text("e.g. Add ocean caustics and subtle metallic refraction...", fontSize = 12.sp) },
+                    modifier = Modifier.fillMaxWidth().testTag("ai_prompt_text_field"),
+                    shape = RoundedCornerShape(10.dp),
+                    trailingIcon = {
+                        if (promptText.isNotBlank()) {
+                            IconButton(onClick = { promptText = "" }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear", modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                )
+
+                Button(
+                    onClick = {
+                        onGenerateWithPrompt(promptText)
+                    },
+                    enabled = !isGeneratingAi,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp)
+                        .testTag("apply_ai_prompt_button"),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))
+                ) {
+                    if (isGeneratingAi) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Color(0xFF38BDF8),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Rendering with Gemini...", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    } else {
+                        Icon(Icons.Default.AutoFixHigh, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Generate & Edit Image", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
             }
         }
 

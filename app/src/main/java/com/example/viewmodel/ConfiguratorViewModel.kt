@@ -210,14 +210,19 @@ class ConfiguratorViewModel(application: Application) : AndroidViewModel(applica
         _isAiResultViewBlueprint.value = !_isAiResultViewBlueprint.value
     }
 
-    fun generateFinalAiProduct(referenceCanvasBitmap: Bitmap? = null, forceRegenerate: Boolean = false) {
+    fun generateFinalAiProduct(
+        referenceCanvasBitmap: Bitmap? = null,
+        forceRegenerate: Boolean = false,
+        customPrompt: String? = null
+    ) {
         viewModelScope.launch {
             _isGeneratingAi.value = true
             val config = _currentJigConfig.value
             val result = geminiService.generateFinalProductImage(
                 config = config,
                 referenceCanvasBitmap = referenceCanvasBitmap,
-                forceRegenerate = forceRegenerate
+                forceRegenerate = forceRegenerate,
+                customPrompt = customPrompt
             )
             _aiGenerationResult.value = result
             _isGeneratingAi.value = false
