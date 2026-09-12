@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.Locale
 import com.example.data.geometry.JigGeometryEngine
 import com.example.data.geometry.JigGeometryEngine.JigSilhouetteType
 import com.example.data.model.JigShapeCategory
@@ -104,205 +105,206 @@ fun JigCatalogScreen(
                 onBackClick = onNavigateBack
             )
         },
-        containerColor = Color(0xFFF8FAFC),
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = Modifier.testTag("jig_shape_library_screen")
     ) { paddingValues ->
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(top = 10.dp, bottom = 24.dp)
         ) {
-            // COMPACT TOP HEADER & SEARCH
-            item(span = { GridItemSpan(2) }) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Search Bar
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("shape_search_input"),
-                        placeholder = { Text("Search shapes (Flutter, Knife, Arkie, Shad)...", fontSize = 12.sp) },
-                        leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = "Search", tint = Color(0xFF64748B), modifier = Modifier.size(18.dp))
-                        },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Clear", tint = Color(0xFF64748B), modifier = Modifier.size(18.dp))
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(10.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedBorderColor = Color(0xFF0F172A),
-                            unfocusedBorderColor = Color(0xFFCBD5E1)
-                        )
-                    )
+            val numCols = when {
+                maxWidth >= 840.dp -> 4
+                maxWidth >= 540.dp -> 3
+                else -> 2
+            }
 
-                    // Category Chips
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        FilterChip(
-                            selected = selectedCategory == null && searchQuery.isBlank(),
-                            onClick = {
-                                selectedCategory = null
-                                searchQuery = ""
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(numCols),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(top = 10.dp, bottom = 24.dp)
+            ) {
+                // COMPACT TOP HEADER & SEARCH
+                item(span = { GridItemSpan(numCols) }) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Search Bar
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("shape_search_input"),
+                            placeholder = { Text("Search profiles (Flutter, Knife, Arkie, Shad)...", fontSize = 12.sp) },
+                            leadingIcon = {
+                                Icon(Icons.Default.Search, contentDescription = "Search", tint = Color(0xFF64748B), modifier = Modifier.size(18.dp))
                             },
-                            label = { Text("All Sections (${allShapes.size})", fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(0xFF0F172A),
-                                selectedLabelColor = Color.White
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Clear", tint = Color(0xFF64748B), modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(8.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                             )
                         )
 
-                        JigShapeCategory.values().forEach { cat ->
-                            val count = allShapes.count { it.category == cat }
+                        // Category Chips
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             FilterChip(
-                                selected = selectedCategory == cat,
-                                onClick = { selectedCategory = if (selectedCategory == cat) null else cat },
-                                label = { Text("${cat.displayName} ($count)", fontSize = 11.sp) },
+                                selected = selectedCategory == null && searchQuery.isBlank(),
+                                onClick = {
+                                    selectedCategory = null
+                                    searchQuery = ""
+                                },
+                                label = { Text("All Profiles (${allShapes.size})", fontSize = 11.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = Color(0xFF0F172A),
                                     selectedLabelColor = Color.White
                                 )
                             )
-                        }
-                    }
-                }
-            }
 
-            // IF FILTER/SEARCH ACTIVE: SHOW FILTERED RESULTS
-            if (searchQuery.isNotBlank() || selectedCategory != null) {
-                item(span = { GridItemSpan(2) }) {
-                    Text(
-                        text = "Filtered Shapes (${searchFilteredShapes.size})",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        color = Color(0xFF0F172A),
-                        modifier = Modifier.padding(top = 6.dp)
-                    )
-                }
-
-                items(searchFilteredShapes) { shape ->
-                    JigShapeGridCard(
-                        shape = shape,
-                        isTopSignature = topSignatureShapes.contains(shape),
-                        onClick = { onSelectShape(shape) }
-                    )
-                }
-            } else {
-                // =============================================================
-                // SECTION 1: BEST & MOST UNIQUE SHAPES (FIRST VIEW: 2 COLUMNS × 2 ROWS = 4)
-                // =============================================================
-                item(span = { GridItemSpan(2) }) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF0F172A),
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = null,
-                                    tint = Color(0xFFFBBF24),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = "BEST & MOST UNIQUE SHAPES",
-                                    color = Color.White,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace,
-                                    letterSpacing = 0.5.sp
+                            JigShapeCategory.values().forEach { cat ->
+                                val count = allShapes.count { it.category == cat }
+                                FilterChip(
+                                    selected = selectedCategory == cat,
+                                    onClick = { selectedCategory = if (selectedCategory == cat) null else cat },
+                                    label = { Text("${cat.displayName} ($count)", fontSize = 11.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFF0F172A),
+                                        selectedLabelColor = Color.White
+                                    )
                                 )
                             }
-                            Text(
-                                text = "4 SIGNATURES",
-                                color = Color(0xFF38BDF8),
-                                fontSize = 10.sp,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold
-                            )
                         }
                     }
                 }
 
-                // 4 TOP SIGNATURE SHAPES IN 2x2 GRID (First View)
-                items(topSignatureShapes) { shape ->
-                    JigShapeGridCard(
-                        shape = shape,
-                        isTopSignature = true,
-                        onClick = { onSelectShape(shape) }
-                    )
-                }
+                // IF FILTER/SEARCH ACTIVE: SHOW FILTERED RESULTS
+                if (searchQuery.isNotBlank() || selectedCategory != null) {
+                    item(span = { GridItemSpan(numCols) }) {
+                        Text(
+                            text = "FILTERED PROFILES (${searchFilteredShapes.size})",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color(0xFF0F172A),
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                    }
 
-                // =============================================================
-                // SECTION 2: PELAGIC & BAITFISH PROFILES (SCROLL DOWN FOR MORE)
-                // =============================================================
-                if (pelagicShapes.isNotEmpty()) {
-                    item(span = { GridItemSpan(2) }) {
-                        SectionHeader("🎣 PELAGIC & BAITFISH PROFILES", "${pelagicShapes.size} Shapes")
+                    items(searchFilteredShapes) { shape ->
+                        JigShapeGridCard(
+                            shape = shape,
+                            isTopSignature = topSignatureShapes.contains(shape),
+                            onClick = { onSelectShape(shape) }
+                        )
                     }
-                    items(pelagicShapes) { shape ->
-                        JigShapeGridCard(shape = shape, isTopSignature = false, onClick = { onSelectShape(shape) })
+                } else {
+                    // SECTION 1: BEST & MOST UNIQUE SHAPES (FIRST VIEW: 2 COLUMNS × 2 ROWS = 4)
+                    item(span = { GridItemSpan(numCols) }) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF0F172A),
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = Color(0xFF38BDF8),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = "SIGNATURE PROFILES (TOP UNIQUE)",
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                }
+                                Text(
+                                    text = "4 CURATED",
+                                    color = Color(0xFF38BDF8),
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
-                }
 
-                // =============================================================
-                // SECTION 3: SPECIALTY HEAD & STRUCTURE JIGS
-                // =============================================================
-                if (specialtyHeadShapes.isNotEmpty()) {
-                    item(span = { GridItemSpan(2) }) {
-                        SectionHeader("⚙️ SPECIALTY HEAD & STRUCTURE JIGS", "${specialtyHeadShapes.size} Shapes")
+                    // 4 TOP SIGNATURE SHAPES IN 2x2 GRID (First View)
+                    items(topSignatureShapes) { shape ->
+                        JigShapeGridCard(
+                            shape = shape,
+                            isTopSignature = true,
+                            onClick = { onSelectShape(shape) }
+                        )
                     }
-                    items(specialtyHeadShapes) { shape ->
-                        JigShapeGridCard(shape = shape, isTopSignature = false, onClick = { onSelectShape(shape) })
-                    }
-                }
 
-                // =============================================================
-                // SECTION 4: ASYMMETRIC & CUT SILHOUETTES
-                // =============================================================
-                if (cutSilhouetteShapes.isNotEmpty()) {
-                    item(span = { GridItemSpan(2) }) {
-                        SectionHeader("✨ SPECIAL ASYMMETRIC & CUT PRISMS", "${cutSilhouetteShapes.size} Shapes")
+                    // SECTION 2: PELAGIC & BAITFISH PROFILES
+                    if (pelagicShapes.isNotEmpty()) {
+                        item(span = { GridItemSpan(numCols) }) {
+                            SectionHeader("PELAGIC & BAITFISH PROFILES", "${pelagicShapes.size} Shapes")
+                        }
+                        items(pelagicShapes) { shape ->
+                            JigShapeGridCard(shape = shape, isTopSignature = false, onClick = { onSelectShape(shape) })
+                        }
                     }
-                    items(cutSilhouetteShapes) { shape ->
-                        JigShapeGridCard(shape = shape, isTopSignature = false, onClick = { onSelectShape(shape) })
-                    }
-                }
 
-                // =============================================================
-                // SECTION 5: BASIC GEOMETRIC BALLAST
-                // =============================================================
-                if (basicGeometricShapes.isNotEmpty()) {
-                    item(span = { GridItemSpan(2) }) {
-                        SectionHeader("📐 BASIC GEOMETRIC BALLAST", "${basicGeometricShapes.size} Shapes")
+                    // SECTION 3: SPECIALTY HEAD & STRUCTURE JIGS
+                    if (specialtyHeadShapes.isNotEmpty()) {
+                        item(span = { GridItemSpan(numCols) }) {
+                            SectionHeader("SPECIALTY HEAD & STRUCTURE JIGS", "${specialtyHeadShapes.size} Shapes")
+                        }
+                        items(specialtyHeadShapes) { shape ->
+                            JigShapeGridCard(shape = shape, isTopSignature = false, onClick = { onSelectShape(shape) })
+                        }
                     }
-                    items(basicGeometricShapes) { shape ->
-                        JigShapeGridCard(shape = shape, isTopSignature = false, onClick = { onSelectShape(shape) })
+
+                    // SECTION 4: ASYMMETRIC & CUT SILHOUETTES
+                    if (cutSilhouetteShapes.isNotEmpty()) {
+                        item(span = { GridItemSpan(numCols) }) {
+                            SectionHeader("ASYMMETRIC & CUT PRISMS", "${cutSilhouetteShapes.size} Shapes")
+                        }
+                        items(cutSilhouetteShapes) { shape ->
+                            JigShapeGridCard(shape = shape, isTopSignature = false, onClick = { onSelectShape(shape) })
+                        }
+                    }
+
+                    // SECTION 5: BASIC GEOMETRIC BALLAST
+                    if (basicGeometricShapes.isNotEmpty()) {
+                        item(span = { GridItemSpan(numCols) }) {
+                            SectionHeader("BASIC GEOMETRIC BALLAST", "${basicGeometricShapes.size} Shapes")
+                        }
+                        items(basicGeometricShapes) { shape ->
+                            JigShapeGridCard(shape = shape, isTopSignature = false, onClick = { onSelectShape(shape) })
+                        }
                     }
                 }
             }
@@ -351,37 +353,37 @@ private fun JigShapeGridCard(
     isTopSignature: Boolean,
     onClick: () -> Unit
 ) {
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .border(
-                width = if (isTopSignature) 1.5.dp else 1.dp,
-                color = if (isTopSignature) Color(0xFF38BDF8) else Color(0xFFE2E8F0),
-                shape = RoundedCornerShape(12.dp)
+                width = if (isTopSignature) 1.2.dp else 1.dp,
+                color = if (isTopSignature) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(8.dp)
             )
             .testTag("shape_card_${shape.shapeId}"),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isTopSignature) 3.dp else 1.dp)
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 0.5.dp
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // SILHOUETTE CANVAS PREVIEW
+            // SILHOUETTE CANVAS PREVIEW (Dominates the tile)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(96.dp)
+                    .height(88.dp)
                     .background(
                         Brush.verticalGradient(
                             colors = if (isTopSignature) {
                                 listOf(Color(0xFFF0F9FF), Color(0xFFE0F2FE))
                             } else {
-                                listOf(Color(0xFFF8FAFC), Color(0xFFE2E8F0))
+                                listOf(Color(0xFFF8FAFC), Color(0xFFF1F5F9))
                             }
                         )
                     )
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -390,19 +392,19 @@ private fun JigShapeGridCard(
 
                     // Subtle floor contact shadow
                     drawOval(
-                        color = Color(0x200F172A),
-                        topLeft = Offset(cx - size.width * 0.38f, cy + 20f),
-                        size = androidx.compose.ui.geometry.Size(size.width * 0.76f, 10f)
+                        color = Color(0x180F172A),
+                        topLeft = Offset(cx - size.width * 0.38f, cy + 18f),
+                        size = androidx.compose.ui.geometry.Size(size.width * 0.76f, 8f)
                     )
 
                     val bodyL = size.width * 0.82f
-                    val bodyW = (bodyL / shape.aspectRatio).coerceIn(18f, size.height * 0.75f)
+                    val bodyW = (bodyL / shape.aspectRatio).coerceIn(16f, size.height * 0.72f)
                     val halfL = bodyL / 2f
                     val halfW = bodyW / 2f
 
                     val path = buildSimpleSilhouettePath(shape.silhouetteType, cx, cy, halfL, halfW)
 
-                    // Brushed alloy gradient fill
+                    // Precision brushed alloy gradient fill
                     val shapeBrush = Brush.verticalGradient(
                         colors = if (isTopSignature) {
                             listOf(Color(0xFF0369A1), Color(0xFF0F172A))
@@ -418,11 +420,11 @@ private fun JigShapeGridCard(
                     drawPath(
                         path = path,
                         color = if (isTopSignature) Color(0xFF38BDF8) else Color(0xFF94A3B8),
-                        style = Stroke(width = 1.4f, cap = StrokeCap.Round)
+                        style = Stroke(width = 1.2f, cap = StrokeCap.Round)
                     )
                 }
 
-                // Aspect ratio / Signature badge
+                // Clean signature badge
                 if (isTopSignature) {
                     Surface(
                         shape = RoundedCornerShape(4.dp),
@@ -431,7 +433,7 @@ private fun JigShapeGridCard(
                     ) {
                         Text(
                             text = "TOP",
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
                             color = Color(0xFF38BDF8),
                             fontSize = 8.sp,
                             fontWeight = FontWeight.Bold,
@@ -445,14 +447,14 @@ private fun JigShapeGridCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                    .padding(horizontal = 8.dp, vertical = 7.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
                     text = shape.shapeName,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A),
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -467,30 +469,13 @@ private fun JigShapeGridCard(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = FontFamily.Monospace,
-                        color = Color(0xFF0284C7)
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "1:${String.format("%.1f", shape.aspectRatio)}",
+                        text = "1:${String.format(Locale.US, "%.1f", shape.aspectRatio)}",
                         fontSize = 9.sp,
                         fontFamily = FontFamily.Monospace,
-                        color = Color(0xFF64748B)
-                    )
-                }
-
-                Button(
-                    onClick = onClick,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isTopSignature) Color(0xFF0284C7) else Color(0xFF0F172A)
-                    ),
-                    shape = RoundedCornerShape(6.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                    modifier = Modifier.fillMaxWidth().height(30.dp)
-                ) {
-                    Text(
-                        text = "Select Shape",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

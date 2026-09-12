@@ -48,8 +48,8 @@ fun AppHeader(
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
-        shadowElevation = 3.dp,
+        tonalElevation = 1.dp,
+        shadowElevation = 1.dp,
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -57,7 +57,7 @@ fun AppHeader(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -69,23 +69,29 @@ fun AppHeader(
                     if (showBackButton) {
                         IconButton(
                             onClick = onBackClick,
-                            modifier = Modifier.testTag("header_back_button")
+                            modifier = Modifier
+                                .size(36.dp)
+                                .testTag("header_back_button")
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Navigate back",
-                                tint = MaterialTheme.colorScheme.onSurface
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     } else if (onMenuClick != null) {
                         IconButton(
                             onClick = onMenuClick,
-                            modifier = Modifier.testTag("header_menu_button")
+                            modifier = Modifier
+                                .size(36.dp)
+                                .testTag("header_menu_button")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Menu,
                                 contentDescription = "Open navigation menu",
-                                tint = MaterialTheme.colorScheme.onSurface
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -94,8 +100,9 @@ fun AppHeader(
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 16.sp,
                             maxLines = 1
                         )
                     }
@@ -104,40 +111,35 @@ fun AppHeader(
                 // Right side: 7Hooks Brand Logo & Logout
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // 7Hooks Official Branding Logo Image
-                    Official7HooksLogo(height = 28.dp)
+                    Official7HooksLogo(height = 26.dp)
 
                     if (currentUser != null && onLogoutClick != null) {
                         IconButton(
                             onClick = { showLogoutDialog = true },
-                            modifier = Modifier.testTag("header_logout_button")
+                            modifier = Modifier
+                                .size(36.dp)
+                                .testTag("header_logout_button")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ExitToApp,
                                 contentDescription = "Logout session",
-                                tint = MaterialTheme.colorScheme.error
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
                 }
             }
 
-            // Subtle Metallic Highlight Line
+            // Subtle Precision Separator Line
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(
-                                Color.Transparent,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                Color.Transparent
-                            )
-                        )
-                    )
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             )
         }
     }

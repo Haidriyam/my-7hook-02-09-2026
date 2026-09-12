@@ -1560,6 +1560,7 @@ private fun FinalProductResultView(
     onOpenEngineering: () -> Unit,
     onEdit: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var promptText by remember { mutableStateOf("") }
 
     Column(
@@ -1884,48 +1885,48 @@ private fun FinalProductResultView(
             }
         }
 
-        // ACTION BUTTONS (Section 39-46)
+        // ACTION BUTTONS (Section 21 & 22)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
                 onClick = onSave,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.weight(1f).height(42.dp),
+                shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
             ) {
                 Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Save Config", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("Save", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
             }
 
             OutlinedButton(
                 onClick = onRegenerate,
                 enabled = !isGeneratingAi,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(10.dp)
+                modifier = Modifier.weight(1f).height(42.dp),
+                shape = RoundedCornerShape(8.dp)
             ) {
                 Icon(imageVector = Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Regenerate", fontSize = 12.sp)
+                Text("Generate Again", fontSize = 12.sp)
             }
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
                 onClick = onOpenEngineering,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.weight(1f).height(42.dp),
+                shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))
             ) {
                 Icon(imageVector = Icons.Default.Architecture, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("CAD Studio", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("Technical Drawing", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
 
             Button(
                 onClick = onExportPdf,
                 enabled = !isGeneratingPdf,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.weight(1f).height(42.dp),
+                shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669))
             ) {
                 if (isGeneratingPdf) {
@@ -1934,17 +1935,43 @@ private fun FinalProductResultView(
                     Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Export PDF", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("Create PDF", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
+        }
+
+        OutlinedButton(
+            onClick = {
+                val sendIntent = android.content.Intent().apply {
+                    action = android.content.Intent.ACTION_SEND
+                    putExtra(
+                        android.content.Intent.EXTRA_TEXT,
+                        "7Hooks Precision Tackle Configuration\n" +
+                                "Model: ${productConfig.modelNumber} (${template.shapeName})\n" +
+                                "Weight: ${config.weightGrams.toInt()}g | Length: ${config.lengthMm.toInt()}mm\n" +
+                                "Colors: ${config.mainColor} / ${config.secondaryColor}\n" +
+                                "Finish: ${config.finish} | Pattern: ${config.pattern}\n" +
+                                "Reference: ${productConfig.referenceNumber}"
+                    )
+                    type = "text/plain"
+                }
+                val shareIntent = android.content.Intent.createChooser(sendIntent, "Share Jig Specification")
+                context.startActivity(shareIntent)
+            },
+            modifier = Modifier.fillMaxWidth().height(40.dp),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF0F172A))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("Share Specification", fontSize = 12.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.SemiBold)
         }
 
         TextButton(
             onClick = onEdit,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         ) {
-            Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF64748B))
+            Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFF64748B))
             Spacer(modifier = Modifier.width(6.dp))
-            Text("Edit Configuration", color = Color(0xFF64748B), fontSize = 13.sp)
+            Text("Edit Configuration", color = Color(0xFF64748B), fontSize = 12.5.sp)
         }
     }
 }
