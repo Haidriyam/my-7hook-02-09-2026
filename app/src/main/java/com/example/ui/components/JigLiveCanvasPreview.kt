@@ -290,7 +290,7 @@ fun JigLiveCanvasPreview(
                             )
                         },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFF0284C7),
+                            selectedContainerColor = Color(0xFF0E3A68),
                             selectedLabelColor = Color.White,
                             containerColor = Color(0xFFF1F5F9),
                             labelColor = Color(0xFF334155)

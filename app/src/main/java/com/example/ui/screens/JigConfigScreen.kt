@@ -39,6 +39,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.content.Intent
+import android.net.Uri
+import kotlinx.coroutines.launch
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.core.content.FileProvider
 import com.example.data.ai.GeminiImageService
 import com.example.data.geometry.JigGeometryEngine
 import com.example.data.model.JigConfiguration
@@ -83,7 +91,51 @@ fun JigConfigScreen(
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     var showResetDialog by remember { mutableStateOf(false) }
+    var pendingSavePdfToStorage by remember { mutableStateOf(false) }
+    var pendingSharePdf by remember { mutableStateOf(false) }
+
+    val savePdfLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val file = pdfResult?.file
+            if (file != null && file.exists()) {
+                try {
+                    context.contentResolver.openOutputStream(uri)?.use { out ->
+                        file.inputStream().use { input -> input.copyTo(out) }
+                    }
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("PDF saved successfully to your selected location.")
+                    }
+                } catch (e: Exception) {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Error saving PDF: ${e.localizedMessage}")
+                    }
+                }
+            }
+        }
+    }
+
+    val launchSharePdf = {
+        val file = pdfResult?.file
+        if (file != null && file.exists()) {
+            val fileUri = pdfResult?.fileUri ?: androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, fileUri)
+                putExtra(Intent.EXTRA_SUBJECT, "7Hooks Technical Specification - ${shapeTemplate.shapeName}")
+                putExtra(Intent.EXTRA_TEXT, "7Hooks Precision Tackle Engineering Blueprint for ${shapeTemplate.shapeName} (${jigConfig.weightGrams.toInt()}g).")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(shareIntent, "Share Specification PDF"))
+        }
+    }
 
     LaunchedEffect(saveMessage) {
         saveMessage?.let { msg ->
@@ -95,7 +147,16 @@ fun JigConfigScreen(
     LaunchedEffect(pdfResult) {
         pdfResult?.let { res ->
             if (res.isValid) {
-                snackbarHostState.showSnackbar("A4 PDF Specification Exported: ${res.file.name}")
+                if (pendingSavePdfToStorage) {
+                    pendingSavePdfToStorage = false
+                    val sanitized = shapeTemplate.shapeName.replace(" ", "_")
+                    savePdfLauncher.launch("7Hooks_${sanitized}_${jigConfig.weightGrams.toInt()}g_Spec.pdf")
+                } else if (pendingSharePdf) {
+                    pendingSharePdf = false
+                    launchSharePdf()
+                } else {
+                    snackbarHostState.showSnackbar("A4 PDF Specification Exported: ${res.file.name}")
+                }
             }
         }
     }
@@ -120,7 +181,9 @@ fun JigConfigScreen(
                 title = titleText,
                 showBackButton = true,
                 onBackClick = {
-                    if (currentStep > 1) {
+                    if (currentStep == 12) {
+                        configViewModel.setConfigStep(10)
+                    } else if (currentStep > 1) {
                         configViewModel.previousConfigStep()
                     } else {
                         onNavigateBack()
@@ -268,6 +331,23 @@ fun JigConfigScreen(
                             onGenerateWithPrompt = { prompt -> configViewModel.generateFinalAiProduct(forceRegenerate = true, customPrompt = prompt) },
                             onSave = { configViewModel.saveCurrentConfig() },
                             onExportPdf = { configViewModel.generatePdf(context) },
+                            onSavePdfToStorage = {
+                                if (pdfResult?.file?.exists() == true) {
+                                    val sanitized = shapeTemplate.shapeName.replace(" ", "_")
+                                    savePdfLauncher.launch("7Hooks_${sanitized}_${jigConfig.weightGrams.toInt()}g_Spec.pdf")
+                                } else {
+                                    pendingSavePdfToStorage = true
+                                    configViewModel.generatePdf(context)
+                                }
+                            },
+                            onSharePdf = {
+                                if (pdfResult?.file?.exists() == true) {
+                                    launchSharePdf()
+                                } else {
+                                    pendingSharePdf = true
+                                    configViewModel.generatePdf(context)
+                                }
+                            },
                             onOpenEngineering = onNavigateToEngineering,
                             onEdit = { configViewModel.setConfigStep(10) }
                         )
@@ -1201,7 +1281,7 @@ private fun RingsStep(config: JigConfiguration, template: com.example.data.model
     }
 
     Spacer(modifier = Modifier.height(8.dp))
-    Text("BOTTOM VENTRAL KEEL RING", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color(0xFF0284C7))
+    Text("BOTTOM VENTRAL KEEL RING", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1222,7 +1302,7 @@ private fun RingsStep(config: JigConfiguration, template: com.example.data.model
                     )
                 },
                 label = { Text(opt) },
-                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primary, selectedLabelColor = Color.White)
             )
         }
     }
@@ -1249,9 +1329,11 @@ private fun ReviewAndGenerateView(
         }
     }
 
-    // Auto-advance to final product result screen once generation succeeds
-    LaunchedEffect(result) {
-        if (result is GeminiImageService.GenerationResult.Success) {
+    // Auto-advance to final product result screen once active generation succeeds
+    var hasAutoAdvanced by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(isGenerating) {
+        if (!isGenerating && result is GeminiImageService.GenerationResult.Success && !hasAutoAdvanced) {
+            hasAutoAdvanced = true
             onNavigateToResult()
         }
     }
@@ -1284,14 +1366,14 @@ private fun ReviewAndGenerateView(
                         )
                         Column {
                             Text(
-                                text = "GEMINI AI GENERATION ACTIVE",
+                                text = "STUDIO RENDER GENERATION ACTIVE",
                                 color = Color(0xFF38BDF8),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace
                             )
                             Text(
-                                text = "Generating with Gemini 3.1 Flash Image...",
+                                text = "Generating Photorealistic Studio Render...",
                                 color = Color.White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold
@@ -1321,7 +1403,7 @@ private fun ReviewAndGenerateView(
                     .testTag("review_generated_image_card"),
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF0284C7))
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF0E3A68))
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
@@ -1330,17 +1412,17 @@ private fun ReviewAndGenerateView(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (result.isAiGenerated) "✨ GEMINI 3.1 FLASH RENDER" else "PRECISION CAD RENDER",
+                            text = if (result.isAiGenerated) "✨ PHOTOREALISTIC STUDIO RENDER" else "PRECISION CAD RENDER",
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
-                            color = Color(0xFF0284C7),
+                            color = Color(0xFF0E3A68),
                             fontFamily = FontFamily.Monospace
                         )
                         Text(
                             text = "View Output Screen →",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
-                            color = Color(0xFF0284C7)
+                            color = Color(0xFF0E3A68)
                         )
                     }
                     Box(
@@ -1359,7 +1441,7 @@ private fun ReviewAndGenerateView(
                         )
                     }
                     Text(
-                        text = result.statusNote.ifBlank { "Generated by 7Hooks AI Studio" },
+                        text = result.statusNote.ifBlank { "Generated by 7Hooks Studio" },
                         fontSize = 11.sp,
                         color = Color(0xFF64748B)
                     )
@@ -1431,7 +1513,7 @@ private fun ReviewAndGenerateView(
                 ) {
                     Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color(0xFFDC2626))
                     Column {
-                        Text("AI Rendering Notice", fontWeight = FontWeight.Bold, color = Color(0xFF991B1B), fontSize = 13.sp)
+                        Text("Rendering Notice", fontWeight = FontWeight.Bold, color = Color(0xFF991B1B), fontSize = 13.sp)
                         Text(result.errorMessage, color = Color(0xFFB91C1C), fontSize = 12.sp)
                     }
                 }
@@ -1446,7 +1528,7 @@ private fun ReviewAndGenerateView(
                     .fillMaxWidth()
                     .height(54.dp)
                     .testTag("view_final_result_button"),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0E3A68)),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = Color.White)
@@ -1466,16 +1548,16 @@ private fun ReviewAndGenerateView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
-                    .testTag("regenerate_gemini_button"),
+                    .testTag("regenerate_render_button"),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF0284C7))
+                Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF0E3A68))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "RE-GENERATE WITH GEMINI",
+                    text = "RE-GENERATE STUDIO RENDER",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0284C7)
+                    color = Color(0xFF0E3A68)
                 )
             }
         } else {
@@ -1497,7 +1579,7 @@ private fun ReviewAndGenerateView(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "GENERATING WITH GEMINI...",
+                        text = "GENERATING STUDIO RENDER...",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -1534,7 +1616,7 @@ private fun SpecRow(label: String, value: String, stepIndex: Int, onEditClick: (
             onClick = { onEditClick(stepIndex) },
             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
         ) {
-            Text("Edit", fontSize = 12.sp, color = Color(0xFF0284C7))
+            Text("Edit", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -1557,6 +1639,8 @@ private fun FinalProductResultView(
     onGenerateWithPrompt: (String) -> Unit,
     onSave: () -> Unit,
     onExportPdf: () -> Unit,
+    onSavePdfToStorage: () -> Unit,
+    onSharePdf: () -> Unit,
     onOpenEngineering: () -> Unit,
     onEdit: () -> Unit
 ) {
@@ -1570,54 +1654,152 @@ private fun FinalProductResultView(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Mode Switcher: AI Studio Render vs CAD Blueprint
-        Row(
+        // TOP HEADER & SEGMENTED VIEW SWITCHER
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                text = "FINAL PRODUCT OUTPUT",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                color = Color(0xFF0F172A)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF16A34A))
+                    )
+                    Text(
+                        text = "FINAL PRODUCT SPECIFICATION",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color(0xFF0E3A68),
+                        letterSpacing = 0.5.sp
+                    )
+                }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
-                    selected = !isBlueprintView,
-                    onClick = onToggleView,
-                    label = { Text("AI Studio Render", fontSize = 11.sp) },
-                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
-                )
-                FilterChip(
-                    selected = isBlueprintView,
-                    onClick = onToggleView,
-                    label = { Text("CAD Blueprint", fontSize = 11.sp) },
-                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFF0284C7), selectedLabelColor = Color.White)
-                )
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFFE2EBF5)
+                ) {
+                    Text(
+                        text = "PRODUCTION READY",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color(0xFF0E3A68)
+                    )
+                }
+            }
+
+            // High-precision Segmented Switcher
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0xFFF1F5F9),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val isRenderSelected = !isBlueprintView
+                    val isCadSelected = isBlueprintView
+
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { if (!isRenderSelected) onToggleView() }
+                            .testTag("segment_studio_render"),
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isRenderSelected) Color(0xFF0E3A68) else Color.Transparent,
+                        shadowElevation = if (isRenderSelected) 2.dp else 0.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp),
+                                tint = if (isRenderSelected) Color.White else Color(0xFF475569)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Studio Render",
+                                fontSize = 12.sp,
+                                fontWeight = if (isRenderSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isRenderSelected) Color.White else Color(0xFF475569),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { if (!isCadSelected) onToggleView() }
+                            .testTag("segment_cad_blueprint"),
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isCadSelected) Color(0xFF0E3A68) else Color.Transparent,
+                        shadowElevation = if (isCadSelected) 2.dp else 0.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Architecture,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp),
+                                tint = if (isCadSelected) Color.White else Color(0xFF475569)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "CAD Blueprint",
+                                fontSize = 12.sp,
+                                fontWeight = if (isCadSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isCadSelected) Color.White else Color(0xFF475569),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        // HERO MEDIA CANVAS (Section 35)
+        // HERO MEDIA CANVAS
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .border(1.dp, Color(0xFF94A3B8), RoundedCornerShape(16.dp))
+                .height(290.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .border(1.dp, Color(0xFF94A3B8), RoundedCornerShape(14.dp))
                 .background(Color(0xFFF1F5F9)),
             contentAlignment = Alignment.Center
         ) {
             if (!isBlueprintView) {
-                // AI PHOTOREALISTIC STUDIO RENDER
+                // PHOTOREALISTIC STUDIO RENDER
                 val successResult = aiResult as? GeminiImageService.GenerationResult.Success
                 val bitmap = successResult?.bitmap
                 if (bitmap != null) {
                     Image(
                         bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "Final AI Product Render",
+                        contentDescription = "Final Product Render",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit
                     )
@@ -1626,12 +1808,12 @@ private fun FinalProductResultView(
                     if (imageFile != null && imageFile.exists()) {
                         AsyncImage(
                             model = imageFile,
-                            contentDescription = "Final AI Product Render",
+                            contentDescription = "Final Product Render",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
                         )
                     } else {
-                        // Fallback to high-res Live Compositor if file hasn't loaded
+                        // Fallback to accurate live compositor preview
                         JigLiveCanvasPreview(config = config, activeStep = 10, showControls = false)
                     }
                 }
@@ -1652,21 +1834,21 @@ private fun FinalProductResultView(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(10.dp),
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(6.dp),
                 color = Color(0xDD0F172A)
             ) {
                 Text(
                     text = "7HOOKS PRECISION TACKLE",
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                     color = Color(0xFF38BDF8),
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
                 )
             }
         }
 
-        // GENERATION STATUS & AI MODEL BADGE
+        // GENERATION STATUS BANNER
         val successResult = aiResult as? GeminiImageService.GenerationResult.Success
         if (successResult != null) {
             Surface(
@@ -1686,16 +1868,16 @@ private fun FinalProductResultView(
                     Icon(
                         imageVector = if (successResult.isAiGenerated) Icons.Default.AutoAwesome else Icons.Default.PrecisionManufacturing,
                         contentDescription = null,
-                        tint = if (successResult.isAiGenerated) Color(0xFF16A34A) else Color(0xFF0284C7),
+                        tint = if (successResult.isAiGenerated) Color(0xFF16A34A) else Color(0xFF0E3A68),
                         modifier = Modifier.size(20.dp)
                     )
                     Column {
                         Text(
-                            text = if (successResult.isAiGenerated) "GEMINI 3.1 FLASH AI RENDER" else "PRECISION CAD STUDIO GENERATION",
+                            text = if (successResult.isAiGenerated) "PHOTOREALISTIC STUDIO RENDER" else "PRECISION CAD STUDIO GENERATION",
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace,
-                            color = if (successResult.isAiGenerated) Color(0xFF16A34A) else Color(0xFF0284C7)
+                            color = if (successResult.isAiGenerated) Color(0xFF16A34A) else Color(0xFF0E3A68)
                         )
                         Text(
                             text = successResult.statusNote.ifBlank { "High-resolution studio product photography" },
@@ -1717,13 +1899,13 @@ private fun FinalProductResultView(
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "${template.shapeName} ${config.weightGrams.toInt()}g — ${config.mainColor}",
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF0F172A)
                 )
                 Text(
                     text = "Ref: ${productConfig.referenceNumber} • Model: ${productConfig.modelNumber}",
-                    fontSize = 12.sp,
+                    fontSize = 11.5.sp,
                     fontFamily = FontFamily.Monospace,
                     color = Color(0xFF64748B)
                 )
@@ -1735,9 +1917,9 @@ private fun FinalProductResultView(
             }
         }
 
-        // AI IMAGE STUDIO: JIG STYLING & FINISH MODIFIER (Edit-Only Constraint)
+        // SURFACE STYLING & LIGHTING MODIFIER
         Card(
-            modifier = Modifier.fillMaxWidth().testTag("gemini_image_studio_card"),
+            modifier = Modifier.fillMaxWidth().testTag("studio_modifier_card"),
             shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
@@ -1758,7 +1940,7 @@ private fun FinalProductResultView(
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = null,
-                            tint = Color(0xFF0284C7),
+                            tint = Color(0xFF0E3A68),
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
@@ -1766,7 +1948,7 @@ private fun FinalProductResultView(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
-                            color = Color(0xFF0284C7)
+                            color = Color(0xFF0E3A68)
                         )
                     }
 
@@ -1775,12 +1957,12 @@ private fun FinalProductResultView(
                         color = Color(0xFFF1F5F9)
                     ) {
                         Text(
-                            text = "CAD LOCKED • EDIT-ONLY",
+                            text = "CAD LOCKED",
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
-                            color = Color(0xFF0284C7)
+                            color = Color(0xFF0E3A68)
                         )
                     }
                 }
@@ -1798,11 +1980,11 @@ private fun FinalProductResultView(
                         Icon(
                             imageVector = Icons.Default.Lock,
                             contentDescription = null,
-                            tint = Color(0xFF0284C7),
+                            tint = Color(0xFF0E3A68),
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "Fixed CAD Silhouette: Prompting applies surface finishes, marine water caustics, and studio lighting to your configured ${template.shapeName}. Subject replacement is restricted.",
+                            text = "Fixed CAD Silhouette: Prompting applies surface finishes, marine water caustics, and studio lighting to your configured ${template.shapeName}.",
                             fontSize = 11.sp,
                             color = Color(0xFF0369A1),
                             lineHeight = 15.sp
@@ -1816,7 +1998,6 @@ private fun FinalProductResultView(
                     color = Color(0xFF64748B)
                 )
 
-                // Quick Styling Suggestions
                 val quickPrompts = listOf(
                     "Underwater sun rays & reef caustics",
                     "Dynamic saltwater spray & wake",
@@ -1840,7 +2021,6 @@ private fun FinalProductResultView(
                     }
                 }
 
-                // Styling Prompt Input
                 OutlinedTextField(
                     value = promptText,
                     onValueChange = { promptText = it },
@@ -1866,18 +2046,18 @@ private fun FinalProductResultView(
                         .height(46.dp)
                         .testTag("apply_ai_prompt_button"),
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0E3A68))
                 ) {
                     if (isGeneratingAi) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
-                            color = Color(0xFF38BDF8),
+                            color = Color.White,
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Rendering with Gemini...", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Rendering Studio Model...", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     } else {
-                        Icon(Icons.Default.AutoFixHigh, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.AutoFixHigh, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Apply Styling to Jig", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
@@ -1885,86 +2065,133 @@ private fun FinalProductResultView(
             }
         }
 
-        // ACTION BUTTONS (Section 21 & 22)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Button(
-                onClick = onSave,
-                modifier = Modifier.weight(1f).height(42.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
-            ) {
-                Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Save", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
-            }
-
-            OutlinedButton(
-                onClick = onRegenerate,
-                enabled = !isGeneratingAi,
-                modifier = Modifier.weight(1f).height(42.dp),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(imageVector = Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Generate Again", fontSize = 12.sp)
-            }
+        // PRIMARY ACTION: TECHNICAL SPECIFICATIONS & CAD
+        Button(
+            onClick = onOpenEngineering,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .testTag("open_technical_specifications_button"),
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0E3A68))
+        ) {
+            Icon(
+                imageVector = Icons.Default.Architecture,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = Color.White
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Technical Specifications & CAD",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        // PDF EXPORT ROW: SAVE TO STORAGE / DRIVE & SHARE
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             Button(
-                onClick = onOpenEngineering,
-                modifier = Modifier.weight(1f).height(42.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A))
-            ) {
-                Icon(imageVector = Icons.Default.Architecture, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Technical Drawing", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            }
-
-            Button(
-                onClick = onExportPdf,
+                onClick = onSavePdfToStorage,
                 enabled = !isGeneratingPdf,
-                modifier = Modifier.weight(1f).height(42.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .testTag("save_pdf_storage_button"),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669))
             ) {
                 if (isGeneratingPdf) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
                 } else {
-                    Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(imageVector = Icons.Default.SaveAlt, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Create PDF", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "Save PDF",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Button(
+                onClick = onSharePdf,
+                enabled = !isGeneratingPdf,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .testTag("share_pdf_button"),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0E3A68))
+            ) {
+                Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Share PDF",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
 
-        OutlinedButton(
-            onClick = {
-                val sendIntent = android.content.Intent().apply {
-                    action = android.content.Intent.ACTION_SEND
-                    putExtra(
-                        android.content.Intent.EXTRA_TEXT,
-                        "7Hooks Precision Tackle Configuration\n" +
-                                "Model: ${productConfig.modelNumber} (${template.shapeName})\n" +
-                                "Weight: ${config.weightGrams.toInt()}g | Length: ${config.lengthMm.toInt()}mm\n" +
-                                "Colors: ${config.mainColor} / ${config.secondaryColor}\n" +
-                                "Finish: ${config.finish} | Pattern: ${config.pattern}\n" +
-                                "Reference: ${productConfig.referenceNumber}"
-                    )
-                    type = "text/plain"
-                }
-                val shareIntent = android.content.Intent.createChooser(sendIntent, "Share Jig Specification")
-                context.startActivity(shareIntent)
-            },
-            modifier = Modifier.fillMaxWidth().height(40.dp),
-            shape = RoundedCornerShape(8.dp)
+        // SECONDARY ACTIONS: SAVE PROJECT & RE-GENERATE
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF0F172A))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("Share Specification", fontSize = 12.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.SemiBold)
+            OutlinedButton(
+                onClick = onSave,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(42.dp)
+                    .testTag("save_project_button"),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(imageVector = Icons.Default.BookmarkBorder, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF0E3A68))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Save Project",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF0E3A68),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            OutlinedButton(
+                onClick = onRegenerate,
+                enabled = !isGeneratingAi,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(42.dp)
+                    .testTag("regenerate_render_button"),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(imageVector = Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF0E3A68))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Re-Render",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF0E3A68),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
 
+        // EDIT CONFIGURATION LINK
         TextButton(
             onClick = onEdit,
             modifier = Modifier.align(Alignment.CenterHorizontally)

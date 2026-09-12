@@ -1,6 +1,10 @@
 package com.example.ui.screens
 
 import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -15,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -24,10 +29,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.data.ai.GeminiImageService
 import com.example.data.geometry.JigGeometryEngine
 import com.example.data.model.ProductCatalog
+import com.example.data.model.JigShapeRepository
 import com.example.ui.components.*
 import com.example.viewmodel.ConfiguratorViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun JigEngineeringScreen(
@@ -36,11 +44,14 @@ fun JigEngineeringScreen(
     onNavigateBack: () -> Unit
 ) {
     val currentConfig by configViewModel.currentConfig.collectAsState()
+    val currentJigConfig by configViewModel.currentJigConfig.collectAsState()
     val isGeneratingPdf by configViewModel.isGeneratingPdf.collectAsState()
     val pdfValidationResult by configViewModel.pdfValidationResult.collectAsState()
     val saveStatusMessage by configViewModel.saveStatusMessage.collectAsState()
+    val aiResult by configViewModel.aiGenerationResult.collectAsState()
 
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var selectedPerspective by remember { mutableStateOf(JigGeometryEngine.EngineeringPerspective.ORTHOGRAPHIC) }
@@ -48,9 +59,52 @@ fun JigEngineeringScreen(
     var showDimensions by remember { mutableStateOf(true) }
     var showGrid by remember { mutableStateOf(true) }
 
-    // Retrieve exact catalog jig product matching selection for true product image
-    val matchedJig = remember(currentConfig.productId) {
-        ProductCatalog.jigs.find { it.id == currentConfig.productId } ?: ProductCatalog.jigs.first()
+    var pendingSavePdfToStorage by remember { mutableStateOf(false) }
+    var pendingSharePdf by remember { mutableStateOf(false) }
+
+    val template = remember(currentJigConfig.shapeId) {
+        JigShapeRepository.getById(currentJigConfig.shapeId)
+    }
+
+    val savePdfLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val file = pdfValidationResult?.file
+            if (file != null && file.exists()) {
+                try {
+                    context.contentResolver.openOutputStream(uri)?.use { out ->
+                        file.inputStream().use { input -> input.copyTo(out) }
+                    }
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("PDF saved successfully to your selected location.")
+                    }
+                } catch (e: Exception) {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Error saving PDF: ${e.localizedMessage}")
+                    }
+                }
+            }
+        }
+    }
+
+    val launchSharePdf = {
+        val file = pdfValidationResult?.file
+        if (file != null && file.exists()) {
+            val fileUri = pdfValidationResult?.fileUri ?: androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, fileUri)
+                putExtra(Intent.EXTRA_SUBJECT, "7Hooks Technical Specification - ${currentConfig.productName}")
+                putExtra(Intent.EXTRA_TEXT, "7Hooks Precision Tackle Engineering Blueprint for ${currentConfig.productName} (${currentConfig.weightGrams.toInt()}g).")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(shareIntent, "Share Technical Specification PDF"))
+        }
     }
 
     LaunchedEffect(saveStatusMessage) {
@@ -63,7 +117,16 @@ fun JigEngineeringScreen(
     LaunchedEffect(pdfValidationResult) {
         pdfValidationResult?.let { result ->
             if (result.isValid) {
-                snackbarHostState.showSnackbar("A4 PDF Generated: ${result.file.name}")
+                if (pendingSavePdfToStorage) {
+                    pendingSavePdfToStorage = false
+                    val sanitized = currentConfig.productName.replace(" ", "_")
+                    savePdfLauncher.launch("7Hooks_${sanitized}_${currentConfig.weightGrams.toInt()}g_Blueprint.pdf")
+                } else if (pendingSharePdf) {
+                    pendingSharePdf = false
+                    launchSharePdf()
+                } else {
+                    snackbarHostState.showSnackbar("A4 PDF Generated: ${result.file.name}")
+                }
             }
         }
     }
@@ -109,7 +172,7 @@ fun JigEngineeringScreen(
                             modifier = Modifier.weight(1f),
                             variant = TactileButtonVariant.SECONDARY,
                             icon = Icons.Default.BookmarkBorder,
-                            text = "Save Blueprint",
+                            text = "Save Project",
                             testTag = "engineering_save_button"
                         )
                     }
@@ -119,32 +182,39 @@ fun JigEngineeringScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         TactileButton(
-                            onClick = { configViewModel.generatePdf(context) },
+                            onClick = {
+                                if (pdfValidationResult?.file?.exists() == true) {
+                                    val sanitized = currentConfig.productName.replace(" ", "_")
+                                    savePdfLauncher.launch("7Hooks_${sanitized}_${currentConfig.weightGrams.toInt()}g_Blueprint.pdf")
+                                } else {
+                                    pendingSavePdfToStorage = true
+                                    configViewModel.generatePdf(context)
+                                }
+                            },
                             enabled = !isGeneratingPdf,
                             modifier = Modifier.weight(1f),
                             variant = TactileButtonVariant.PRIMARY,
-                            icon = if (isGeneratingPdf) null else Icons.Default.PictureAsPdf,
-                            text = if (isGeneratingPdf) "Generating..." else "Export A4 PDF",
-                            testTag = "engineering_generate_pdf_button"
+                            icon = if (isGeneratingPdf) null else Icons.Default.SaveAlt,
+                            text = if (isGeneratingPdf) "Generating..." else "Save PDF",
+                            testTag = "engineering_save_pdf_storage_button"
                         )
 
-                        if (pdfValidationResult?.fileUri != null) {
-                            TactileButton(
-                                onClick = {
-                                    val uri = pdfValidationResult?.fileUri ?: return@TactileButton
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "application/pdf"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Share Technical Specification PDF"))
-                                },
-                                variant = TactileButtonVariant.SUCCESS,
-                                icon = Icons.Default.Share,
-                                text = "Share",
-                                testTag = "engineering_share_pdf_button"
-                            )
-                        }
+                        TactileButton(
+                            onClick = {
+                                if (pdfValidationResult?.file?.exists() == true) {
+                                    launchSharePdf()
+                                } else {
+                                    pendingSharePdf = true
+                                    configViewModel.generatePdf(context)
+                                }
+                            },
+                            enabled = !isGeneratingPdf,
+                            modifier = Modifier.weight(1f),
+                            variant = TactileButtonVariant.SUCCESS,
+                            icon = Icons.Default.Share,
+                            text = "Share PDF",
+                            testTag = "engineering_share_pdf_button"
+                        )
                     }
                 }
             }
@@ -211,7 +281,7 @@ fun JigEngineeringScreen(
                 }
             }
 
-            // SECTION 13: DEDICATED PRODUCT REFERENCE AREA WITH EXACT SELECTED JIG
+            // SECTION 13: DEDICATED PRODUCT REFERENCE AREA WITH EXACT CUSTOMER-DESIGNED JIG
             TactileCard(
                 modifier = Modifier.fillMaxWidth(),
                 shadowElevation = 2.dp
@@ -228,40 +298,59 @@ fun JigEngineeringScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "PRODUCT REFERENCE",
+                            text = "DESIGNED PRODUCT REFERENCE",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
                             letterSpacing = 0.5.sp
                         )
                         Text(
-                            text = matchedJig.name,
+                            text = "${template.shapeName} • ${currentConfig.weightGrams.toInt()}g",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    // Controlled, medium-sized image preview of the exact selected jig
+                    // Controlled preview displaying the EXACT file / live model the customer configured
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(140.dp)
+                            .height(180.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(Color(0xFFF8FAFC))
                             .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        AsyncImage(
-                            model = matchedJig.localDrawableRes ?: matchedJig.imageUrl,
-                            contentDescription = "Selected Jig: ${matchedJig.name}",
-                            contentScale = ContentScale.Fit,
-                            error = painterResource(id = com.example.R.drawable.jig_orange_black_real),
-                            fallback = painterResource(id = com.example.R.drawable.jig_orange_black_real),
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(8.dp)
-                        )
+                        val successResult = aiResult as? GeminiImageService.GenerationResult.Success
+                        val bitmap = successResult?.bitmap
+                        val imageFile = successResult?.file
+
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Configured ${template.shapeName}",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(8.dp)
+                            )
+                        } else if (imageFile != null && imageFile.exists()) {
+                            AsyncImage(
+                                model = imageFile,
+                                contentDescription = "Configured ${template.shapeName}",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(8.dp)
+                            )
+                        } else {
+                            JigLiveCanvasPreview(
+                                config = currentJigConfig,
+                                activeStep = 10,
+                                showControls = false
+                            )
+                        }
                     }
 
                     Row(
@@ -269,13 +358,13 @@ fun JigEngineeringScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Finish: ${currentConfig.colorName}",
+                            text = "Finish: ${currentConfig.finishType} • Pattern: ${currentConfig.patternType.name.replace('_', ' ')}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp
                         )
                         Text(
-                            text = "Thread: ${currentConfig.threadColor}",
+                            text = "Rigging: ${currentConfig.hookTypeJig}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.SemiBold,
@@ -344,60 +433,79 @@ fun JigEngineeringScreen(
                         .padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Title Bar with Dimension and Grid Toggles
-                    Row(
+                    // Title Bar with Dimension and Grid Toggles - Staged vertically to prevent overflow
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Column {
-                            Text(
-                                text = "DYNAMIC CAD & TECHNICAL DRAWING",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.primary,
-                                letterSpacing = 0.5.sp
-                            )
-                            Text(
-                                text = "First-angle orthographic projection & parametric geometry",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 11.sp
-                            )
-                        }
+                        Text(
+                            text = "DYNAMIC CAD & TECHNICAL DRAWING",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            text = "First-angle orthographic projection & parametric geometry of your configured jig",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp
+                        )
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        // Dedicated, clean toggle controls row with generous spacing
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             FilterChip(
                                 selected = showDimensions,
                                 onClick = { showDimensions = !showDimensions },
-                                label = { Text("Dims", fontSize = 10.5.sp, fontWeight = FontWeight.Bold) },
+                                label = {
+                                    Text(
+                                        text = if (showDimensions) "Dimensions: ON" else "Dimensions: OFF",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1
+                                    )
+                                },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = if (showDimensions) Icons.Default.Straighten else Icons.Default.VisibilityOff,
                                         contentDescription = null,
-                                        modifier = Modifier.size(13.dp)
+                                        modifier = Modifier.size(14.dp)
                                     )
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                     selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
+                                ),
+                                modifier = Modifier.weight(1f)
                             )
+
                             FilterChip(
                                 selected = showGrid,
                                 onClick = { showGrid = !showGrid },
-                                label = { Text("Grid", fontSize = 10.5.sp, fontWeight = FontWeight.Bold) },
+                                label = {
+                                    Text(
+                                        text = if (showGrid) "Grid: ON" else "Grid: OFF",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1
+                                    )
+                                },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = if (showGrid) Icons.Default.GridOn else Icons.Default.GridOff,
                                         contentDescription = null,
-                                        modifier = Modifier.size(13.dp)
+                                        modifier = Modifier.size(14.dp)
                                     )
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                     selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
+                                ),
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }

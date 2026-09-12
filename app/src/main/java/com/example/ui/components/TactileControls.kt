@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -80,12 +81,12 @@ fun TactileButton(
 
     val (surfaceBrush, borderBrush, textColor, rimColor) = when (variant) {
         TactileButtonVariant.PRIMARY -> {
-            val topColor = primaryColor.copy(alpha = 0.95f)
-            val bottomColor = if (MaterialTheme.colorScheme.background == Color(0xFF0B1120)) Color(0xFF0369A1) else Color(0xFF0284C7)
-            val shadowRim = Color(0xFF0369A1)
+            val topColor = primaryColor
+            val bottomColor = primaryColor.copy(alpha = 0.90f)
+            val shadowRim = Color(0xFF071C33)
             Quad(
                 Brush.verticalGradient(listOf(topColor, bottomColor)),
-                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.35f), Color.Transparent)),
+                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.25f), Color.Transparent)),
                 Color.White,
                 shadowRim
             )
@@ -159,24 +160,26 @@ fun TactileButton(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(horizontal = 4.dp)
         ) {
             if (icon != null) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = if (enabled) textColor else textColor.copy(alpha = 0.5f),
-                    modifier = Modifier
-                        .size(15.dp)
-                        .padding(end = 5.dp)
+                    modifier = Modifier.size(15.dp)
                 )
+                Spacer(modifier = Modifier.width(6.dp))
             }
             Text(
                 text = text,
                 color = if (enabled) textColor else textColor.copy(alpha = 0.5f),
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.5.sp,
-                letterSpacing = 0.3.sp
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 11.5.sp,
+                letterSpacing = 0.2.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

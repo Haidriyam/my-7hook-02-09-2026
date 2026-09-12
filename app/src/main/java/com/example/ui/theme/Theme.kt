@@ -7,15 +7,15 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Luxury Industrial Light Palette
+// Luxury Industrial Light Palette - Dark Blue Precision
 val LightBackground = Color(0xFFF8FAFC)
 val LightSurface = Color(0xFFFFFFFF)
 val LightSurfaceVariant = Color(0xFFF1F5F9)
 val LightSurfaceContainer = Color(0xFFF4F6F9)
-val LightPrimary = Color(0xFF0284C7) // Precision Blue
+val LightPrimary = Color(0xFF0E3A68) // Deep Industrial Navy Dark Blue
 val LightOnPrimary = Color(0xFFFFFFFF)
-val LightPrimaryContainer = Color(0xFFE0F2FE)
-val LightOnPrimaryContainer = Color(0xFF0369A1)
+val LightPrimaryContainer = Color(0xFFE2EBF5) // Soft Steel Mist Tint
+val LightOnPrimaryContainer = Color(0xFF071C33) // Ultra Deep Marine Navy
 val LightSecondary = Color(0xFFEA580C) // Performance Blaze Orange
 val LightOnSecondary = Color(0xFFFFFFFF)
 val LightSecondaryContainer = Color(0xFFFFEDD5)
@@ -33,10 +33,10 @@ val DarkBackground = Color(0xFF0B1120) // Deep Night Graphite
 val DarkSurface = Color(0xFF1E293B) // Dark Slate
 val DarkSurfaceVariant = Color(0xFF334155) // Metallic Charcoal
 val DarkSurfaceContainer = Color(0xFF162032)
-val DarkPrimary = Color(0xFF38BDF8) // Electric Cyan
-val DarkOnPrimary = Color(0xFF082F49)
-val DarkPrimaryContainer = Color(0xFF075985)
-val DarkOnPrimaryContainer = Color(0xFFE0F2FE)
+val DarkPrimary = Color(0xFF2563EB) // High-Contrast Technical Blue in dark theme
+val DarkOnPrimary = Color(0xFFFFFFFF)
+val DarkPrimaryContainer = Color(0xFF0E3A68) // Deep Navy Dark Blue
+val DarkOnPrimaryContainer = Color(0xFFE2EBF5)
 val DarkSecondary = Color(0xFFFB923C) // Warm Amber Orange
 val DarkOnSecondary = Color(0xFF431407)
 val DarkSecondaryContainer = Color(0xFF7C2D12)
@@ -52,8 +52,8 @@ val DarkOutlineVariant = Color(0xFF334155)
 // Metallic & Tactile Accent Constants
 val MetallicHighlight = Color(0x33FFFFFF)
 val MetallicShadow = Color(0x40000000)
-val TechGridColorLight = Color(0x180284C7)
-val TechGridColorDark = Color(0x2238BDF8)
+val TechGridColorLight = Color(0x180E3A68)
+val TechGridColorDark = Color(0x222563EB)
 
 private val DarkColorScheme = darkColorScheme(
     primary = DarkPrimary,

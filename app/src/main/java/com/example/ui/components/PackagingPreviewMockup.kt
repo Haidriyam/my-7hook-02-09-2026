@@ -1191,7 +1191,7 @@ private fun DielineBlueprintView(
             .fillMaxSize()
             .clip(RoundedCornerShape(8.dp))
             .background(Color(0xFF021329))
-            .border(1.dp, Color(0xFF0284C7).copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+            .border(1.dp, Color(0xFF0E3A68).copy(alpha = 0.8f), RoundedCornerShape(8.dp))
             .padding(10.dp)
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {

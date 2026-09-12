@@ -196,11 +196,11 @@ private fun JigOrthographicCanvasLegacy(
                 val lStart = Offset(ringCenterX, frontY - frontRingR)
                 val lMid = Offset(ringCenterX - 12.dp.toPx(), frontY - frontRingR - 8.dp.toPx())
                 val lEnd = Offset(ringCenterX - 42.dp.toPx(), frontY - frontRingR - 8.dp.toPx())
-                drawLine(Color(0xFF0284C7), lStart, lMid, strokeWidth = 1.dp.toPx())
-                drawLine(Color(0xFF0284C7), lMid, lEnd, strokeWidth = 1.dp.toPx())
+                drawLine(Color(0xFF0E3A68), lStart, lMid, strokeWidth = 1.dp.toPx())
+                drawLine(Color(0xFF0E3A68), lMid, lEnd, strokeWidth = 1.dp.toPx())
                 val calloutText = textMeasurer.measure(
                     AnnotatedString("FRONT RING: ${config.frontRing.uppercase()}"),
-                    style = TextStyle(color = Color(0xFF0284C7), fontSize = 6.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                    style = TextStyle(color = Color(0xFF0E3A68), fontSize = 6.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
                 )
                 drawText(calloutText, topLeft = Offset(lEnd.x, lEnd.y - 8.dp.toPx()))
             }
@@ -215,11 +215,11 @@ private fun JigOrthographicCanvasLegacy(
                 val lStart = Offset(ringCenterX, frontY - backRingR)
                 val lMid = Offset(ringCenterX + 12.dp.toPx(), frontY - backRingR - 8.dp.toPx())
                 val lEnd = Offset(ringCenterX + 42.dp.toPx(), frontY - backRingR - 8.dp.toPx())
-                drawLine(Color(0xFF0284C7), lStart, lMid, strokeWidth = 1.dp.toPx())
-                drawLine(Color(0xFF0284C7), lMid, lEnd, strokeWidth = 1.dp.toPx())
+                drawLine(Color(0xFF0E3A68), lStart, lMid, strokeWidth = 1.dp.toPx())
+                drawLine(Color(0xFF0E3A68), lMid, lEnd, strokeWidth = 1.dp.toPx())
                 val calloutText = textMeasurer.measure(
                     AnnotatedString("BACK RING: ${config.backRing.uppercase()}"),
-                    style = TextStyle(color = Color(0xFF0284C7), fontSize = 6.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                    style = TextStyle(color = Color(0xFF0E3A68), fontSize = 6.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
                 )
                 drawText(calloutText, topLeft = Offset(lMid.x, lEnd.y - 8.dp.toPx()))
             }
@@ -231,10 +231,10 @@ private fun JigOrthographicCanvasLegacy(
             // Cutting Plane A-A Indicator
             val cutX1 = leftColX - halfL - 10.dp.toPx()
             val cutX2 = leftColX + halfL + 10.dp.toPx()
-            drawLine(Color(0xFF0284C7), Offset(cutX1, frontY - halfW - 4.dp.toPx()), Offset(cutX1, frontY + halfW + 4.dp.toPx()), strokeWidth = 1.5.dp.toPx())
-            drawLine(Color(0xFF0284C7), Offset(cutX2, frontY - halfW - 4.dp.toPx()), Offset(cutX2, frontY + halfW + 4.dp.toPx()), strokeWidth = 1.5.dp.toPx())
-            drawArrow(this, Offset(cutX1, frontY + halfW + 4.dp.toPx()), isPointingRight = true, color = Color(0xFF0284C7))
-            drawArrow(this, Offset(cutX2, frontY + halfW + 4.dp.toPx()), isPointingRight = true, color = Color(0xFF0284C7))
+            drawLine(Color(0xFF0E3A68), Offset(cutX1, frontY - halfW - 4.dp.toPx()), Offset(cutX1, frontY + halfW + 4.dp.toPx()), strokeWidth = 1.5.dp.toPx())
+            drawLine(Color(0xFF0E3A68), Offset(cutX2, frontY - halfW - 4.dp.toPx()), Offset(cutX2, frontY + halfW + 4.dp.toPx()), strokeWidth = 1.5.dp.toPx())
+            drawArrow(this, Offset(cutX1, frontY + halfW + 4.dp.toPx()), isPointingRight = true, color = Color(0xFF0E3A68))
+            drawArrow(this, Offset(cutX2, frontY + halfW + 4.dp.toPx()), isPointingRight = true, color = Color(0xFF0E3A68))
 
             // Front Dimensions
             drawHorizontalDimension(
@@ -284,7 +284,7 @@ private fun JigOrthographicCanvasLegacy(
 
             // Spine / Keel Ridge Line
             drawLine(
-                color = Color(0xFF0284C7),
+                color = Color(0xFF0E3A68),
                 start = Offset(leftColX - halfL + 6.dp.toPx(), topY),
                 end = Offset(leftColX + halfL - 6.dp.toPx(), topY),
                 strokeWidth = 1.2.dp.toPx()
@@ -571,7 +571,7 @@ private fun LureOrthographicCanvasLegacy(
                 close()
             }
             drawPath(lipPath, color = Color(0x99E2E8F0))
-            drawPath(lipPath, color = Color(0xFF0284C7), style = Stroke(1.5.dp.toPx()))
+            drawPath(lipPath, color = Color(0xFF0E3A68), style = Stroke(1.5.dp.toPx()))
 
             // Eye & Belly Treble Eyelet
             drawCircle(Color.White, radius = 3.5.dp.toPx(), center = Offset(frontCenterX - halfL + 12.dp.toPx() * scaleL, frontCenterY - 3.dp.toPx()))
@@ -806,7 +806,7 @@ fun RodOrthographicCanvas(
                     endX, flexY + flexDrop
                 )
             }
-            drawPath(flexPath, color = Color(0xFF0284C7), style = Stroke(width = 2.dp.toPx()))
+            drawPath(flexPath, color = Color(0xFF0E3A68), style = Stroke(width = 2.dp.toPx()))
 
             // -------------------------------------------------------------
             // ENGINEERING TITLE BLOCK
@@ -833,7 +833,7 @@ fun RodOrthographicCanvas(
 
 private fun DrawScope.drawDraftingGrid(w: Float, h: Float) {
     val gridSpacing = 20.dp.toPx()
-    val gridColor = Color(0x150284C7)
+    val gridColor = Color(0x150E3A68)
     var x = 0f
     while (x <= w) {
         drawLine(gridColor, Offset(x, 0f), Offset(x, h), strokeWidth = 1f)
@@ -863,7 +863,7 @@ private fun DrawScope.drawViewLabel(measurer: TextMeasurer, label: String, pos: 
     val res = measurer.measure(
         AnnotatedString(label),
         style = TextStyle(
-            color = Color(0xFF0284C7),
+            color = Color(0xFF0E3A68),
             fontSize = 8.5.sp,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold
@@ -995,7 +995,7 @@ private fun DrawScope.drawEngineeringTitleBlock(
     // Row 3: Ref & Rev
     val b4 = measurer.measure(
         AnnotatedString("REF: $refNo | REV A.02"),
-        style = TextStyle(color = Color(0xFF0284C7), fontSize = 7.5.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+        style = TextStyle(color = Color(0xFF0E3A68), fontSize = 7.5.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
     )
     drawText(b4, topLeft = Offset(startX + 4.dp.toPx(), startY + 48.dp.toPx()))
 }

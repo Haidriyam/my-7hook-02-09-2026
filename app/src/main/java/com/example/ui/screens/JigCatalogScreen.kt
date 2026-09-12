@@ -326,11 +326,11 @@ private fun SectionHeader(title: String, badge: String) {
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace,
-            color = Color(0xFF0284C7)
+            color = MaterialTheme.colorScheme.primary
         )
         Surface(
             shape = RoundedCornerShape(6.dp),
-            color = Color(0xFFE0F2FE)
+            color = MaterialTheme.colorScheme.primaryContainer
         ) {
             Text(
                 text = badge,
@@ -338,7 +338,7 @@ private fun SectionHeader(title: String, badge: String) {
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
-                color = Color(0xFF0369A1)
+                color = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     }

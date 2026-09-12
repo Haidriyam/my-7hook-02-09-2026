@@ -320,7 +320,7 @@ fun RodBreakageAnimation(
             FilledTonalButton(
                 onClick = { isPlaying = !isPlaying },
                 colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = if (isPlaying) Color(0xFF0284C7) else Color(0xFF334155),
+                    containerColor = if (isPlaying) Color(0xFF0E3A68) else Color(0xFF334155),
                     contentColor = Color.White
                 ),
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),

@@ -129,7 +129,7 @@ fun VisualQaScreen(
                                         fontFamily = FontFamily.Monospace
                                     )
                                     Surface(
-                                        color = Color(0xFF0284C7),
+                                        color = Color(0xFF0E3A68),
                                         shape = RoundedCornerShape(4.dp)
                                     ) {
                                         Text(
@@ -220,7 +220,7 @@ fun VisualQaScreen(
                                     )
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color(0xFF0284C7),
+                                    selectedContainerColor = Color(0xFF0E3A68),
                                     selectedLabelColor = Color.White,
                                     containerColor = Color(0xFF334155),
                                     labelColor = Color(0xFFE2E8F0)
@@ -549,7 +549,7 @@ private fun A4PdfVisualInspector(
 
                 Button(
                     onClick = onToggleWeight,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0E3A68)),
                     shape = RoundedCornerShape(6.dp),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                 ) {
@@ -587,7 +587,7 @@ private fun A4PdfVisualInspector(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Canvas(modifier = Modifier.size(36.dp)) {
-                            drawCircle(Color(0xFF0284C7), radius = size.minDimension / 2.2f)
+                            drawCircle(Color(0xFF0E3A68), radius = size.minDimension / 2.2f)
                             drawCircle(Color(0xFFEA580C), radius = size.minDimension / 4f, style = Stroke(width = 2.dp.toPx()))
                         }
                         Column {
@@ -626,7 +626,7 @@ private fun A4PdfVisualInspector(
                             Text(
                                 text = "ISO A4 COMPLIANT SPEC",
                                 fontSize = 7.sp,
-                                color = Color(0xFF0284C7),
+                                color = Color(0xFF0E3A68),
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -634,7 +634,7 @@ private fun A4PdfVisualInspector(
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
-                HorizontalDivider(color = Color(0xFF0284C7), thickness = 2.dp)
+                HorizontalDivider(color = Color(0xFF0E3A68), thickness = 2.dp)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Title Block
@@ -657,7 +657,7 @@ private fun A4PdfVisualInspector(
                         )
                     }
                     Surface(
-                        color = Color(0xFF0284C7),
+                        color = Color(0xFF0E3A68),
                         shape = RoundedCornerShape(2.dp)
                     ) {
                         Text(
@@ -694,7 +694,7 @@ private fun A4PdfVisualInspector(
                     text = "SPECIFICATION MATRIX",
                     fontSize = 8.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0284C7)
+                    color = Color(0xFF0E3A68)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
 

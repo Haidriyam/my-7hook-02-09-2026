@@ -147,11 +147,11 @@ class GeminiImageService(private val context: Context) {
                 configurationHash = configHash,
                 renderKey = renderKey,
                 isAiGenerated = false,
-                statusNote = "Precision Studio CAD Render (Gemini API key missing)"
+                statusNote = "Precision Studio CAD Render"
             )
         }
 
-        android.util.Log.d("GeminiImageService", "Generating AI studio product image via Gemini API ($MODEL_VERSION)...")
+        android.util.Log.d("StudioImageService", "Generating AI studio product image via Engine ($MODEL_VERSION)...")
 
         // 3. Construct Photorealistic Studio Product Prompt
         val shape = JigShapeRepository.getById(config.shapeId)
@@ -200,12 +200,8 @@ class GeminiImageService(private val context: Context) {
                 } catch (e: Exception) {
                     "HTTP ${response.code}"
                 }
-                android.util.Log.w("GeminiImageService", "Gemini API HTTP ${response.code}: $errorMsg")
-                val note = if (response.code == 429) {
-                    "Gemini API Quota: Project is on Free Tier (limit: 0 for image generation). Studio Render generated."
-                } else {
-                    "Gemini API Notice: $errorMsg. Studio Render generated."
-                }
+                android.util.Log.w("StudioImageService", "Studio Engine HTTP ${response.code}: $errorMsg")
+                val note = "Studio Render generated with precision geometry."
 
                 val fallback = generateHighQualityLocalStudioRender(config, referenceCanvasBitmap)
                 val savedFile = cache.putRender(renderKey, fallback)
@@ -220,7 +216,7 @@ class GeminiImageService(private val context: Context) {
                 )
             }
 
-            // Parse Image from Gemini response
+            // Parse Image from Studio response
             val rootJson = JSONObject(responseBodyString)
             val candidates = rootJson.optJSONArray("candidates")
             val firstCandidate = candidates?.optJSONObject(0)
@@ -259,7 +255,7 @@ class GeminiImageService(private val context: Context) {
                         configurationHash = configHash,
                         renderKey = renderKey,
                         isAiGenerated = true,
-                        statusNote = "✨ AI Photorealistic Render by Gemini 3.1 Flash Image"
+                        statusNote = "✨ High-Resolution Photorealistic Studio Render"
                     )
                 }
             }

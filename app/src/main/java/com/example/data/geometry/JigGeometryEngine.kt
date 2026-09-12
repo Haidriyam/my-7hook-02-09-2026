@@ -132,8 +132,12 @@ object JigGeometryEngine {
         // 1. Direct template match from repository
         val template = com.example.data.model.JigShapeRepository.shapes.find {
             it.shapeId.equals(id, ignoreCase = true) ||
+            name.startsWith(it.shapeName.lowercase(), ignoreCase = true) ||
+            name.contains(it.shapeName.lowercase(), ignoreCase = true) ||
             it.shapeName.equals(name, ignoreCase = true) ||
-            id.contains(it.shapeId, ignoreCase = true)
+            id == it.shapeId ||
+            id.contains(it.shapeId, ignoreCase = true) ||
+            model.contains(it.shapeId, ignoreCase = true)
         }
         if (template != null) {
             return template.silhouetteType
